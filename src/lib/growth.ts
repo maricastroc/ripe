@@ -28,9 +28,9 @@ export function computeGrowth(task: GrowthInput): Growth {
 }
 
 export const STAGES: { id: Stage; name: string; hint: string }[] = [
-  { id: "seed", name: "Seed", hint: "Planted, the request hasn't been read yet" },
+  { id: "seed", name: "Seed", hint: "Planted. The agent hasn't read it yet" },
   { id: "sprout", name: "Sprout", hint: "The agent understood what you want" },
-  { id: "leafing", name: "Leaves", hint: "There's a path, one step at a time" },
+  { id: "leafing", name: "Leaves", hint: "The work is split into steps" },
   { id: "blossom", name: "Blossom", hint: "The first piece of work is ready" },
   { id: "fruit", name: "Fruit", hint: "Most of the work is done" },
   { id: "ripe", name: "Ripe", hint: "Everything written and reviewed" },

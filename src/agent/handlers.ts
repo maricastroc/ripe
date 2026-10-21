@@ -143,8 +143,10 @@ async function plan(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Mapped a path in ${steps.length} steps: ${steps.map((s) => s.title.trim()).join(" → ")}.${
-      essential.length ? " I'll do the early ones with markers; the final version waits for what's essential." : ""
+    `Mapped out ${steps.length} steps: ${steps.map((s) => s.title.trim()).join(" → ")}.${
+      essential.length
+        ? " The early steps can go ahead with gaps marked. The final version waits for the essential answers."
+        : ""
     }`,
     job.id,
   );
@@ -152,7 +154,7 @@ async function plan(job: Job, ctx: JobContext): Promise<JobOutcome> {
 }
 
 async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
-  if (!job.stepId) throw new Error("writing job without a step");
+  if (!job.stepId) throw new Error("this writing job has no step");
   const { task, brief } = await loadBrief(job.taskId);
   const steps = await db.step.findMany({
     where: { taskId: task.id },
@@ -160,7 +162,7 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
     include: { artifact: true },
   });
   const step = steps.find((s) => s.id === job.stepId);
-  if (!step) throw new Error("step not found");
+  if (!step) throw new Error("the step no longer exists");
   const prior = steps
     .filter((s) => s.position < step.position && s.artifact)
     .map((s) => ({ title: s.title, content: s.artifact!.content }));
@@ -205,8 +207,8 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Finished “${step.title}” — ${countWords(content)} words.${gapNote(content)}${
-      res.truncated ? " The text hit the length limit; worth checking the ending." : ""
+    `Finished “${step.title}” (${countWords(content)} words).${gapNote(content)}${
+      res.truncated ? " It hit the length limit, so check the ending." : ""
     }`,
     job.id,
   );
@@ -215,8 +217,8 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
 
 const VERDICT: Record<Review["verdict"], string> = {
   ready: "Ready to use, with small tweaks",
-  almost: "Almost there — needs a few additions",
-  draft: "A good base, still a draft",
+  almost: "Almost there, but it needs a few additions",
+  draft: "A good base, but still a draft",
 };
 
 function reviewMarkdown(review: Review) {
@@ -285,7 +287,7 @@ async function review(job: Job, ctx: JobContext): Promise<JobOutcome> {
 }
 
 async function revise(job: Job, ctx: JobContext): Promise<JobOutcome> {
-  if (!job.artifactId) throw new Error("rewrite without material");
+  if (!job.artifactId) throw new Error("there's no piece to rewrite");
   const { task, brief } = await loadBrief(job.taskId);
   const artifact = await db.artifact.findUniqueOrThrow({ where: { id: job.artifactId } });
   const instruction =
@@ -316,7 +318,7 @@ async function revise(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Rewrote “${artifact.title}”${job.instruction ? ` following: “${job.instruction.trim()}”` : " with your answers"}.${gapNote(content)}`,
+    `Rewrote “${artifact.title}”${job.instruction ? ` as asked: “${job.instruction.trim()}”` : " with your answers"}.${gapNote(content)}`,
     job.id,
   );
   return { tokens: res.tokens };

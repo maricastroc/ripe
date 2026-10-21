@@ -60,7 +60,6 @@ export function Actions({ task, busy, onDefer, onPause, onRetry, onHarvest, onRe
           </button>
           <button type="button" disabled={busy} className={secondary} onClick={onPause}>
             <Pause className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            <Pause className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
             Pause
           </button>
         </>
@@ -73,13 +72,13 @@ export function Actions({ task, busy, onDefer, onPause, onRetry, onHarvest, onRe
       )}
       {s === "ripe" && !task.isExample && (
         <p className="w-full text-[12.5px] leading-snug text-ink-3">
-          Harvesting marks the task as done. The materials stay readable in the pantry.
+          Harvesting marks the task as done. You can still read everything from the pantry.
         </p>
       )}
       {s === "harvested" && (
         <button type="button" disabled={busy} className={secondary} onClick={onReplant}>
           <Undo2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-          Back to the greenhouse bed
+          Replant
         </button>
       )}
       <Dialog.Root open={confirm} onOpenChange={setConfirm}>
@@ -92,7 +91,8 @@ export function Actions({ task, busy, onDefer, onPause, onRetry, onHarvest, onRe
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-line bg-surface p-7 shadow-2xl">
             <Dialog.Title className="font-display text-2xl tracking-tight">Pull out this plant?</Dialog.Title>
             <Dialog.Description className="mt-2 text-[15px] leading-relaxed text-ink-2">
-              “{task.title}” and all its materials, answers and journal will be deleted. This can’t be undone.
+              This deletes “{task.title}” along with everything the agent wrote, your answers and the journal. You can’t
+              undo it.
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-2">
               <Dialog.Close className={secondary}>Keep it</Dialog.Close>

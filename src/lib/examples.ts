@@ -6,7 +6,7 @@ const STEPS = [
     description: "Skeleton of the sections the proposal needs.",
     output: "outline",
     content: `## 1. Summary
-- What the garden is, where it is and who takes part (3–4 lines).
+- What the garden is, where it is and who takes part (three or four lines).
 
 ## 2. Problem
 - Vacant lot on [[TBD: street or square name]].
@@ -57,10 +57,10 @@ For years the lot on [[TBD: street or square name]] has been unused. It collects
 
 ## Timeline
 
-- [ ] **Month 1** — clean-up day and residents' meeting
-- [ ] **Month 2** — build the beds and install irrigation
-- [ ] **Month 3** — first planting and care rota
-- [ ] **Months 4 to 6** — monthly workshops and first harvest`,
+- [ ] **Month 1:** clean-up day and residents' meeting
+- [ ] **Month 2:** build the beds and install irrigation
+- [ ] **Month 3:** first planting and care rota
+- [ ] **Months 4 to 6:** monthly workshops and first harvest`,
   },
   {
     title: "Full proposal",
@@ -88,7 +88,7 @@ The budget covers preparing the lot, supplies, tools, irrigation and workshops, 
   },
 ];
 
-const REVIEW = `**Verdict:** Almost there — needs a few additions.
+const REVIEW = `**Verdict:** Almost there, but it needs a few additions.
 
 The proposal has a clear structure and a budget that matches the stated cap. Two details that only you know are still missing before it can be submitted.
 
@@ -185,7 +185,7 @@ export async function createExample() {
       {
         taskId: task.id,
         kind: "info",
-        message: "This is an illustrative example, written by hand to show the result. Nothing here was generated now.",
+        message: "This is an illustrative example. It was written by hand, and the agent didn't generate any of it.",
         createdAt: at(190),
       },
       {
@@ -194,14 +194,19 @@ export async function createExample() {
         message: "Understood the request. A complete proposal for the grant.",
         createdAt: at(187),
       },
-      { taskId: task.id, kind: "done", message: "Mapped a path in 4 steps.", createdAt: at(185) },
+      { taskId: task.id, kind: "done", message: "Mapped out 4 steps.", createdAt: at(185) },
       {
         taskId: task.id,
         kind: "done",
-        message: "Finished “Full proposal” — left 2 gaps marked instead of making things up.",
+        message: "Finished “Full proposal”. Left 2 gaps marked instead of making things up.",
         createdAt: at(165),
       },
-      { taskId: task.id, kind: "done", message: "Ripe. Everything written and reviewed.", createdAt: at(160) },
+      {
+        taskId: task.id,
+        kind: "done",
+        message: "Ripe. Everything is written and reviewed, ready for when you come back.",
+        createdAt: at(160),
+      },
     ],
   });
 

@@ -72,9 +72,9 @@ export async function advance(taskId: string) {
     if ((await jobsUsed(taskId)) >= LIMITS.jobBudget) {
       await db.task.update({
         where: { id: taskId },
-        data: { status: "stalled", stallReason: "This task reached its work budget." },
+        data: { status: "stalled", stallReason: `This task used up its ${LIMITS.jobBudget} agent runs.` },
       });
-      await logEvent(taskId, "error", `Stopped: this task has used its limit of ${LIMITS.jobBudget} runs.`);
+      await logEvent(taskId, "error", `Stopped. This task has used all ${LIMITS.jobBudget} of its runs.`);
       return;
     }
     if (task.status !== "ripening") await db.task.update({ where: { id: taskId }, data: { status: "ripening" } });
@@ -92,9 +92,9 @@ export async function advance(taskId: string) {
       await logEvent(
         taskId,
         "warn",
-        `I did everything I could without you. To continue with ${blocked
-          .map((s) => `“${s.title}”`)
-          .join(", ")}, I need to know: ${needed.map((q) => q.text).join(" · ")}`,
+        `I've done everything I can without you. To write ${new Intl.ListFormat("en").format(
+          blocked.map((s) => `“${s.title}”`),
+        )}, I need to know: ${needed.map((q) => q.text).join(" · ")}`,
       );
     }
     return;
@@ -106,6 +106,6 @@ export async function advance(taskId: string) {
       data: { status: "ripe", ripeAt: task.ripeAt ?? new Date(), stallReason: null },
     });
     if (!task.ripeAt)
-      await logEvent(taskId, "done", "Ripe. Everything written and reviewed — ready for when you come back.");
+      await logEvent(taskId, "done", "Ripe. Everything is written and reviewed, ready for when you come back.");
   }
 }

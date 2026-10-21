@@ -50,7 +50,7 @@ function OpenQuestion({
         {q.why}
       </p>
       {disabled ? (
-        <p className="mt-2 text-[14px] italic text-ink-3">No answer.</p>
+        <p className="mt-2 text-[14px] italic text-ink-3">Not answered.</p>
       ) : (
         <form
           className="mt-3"
@@ -71,7 +71,7 @@ function OpenQuestion({
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
             }}
-            placeholder="Say it your way, short is fine."
+            placeholder="In your own words. Short is fine."
             className="focus-ring block w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-[15px] leading-relaxed placeholder:text-ink-3 focus:border-line-2 focus:outline-none"
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-3">
@@ -107,14 +107,14 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
   return (
     <section aria-labelledby="questions-title">
       <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 id="questions-title" className="label">
-          {essential ? "I need you" : open.length ? "if you want to fill it in" : "what you told me"}
+        <h2 id="questions-title" className="label shrink-0 whitespace-nowrap">
+          {essential ? "questions for you" : open.length ? "optional questions" : "your answers"}
         </h2>
         {open.length > 0 && (
           <span className="text-right text-[13px] text-ink-3">
             {essential
-              ? `${open.length} ${open.length === 1 ? "question" : "questions"} · I won't make these answers up`
-              : "optional · answering fills the gaps the agent left marked"}
+              ? `${open.length} ${open.length === 1 ? "question" : "questions"} · the agent won't guess ${open.length === 1 ? "this one" : "these"}`
+              : "your answers fill the gaps the agent marked"}
           </span>
         )}
       </div>
@@ -134,7 +134,7 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] text-ink-2">{q.text}</p>
                 <p className={`mt-0.5 text-[15px] ${q.status === "answered" ? "text-ink" : "italic text-ink-3"}`}>
-                  {q.status === "answered" ? q.answer : "going on without it — it stays marked as a gap"}
+                  {q.status === "answered" ? q.answer : "skipped, so it stays marked as a gap"}
                 </p>
               </div>
               {!disabled && (

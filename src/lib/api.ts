@@ -21,7 +21,7 @@ export async function api<T>(
       signal: init?.signal,
     });
   } catch {
-    throw new ApiError("Can't reach the Ripe server.", 0);
+    throw new ApiError("Can't reach Ripe. Is the server still running?", 0);
   }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status);

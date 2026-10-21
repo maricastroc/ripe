@@ -6,7 +6,7 @@ export function Understanding({ task }: { task: TaskDetail }) {
   return (
     <section aria-labelledby="understood-title">
       <h2 id="understood-title" className="label mb-3">
-        what I understood
+        what the agent understood
       </h2>
       <p className="font-display text-[1.3rem] leading-snug tracking-tight text-ink">{task.outcome}</p>
       <dl className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -23,12 +23,12 @@ export function Understanding({ task }: { task: TaskDetail }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-[14.5px] italic text-ink-3">Just the request itself — no extra details.</p>
+              <p className="text-[14.5px] italic text-ink-3">Only the request itself, no extra details.</p>
             )}
           </dd>
         </div>
         <div>
-          <dt className="text-[13px] text-ink-3">What I assumed to move forward</dt>
+          <dt className="text-[13px] text-ink-3">What it assumed to keep going</dt>
           <dd className="mt-1.5">
             {task.assumptions.length ? (
               <ul className="space-y-1 text-[14.5px] leading-snug text-ink-2">

@@ -174,7 +174,7 @@ export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Pro
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-2 text-[#3d2c1c]">
-          <span className="typewriter text-[11px] uppercase tracking-[0.12em]">collect</span>
+          <span className="typewriter whitespace-nowrap text-[11px] uppercase tracking-[0.12em]">I&apos;ll be</span>
           <ReturnPicker value={returnId} onChange={setReturnId} />
         </div>
 

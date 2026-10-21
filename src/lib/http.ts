@@ -8,8 +8,11 @@ export async function respond(work: () => Promise<unknown>) {
   } catch (err) {
     if (err instanceof NotFound) return Response.json({ error: err.message }, { status: 404 });
     if (err instanceof Invalid) return Response.json({ error: err.message }, { status: 400 });
-    if (err instanceof ZodError) return Response.json({ error: "Invalid data" }, { status: 400 });
+    if (err instanceof ZodError) return Response.json({ error: "Ripe couldn't read that request." }, { status: 400 });
     console.error("[ripe] api error", err);
-    return Response.json({ error: "Something went wrong on our side." }, { status: 500 });
+    return Response.json(
+      { error: "Something broke on the server. The details are in the terminal running Ripe." },
+      { status: 500 },
+    );
   }
 }

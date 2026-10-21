@@ -31,7 +31,7 @@ export function usePolling<T>(url: string, initial: T, interval: (data: T) => nu
       setError(null);
     } catch (err) {
       if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : "Falha ao atualizar");
+      setError(err instanceof Error ? err.message : "Couldn't refresh.");
     }
   }, [url, apply]);
 

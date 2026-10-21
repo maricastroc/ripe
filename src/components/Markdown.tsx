@@ -22,7 +22,7 @@ export function Markdown({ content, className }: { content: string; className?: 
           a({ href, children }) {
             if (href === GAP_HREF) {
               return (
-                <mark className="gap-chip" title="Information the agent did not make up">
+                <mark className="gap-chip" title="The agent left this blank instead of guessing">
                   TBD: {children}
                 </mark>
               );

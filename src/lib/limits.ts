@@ -19,9 +19,9 @@ export const PACE_MS: Record<Pace, number> = {
 };
 
 export const PACE_LABEL: Record<Pace, string> = {
-  calm: "Calm — rests 30s between steps",
-  steady: "Steady — rests 6s between steps",
-  brisk: "Brisk — barely pauses",
+  calm: "Calm: a 30-second rest between steps",
+  steady: "Steady: a 6-second rest between steps",
+  brisk: "Brisk: hardly any rest",
 };
 
 export const NUM_PREDICT = {

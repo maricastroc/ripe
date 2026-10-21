@@ -37,16 +37,16 @@ function agentLine(agent: AgentStatus) {
     case "resting":
       return { text: "resting between steps", tone: "text-[#d9f27a]" };
     case "offline":
-      return { text: "Ollama is off — run ollama serve", tone: "text-[#ff9b7a]" };
+      return { text: "Ollama is off. Run ollama serve", tone: "text-[#ff9b7a]" };
     case "model-missing":
-      return { text: `model missing — ollama pull ${agent.settings.model}`, tone: "text-[#ff9b7a]" };
+      return { text: `model not installed. Run ollama pull ${agent.settings.model}`, tone: "text-[#ff9b7a]" };
     case "stopped":
       return { text: "not responding", tone: "text-[#ff9b7a]" };
     case "starting":
       return { text: "waking up", tone: "text-[#efe3c7]" };
     default:
       return {
-        text: agent.queued ? `${agent.queued} step${agent.queued > 1 ? "s" : ""} queued` : "dormant, listening",
+        text: agent.queued ? `${agent.queued} step${agent.queued > 1 ? "s" : ""} queued` : "idle, nothing to feed",
         tone: "text-[#efe3c7]",
       };
   }
@@ -164,8 +164,8 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
               Leave it for later. <span className="font-display-wonk italic">It ripens here.</span>
             </motion.h1>
             <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-scene-ink sm:text-[15.5px]">
-              Sow what you keep putting off. The mycelium under the soil — an open model running on this machine — works
-              on it in small, saved steps. A plant only grows when real work is done.
+              Sow what you keep putting off. The mycelium under the soil is an open model running on this machine. It
+              works on each task in small steps and saves as it goes, so a plant only grows when real work gets done.
             </p>
             {plants.length > 0 && (
               <p className="typewriter mt-3 text-[12px] text-scene-ink-2">
@@ -288,8 +288,8 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                           Nothing is growing yet. <span className="italic">The soil is ready.</span>
                         </p>
                         <p className="mt-2 max-w-md text-[14px] leading-relaxed text-scene-ink-2">
-                          Write something on the seed packet. When you leave it for later, the mycelium starts feeding
-                          it — and you&apos;ll watch it sprout, branch and fruit as each piece of work gets done.
+                          Write something on the seed packet and leave it for later. The mycelium starts feeding it
+                          right away, and the plant sprouts, branches and fruits as each piece of work gets done.
                         </p>
                         <div className="mt-4 flex flex-wrap gap-2">
                           {SUGGESTIONS.map((s) => (
@@ -308,7 +308,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                           onClick={example}
                           className="focus-ring mt-4 self-start text-[13px] text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink"
                         >
-                          or open a ripe example, drawn by hand for the demo
+                          or open a ripe example, written by hand for the demo
                         </button>
                       </div>
                     );

@@ -35,7 +35,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
     try {
       onChange(await api<AgentStatus>("/api/agent", { method: "PUT", body: patch }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save");
+      setError(err instanceof Error ? err.message : "Couldn't save the settings.");
     } finally {
       setSaving(false);
     }
@@ -69,7 +69,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                   <div>
                     <p className="label">local agent</p>
                     <Dialog.Title className="mt-1 font-display text-3xl tracking-tight">
-                      Who tends the garden
+                      Who tends the greenhouse
                     </Dialog.Title>
                   </div>
                   <Dialog.Close
@@ -80,15 +80,15 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                   </Dialog.Close>
                 </div>
                 <Dialog.Description className="mt-3 text-[15px] leading-relaxed text-ink-2">
-                  An open-weight model running on Ollama, on this machine. It does one small step at a time, saves the
-                  result and rests before the next one. No text ever leaves your computer.
+                  An open-weight model running in Ollama on this machine. It takes one small step at a time, saves the
+                  result and rests before the next. Nothing you write leaves your computer.
                 </Dialog.Description>
 
                 {(agent.mode === "offline" || agent.mode === "stopped") && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
                     <p className="font-medium">Ollama is not responding at {settings.baseUrl}.</p>
                     <p className="mt-1 text-ink-2">
-                      Tasks stay saved in the queue. As soon as it’s back, the work continues on its own.
+                      Your tasks wait in the queue, and the work picks up again as soon as Ollama is back.
                     </p>
                     <Command>ollama serve</Command>
                   </div>
@@ -124,7 +124,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                           aria-pressed={active}
                         >
                           {m}
-                          {!installed && <span className="ml-1.5 opacity-60">· missing</span>}
+                          {!installed && <span className="ml-1.5 opacity-60">· not installed</span>}
                         </button>
                       );
                     })}
@@ -216,7 +216,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                     type="button"
                     role="switch"
                     aria-checked={!settings.paused}
-                    aria-label="Activate or pause the agent"
+                    aria-label="Pause or resume the agent"
                     disabled={saving}
                     onClick={() => save({ paused: !settings.paused })}
                     className={`focus-ring relative h-7 w-12 shrink-0 rounded-full transition-colors ${settings.paused ? "bg-line-2" : "bg-leaf"}`}
@@ -230,13 +230,13 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                 </section>
 
                 <section className="mt-7 border-t border-dashed border-line-2 pt-5">
-                  <h3 className="label">execution limits</h3>
+                  <h3 className="label">limits</h3>
                   <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] text-ink-2 sm:grid-cols-2">
-                    <li>one step at a time, queued</li>
+                    <li>one step at a time</li>
                     <li>up to {LIMITS.maxSteps} steps per task</li>
                     <li>{LIMITS.maxAttempts} attempts per step</li>
-                    <li>{Math.round(LIMITS.callTimeoutMs / 60000)} min max per call</li>
-                    <li>{LIMITS.jobBudget} runs per task</li>
+                    <li>up to {Math.round(LIMITS.callTimeoutMs / 60000)} minutes per call</li>
+                    <li>up to {LIMITS.jobBudget} runs per task</li>
                     <li>resumes on its own after interruptions</li>
                   </ul>
                 </section>

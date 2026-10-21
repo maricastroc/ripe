@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { Markdown } from "@/components/Markdown";
 import { useNow, useTypewriter } from "@/hooks/useTicker";
-import { formatRelative, returnWhen } from "@/lib/format";
+import { returnWhen } from "@/lib/format";
 import { countWords } from "@/lib/markers";
 import type { AgentStatus, TaskDetail } from "@/lib/types";
 
@@ -83,7 +83,7 @@ function LiveText({ text, type }: { text: string; type: string }) {
         onClick={() => setRaw((r) => !r)}
         className="focus-ring mt-3 rounded px-1 font-mono text-[11px] uppercase tracking-wider text-ink-3 hover:text-ink"
       >
-        {raw ? "show organized" : "show raw model output"}
+        {raw ? "show readable version" : "show raw model output"}
       </button>
     </div>
   );
@@ -128,7 +128,7 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     key = "example";
     content = (
       <Shell tone="text-ink-3" title="Illustrative example">
-        This material was written by hand to show what a ripe task looks like. Nothing here is running on the agent.
+        Nothing is running here. Every piece was written by hand to show what you would find once a task is ripe.
       </Shell>
     );
   } else if (running && activity) {
@@ -147,7 +147,7 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
           {partial ? (
             <LiveText text={partial} type={activity.type} />
           ) : (
-            <p className="text-[14px] italic text-ink-3">Loading the model and thinking about the first move…</p>
+            <p className="text-[14px] italic text-ink-3">Loading the model. The first words can take a moment…</p>
           )}
         </div>
       </Shell>
@@ -170,9 +170,9 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     );
   } else if (task.status === "stalled") {
     content = (
-      <Shell tone="text-accent" title="Needs some care">
-        <p>{task.stallReason ?? "The agent stopped after a few unsuccessful attempts."}</p>
-        <p className="mt-1 text-[14px] text-ink-3">Nothing that was already done is lost.</p>
+      <Shell tone="text-accent" title="The agent got stuck">
+        <p>{task.stallReason ?? "It stopped after several failed attempts."}</p>
+        <p className="mt-1 text-[14px] text-ink-3">Nothing already done is lost.</p>
         <div className="mt-4">
           <button
             type="button"
@@ -188,19 +188,17 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
   } else if (task.status === "harvested") {
     content = (
       <Shell tone="text-ink-3" title="Harvested">
-        {task.harvestedAt
-          ? `You took this task with you ${formatRelative(task.harvestedAt)}.`
-          : "You already took this task with you."}{" "}
-        The materials are still here.
+        The agent won&apos;t work on it again unless you replant it. Every piece is still here to read and copy.
       </Shell>
     );
   } else if (task.status === "waiting") {
     const essentials = task.questions.filter((q) => q.status === "open" && q.blocking);
     content = (
-      <Shell tone="text-accent" title="I went as far as I could without you">
-        I did everything possible with what I know. To continue, I need{" "}
-        {essentials.length === 1 ? "one answer" : `${essentials.length || "a few"} answers`} below — or you can tell me
-        to go on without them.
+      <Shell tone="text-accent" title="Answer below to keep it growing">
+        Everything that didn&apos;t depend on you is done. The rest needs{" "}
+        {essentials.length === 1 ? "one answer" : `${essentials.length || "a few"} answers`}. You can also tell the
+        agent to go on without {essentials.length === 1 ? "it" : "them"}, and it will leave{" "}
+        {essentials.length === 1 ? "a gap" : "the gaps"} marked.
       </Shell>
     );
   } else if (activity && activity.status === "queued") {
@@ -209,14 +207,14 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     if (agent.settings.paused) {
       content = (
         <Shell tone="text-ochre" title="Agent paused">
-          The work is queued and comes back when you turn the agent on again.
+          The work stays in the queue until you turn the agent back on.
         </Shell>
       );
     } else if (agent.mode === "offline") {
       content = (
         <Shell tone="text-ochre" title="Waiting for Ollama">
-          I can’t reach Ollama at <span className="font-mono text-[13px]">{agent.settings.baseUrl}</span>. The step is
-          saved and I’ll continue on my own when it’s back. To start it:{" "}
+          The agent can’t reach Ollama at <span className="font-mono text-[13px]">{agent.settings.baseUrl}</span>. The
+          step is saved and will continue on its own once Ollama is back. To start it, run{" "}
           <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama serve</code>
         </Shell>
       );
@@ -233,13 +231,13 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     } else if (retryIn > 1500 && activity.lastError) {
       content = (
         <Shell tone="text-ochre" title={`Trying again in ${seconds(retryIn)}`}>
-          {activity.label}. Last time: <span className="italic">{activity.lastError}</span>
+          {activity.label}. What went wrong last time: <span className="italic">{activity.lastError}</span>
         </Shell>
       );
     } else if (agent.current && agent.current.taskId !== task.id) {
       content = (
         <Shell tone="text-ink-3" title="In the queue">
-          The agent does one thing at a time. It’s on “{agent.current.taskTitle}” right now; this task comes next.
+          The agent works on one thing at a time. It’s busy with “{agent.current.taskTitle}”, and this task is next.
         </Shell>
       );
     } else {
@@ -254,13 +252,13 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     const optional = task.questions.filter((q) => q.status === "open").length;
     const early = task.returnAt && task.ripeAt && new Date(task.ripeAt) < new Date(task.returnAt);
     content = (
-      <Shell tone="text-leaf" title="The agent is done — your turn">
-        {materials} {materials === 1 ? "piece is" : "pieces are"} ready to review, plus the agent&apos;s review.
+      <Shell tone="text-leaf" title="Your turn">
+        Read the {materials === 1 ? "piece" : `${materials} pieces`} and the agent&apos;s review.
         {optional
-          ? ` ${optional} optional ${optional === 1 ? "question" : "questions"} below can fill the gaps it left marked.`
+          ? ` If you want the gaps it marked filled in, answer the ${optional === 1 ? "optional question" : `${optional} optional questions`} below.`
           : ""}{" "}
-        Harvest it from the plate when you&apos;re satisfied.
-        {early ? " It was ready before the time you said you'd be back." : ""}
+        When you&apos;re happy with it, use Harvest under the plate.
+        {early ? " It ripened before you said you'd be back." : ""}
       </Shell>
     );
   } else {

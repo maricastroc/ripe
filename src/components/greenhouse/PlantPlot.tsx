@@ -66,7 +66,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         title: `${branch.index} · ${branch.title ?? "Step"}`,
         detail:
           branch.status === "done"
-            ? "ready — click to read"
+            ? "ready · click to read"
             : branch.status === "working"
               ? "being written right now"
               : branch.status === "blocked"
@@ -85,10 +85,10 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
                 ? "In bloom"
                 : "Growing tip",
         detail:
-          anatomy.apex.kind === "fruit" ? "the finished work — click to read" : "the main result is still forming",
+          anatomy.apex.kind === "fruit" ? "the finished work · click to read" : "the main result is still forming",
       };
     } else if (hover === "tag" && anatomy.tag) {
-      note = { at: anatomy.tag.card, title: "Review tag", detail: "the agent's review — click to read" };
+      note = { at: anatomy.tag.card, title: "Review tag", detail: "the agent's review · click to read" };
     }
   }
   const notePos = note
@@ -142,7 +142,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         href={`/t/${task.id}`}
         className={`plot-label paper focus-ring group absolute z-20 block rounded-[2px] pb-2.5 pt-3 ${compact ? "px-2.5" : "px-3.5"} transition-[transform,box-shadow] duration-300 hover:z-30 hover:-translate-y-0.5 focus-visible:z-30`}
         style={{ left: x + w / 2 - labelW / 2, bottom: compact ? 10 : 14, width: labelW }}
-        aria-label={`${catalog(number)} ${task.title} — ${stageName(task.growth.stage)}, ${line.text}`}
+        aria-label={`${catalog(number)}: ${task.title}. ${stageName(task.growth.stage)} stage, ${line.text}`}
       >
         <span aria-hidden className="pointer-events-none absolute inset-[3px] rounded-[1px] border border-line" />
         <span
@@ -180,7 +180,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
                 <span className="mt-1 flex items-center gap-1 text-[12px] text-cobalt">
                   {task.growth.stepsDone
                     ? `${task.growth.stepsDone} ${task.growth.stepsDone === 1 ? "piece" : "pieces"} to read`
-                    : "open the plate"}
+                    : "open the specimen sheet"}
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                 </span>
               </span>
@@ -190,7 +190,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         <span className="relative mt-2 flex items-center justify-between gap-2 border-t border-dashed border-line-2 pt-1.5">
           <StepTicks leaves={task.leaves} />
           <span className="typewriter text-[10px] text-ink-3">
-            {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : "—"}
+            {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : "no plan yet"}
           </span>
         </span>
       </Link>

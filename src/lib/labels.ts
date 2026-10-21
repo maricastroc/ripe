@@ -3,13 +3,13 @@ import type { JobType } from "./types";
 export function jobLabel(type: JobType | string, subject?: string | null) {
   switch (type) {
     case "interpret":
-      return "Reading the request carefully";
+      return "Reading your request";
     case "plan":
       return "Mapping out the steps";
     case "generate":
       return subject ? `Writing “${subject}”` : "Writing";
     case "review":
-      return "Reviewing everything produced";
+      return "Reviewing the whole set";
     case "revise":
       return subject ? `Rewriting “${subject}”` : "Rewriting";
     default:

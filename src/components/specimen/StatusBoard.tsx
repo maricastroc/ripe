@@ -23,47 +23,38 @@ function plural(n: number, one: string, many: string) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-function overall(task: TaskDetail, optional: number): { value: string; detail: string; tone: Tone } {
+function since(iso: string) {
+  const text = formatRelative(iso);
+  return text.endsWith("ago") || text === "just now" ? text : `on ${text}`;
+}
+
+function overall(task: TaskDetail): { value: string; detail: string; tone: Tone } {
   switch (task.status) {
     case "harvested":
       return {
-        value: "Done — harvested",
-        detail: `You marked it done${task.harvestedAt ? ` ${formatRelative(task.harvestedAt)}` : ""}. It stays readable in the pantry.`,
+        value: "Done",
+        detail: `You harvested it${task.harvestedAt ? ` ${since(task.harvestedAt)}` : ""}. It stays readable in the pantry.`,
         tone: "ink",
       };
     case "ripe":
       return {
-        value: "Ripe — your turn",
-        detail: `The agent has finished. The task is done when you harvest it${
-          optional ? "; answer the optional questions first if you want the gaps filled" : ""
-        }.`,
+        value: "Ripe",
+        detail: "The agent has finished. The task only counts as done once you harvest it.",
         tone: "leaf",
       };
     case "waiting":
-      return {
-        value: "Growing — paused for you",
-        detail: "The agent did everything it could. Answer below, or tell it to go on without the answer.",
-        tone: "vermilion",
-      };
+      return { value: "Growing, on hold", detail: "It stopped at the step that needs your answer.", tone: "vermilion" };
     case "dormant":
-      return {
-        value: "Dormant",
-        detail: "Nothing runs until you let it ripen. Everything so far is saved.",
-        tone: "muted",
-      };
+      return { value: "Dormant", detail: "Planted, but nothing is running.", tone: "muted" };
     case "stalled":
-      return {
-        value: "Needs care",
-        detail: "The agent stopped after several attempts. Try again — nothing is lost.",
-        tone: "vermilion",
-      };
+      return { value: "Needs care", detail: "The agent stopped after several failed attempts.", tone: "vermilion" };
     default: {
       const when = returnWhen(task.returnAt);
       return {
         value: "Growing",
         detail: when
-          ? `The agent is working through the steps. You said you'd be back ${when}.`
-          : "The agent is working through the steps.",
+          ? `It keeps ripening while you're away. You said you'd be back ${when}.`
+          : "It keeps ripening, one step at a time.",
         tone: "ink",
       };
     }
@@ -80,20 +71,24 @@ function agentWork(task: TaskDetail, agent: AgentStatus): { value: string; detai
     return { value: "Working now", detail: `${task.activity.label}. ${written}.`, tone: "leaf" };
   switch (task.status) {
     case "waiting":
-      return { value: "Waiting on you", detail: `${written}. The next step needs your answer.`, tone: "vermilion" };
+      return { value: "As far as it can go", detail: `${written}. The rest needs your answer.`, tone: "vermilion" };
     case "dormant":
-      return { value: "Dormant", detail: `${written}.`, tone: "muted" };
+      return { value: "Not running", detail: `${written}.`, tone: "muted" };
     case "stalled":
-      return { value: "Stopped", detail: task.stallReason ?? `${written}.`, tone: "vermilion" };
+      return { value: "Stopped", detail: `${written}.`, tone: "vermilion" };
     case "harvested":
-      return { value: "Stopped at harvest", detail: `${written}.`, tone: "muted" };
+      return { value: "Stopped when you harvested", detail: `${written}.`, tone: "muted" };
   }
   if (agent.settings.paused)
     return { value: "Agent paused", detail: `${written}. It resumes when you turn it back on.`, tone: "muted" };
   if (agent.mode === "offline")
-    return { value: "Waiting for Ollama", detail: `${written}. It continues on its own.`, tone: "muted" };
+    return {
+      value: "Waiting for Ollama",
+      detail: `${written}. It picks up again once Ollama is running.`,
+      tone: "muted",
+    };
   if (agent.mode === "model-missing") return { value: "Waiting for the model", detail: `${written}.`, tone: "muted" };
-  return { value: "In the queue", detail: total ? `${written}.` : "Reading the request comes first.", tone: "ink" };
+  return { value: "In the queue", detail: total ? `${written}.` : "First it reads your request.", tone: "ink" };
 }
 
 function Cell({
@@ -137,22 +132,24 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
   const stepPieces = task.artifacts.filter((a) => a.kind === "step").length;
   const review = task.artifacts.some((a) => a.kind === "review");
   const pieces = task.artifacts.length;
-  const state = overall(task, optional);
+  const state = overall(task);
   const work = agentWork(task, agent);
 
   const you: { value: string; detail: string; tone: Tone } = essential
     ? {
         value: `${plural(essential, "answer", "answers")} needed`,
-        detail: `Needed for the final version${optional ? `; ${optional} more ${optional === 1 ? "is" : "are"} optional` : ""}.`,
+        detail: `The final version depends on ${essential === 1 ? "it" : "them"}.${
+          optional ? ` ${optional} more ${optional === 1 ? "is" : "are"} optional.` : ""
+        }`,
         tone: "vermilion",
       }
     : optional
       ? {
           value: `${plural(optional, "optional answer", "optional answers")}`,
-          detail: "They would fill gaps the agent left marked instead of guessing.",
+          detail: "The agent marked these gaps rather than guess. Your answers fill them in.",
           tone: "ink",
         }
-      : { value: "Nothing open", detail: "No questions are waiting for you.", tone: "muted" };
+      : { value: "Nothing open", detail: "No questions for you right now.", tone: "muted" };
 
   return (
     <section aria-label="Where this task stands">
@@ -177,7 +174,9 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
           value={pieces ? plural(pieces, "piece", "pieces") : "Nothing yet"}
           detail={
             pieces
-              ? `${plural(stepPieces, "step", "steps")}${review ? " + the agent's review" : ""} — all editable.`
+              ? `${plural(stepPieces, "finished step", "finished steps")}${
+                  review ? " and the agent's review" : ""
+                }.${task.isExample || task.status === "harvested" ? "" : " All editable."}`
               : "Each finished step adds a piece here."
           }
           tone={pieces ? "ink" : "muted"}

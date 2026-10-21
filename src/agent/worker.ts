@@ -127,7 +127,7 @@ class Worker {
       await logEvent(
         job.taskId,
         "info",
-        `I was interrupted mid-step (${await labelFor(job)}). Picking up where I left off — nothing already saved was lost.`,
+        `Interrupted mid-step (${await labelFor(job)}). Nothing saved was lost, and the agent is picking up where it left off.`,
         job.id,
       );
     }
@@ -292,8 +292,8 @@ class Worker {
         job.taskId,
         "warn",
         err instanceof ModelMissing
-          ? "The configured model disappeared from Ollama. The step goes back to the queue and I'll continue once it's available."
-          : "Lost the connection to Ollama mid-step. It goes back to the queue and I'll resume on my own when Ollama is back.",
+          ? "The model I was using is no longer in Ollama. The step is back in the queue until it's available again."
+          : "Lost the connection to Ollama mid-step. The step is back in the queue, and I'll pick it up again once Ollama is running.",
         job.id,
       );
       return;
@@ -301,7 +301,7 @@ class Worker {
 
     const message =
       reason instanceof JobTimeout
-        ? `went past the ${Math.round(LIMITS.callTimeoutMs / 60000)} min limit`
+        ? `it took longer than the ${Math.round(LIMITS.callTimeoutMs / 60000)}-minute limit`
         : err instanceof Error
           ? err.message
           : String(err);
@@ -321,7 +321,7 @@ class Worker {
       await logEvent(
         job.taskId,
         "warn",
-        `That didn't work out (${message}). Trying again in ${Math.round(backoff / 1000)}s — attempt ${job.attempts + 1} of ${job.maxAttempts}.`,
+        `That didn't work: ${message}. Trying again in ${Math.round(backoff / 1000)}s (attempt ${job.attempts + 1} of ${job.maxAttempts}).`,
         job.id,
       );
       return;
@@ -338,7 +338,7 @@ class Worker {
     await logEvent(
       job.taskId,
       "error",
-      `Gave up after ${job.maxAttempts} attempts (${message}). Nothing that was already done is lost — you can ask me to try again.`,
+      `Gave up after ${job.maxAttempts} attempts: ${message}. Nothing already done is lost, and you can ask me to try again.`,
       job.id,
     );
   }

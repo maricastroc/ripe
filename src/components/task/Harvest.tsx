@@ -110,8 +110,8 @@ function Editor({
           : state === "saved"
             ? "saved"
             : state === "error"
-              ? "not saved — try again"
-              : "markdown · saves on its own"}
+              ? "not saved yet · it tries again as you type"
+              : "markdown · saves as you type"}
       </p>
     </div>
   );
@@ -156,7 +156,7 @@ export function Harvest({
           <p className="font-display text-xl tracking-tight text-ink-2">Nothing to harvest yet.</p>
           <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-3">
             {next
-              ? `The first piece will be “${next.title}”. It shows up here as soon as it's ready — and you can edit all of it.`
+              ? `The first piece will be “${next.title}”. It appears here when it's ready, and you can edit it however you like.`
               : "Every finished step becomes a piece here, ready to read, edit and copy."}
           </p>
         </div>
@@ -200,12 +200,12 @@ export function Harvest({
         <h2 id="harvest-title" className="label">
           harvest · {artifacts.length} {artifacts.length === 1 ? "piece" : "pieces"}
         </h2>
-        <span className="text-[13px] text-ink-3">all editable</span>
+        <span className="text-[13px] text-ink-3">{readOnly ? "read only" : "all editable"}</span>
       </div>
 
       <div
         role="tablist"
-        aria-label="Produced materials"
+        aria-label="Pieces"
         className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible"
       >
         {artifacts.map((a) => {
@@ -299,7 +299,7 @@ export function Harvest({
               {!readOnly && current.hasPrevious && !busyHere && (
                 <button type="button" onClick={() => void onRestore(current.id)} className={tool}>
                   <Undo2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-                  previous
+                  previous version
                 </button>
               )}
               {onToggleWide && (
@@ -307,8 +307,8 @@ export function Harvest({
                   type="button"
                   onClick={onToggleWide}
                   aria-pressed={wide}
-                  className={`${tool} hidden lg:inline-flex`}
-                  title={wide ? "Give the plate its space back" : "Fold the plate to read on a wider page"}
+                  className={`${tool} max-lg:hidden`}
+                  title={wide ? "Show the plate again" : "Fold the plate away and read on a wider page"}
                 >
                   {wide ? (
                     <PanelLeftOpen className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -367,7 +367,7 @@ export function Harvest({
                       </button>
                     ))}
                   </div>
-                  <p className="mt-3 text-[12px] text-ink-3">The current version is kept; you can go back later.</p>
+                  <p className="mt-3 text-[12px] text-ink-3">The current version is kept, so you can go back to it.</p>
                 </div>
               </motion.form>
             )}
@@ -399,7 +399,7 @@ export function Harvest({
               <div className="absolute inset-0 flex items-start justify-center pt-16">
                 <p className="rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-ink-2 shadow-sm">
                   <span className="dot-live mr-2 inline-block h-2 w-2 rounded-full bg-leaf text-leaf" />
-                  rewriting now — follow along under “now”
+                  rewriting now · follow along under “now”
                 </p>
               </div>
             )}

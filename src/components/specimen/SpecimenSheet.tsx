@@ -129,7 +129,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
       applyTask(res.task);
       void refresh();
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Something went wrong.");
+      setNotice(err instanceof Error ? err.message : "Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }
@@ -307,7 +307,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
             {task.isExample && (
               <p className="mb-5 rounded-sm border border-dashed border-vermilion/50 px-3 py-2 text-[13px] text-ink-2">
                 <span className="label mr-2 text-vermilion-ink">example</span>
-                Drawn by hand to show a ripe task. Never processed by the agent.
+                Made by hand for the demo. The agent never runs on it.
               </p>
             )}
             <div className="flex items-baseline justify-between gap-3">
@@ -317,8 +317,8 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
                   type="button"
                   onClick={() => setWide(false)}
                   className="focus-ring -mr-2 hidden h-9 w-9 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-paper-2 hover:text-ink lg:inline-flex"
-                  aria-label="Give the plate its space back"
-                  title="Give the plate its space back"
+                  aria-label="Show the plate again"
+                  title="Show the plate again"
                 >
                   <PanelLeftOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 </button>
@@ -349,7 +349,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
                     onSelect={openOrgan}
                     dropFruit={dropping}
                     className="block h-auto w-full"
-                    title={`${task.title}: plate`}
+                    title={`Botanical plate: ${task.title}`}
                   />
                 </div>
               </ViewTransition>

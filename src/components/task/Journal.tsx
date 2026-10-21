@@ -52,7 +52,7 @@ export function Journal({ events }: { events: EventView[] }) {
               <span className="col-span-2 flex gap-2 sm:col-span-1">
                 <span className={`mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full ${DOT[e.kind]}`} aria-hidden />
                 <span className={e.kind === "user" ? "text-ink" : "text-ink-2"}>
-                  <span className="text-ink-3">{WHO[e.kind]} — </span>
+                  <span className="text-ink-3">{WHO[e.kind]} · </span>
                   {e.message}
                 </span>
               </span>

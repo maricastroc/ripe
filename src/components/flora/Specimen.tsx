@@ -384,7 +384,7 @@ function branchLabel(b: BranchSpec) {
         : b.status === "blocked"
           ? "waiting on you"
           : "not started";
-  return `Step ${b.index}${b.title ? `: ${b.title}` : ""} — ${what}`;
+  return `Step ${b.index}${b.title ? `: ${b.title}` : ""}, ${what}`;
 }
 
 function Callout({ at, side, text, lit }: { at: Pt; side: number; text: string; lit: boolean }) {
@@ -820,11 +820,11 @@ export function Specimen({
               id="apex"
               label={
                 anatomy.apex.kind === "fruit"
-                  ? "The fruit — the most complete version of the work"
+                  ? "The fruit: the most complete version of the work"
                   : anatomy.apex.kind === "fruitlet"
-                    ? "The fruit is setting — most of the work is done"
+                    ? "Fruit setting: most of the work is done"
                     : anatomy.apex.kind === "flower"
-                      ? "In bloom — the first piece is ready"
+                      ? "In bloom: the first piece is ready"
                       : "The growing tip"
               }
               at={

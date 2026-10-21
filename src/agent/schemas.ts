@@ -66,6 +66,9 @@ export function parseJson<T>(schema: z.ZodType<T>, text: string): T {
     throw new Error("the model returned incomplete JSON");
   }
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) throw new Error(`response out of format: ${parsed.error.issues[0]?.message ?? "invalid"}`);
+  if (!parsed.success)
+    throw new Error(
+      `the model's reply didn't match the expected format (${parsed.error.issues[0]?.message ?? "invalid"})`,
+    );
   return parsed.data;
 }

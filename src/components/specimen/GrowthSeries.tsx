@@ -44,7 +44,7 @@ export function GrowthSeries({ growth, compact = false }: { growth: Growth; comp
       </ol>
       <p className="mt-3 text-center">
         <span className={`ink ${compact ? "text-[1rem]" : "text-[1.15rem]"}`}>
-          fig. {current + 1} — {stage.name}.
+          fig. {current + 1} · {stage.name}.
         </span>
         {!compact && (
           <>

@@ -32,7 +32,7 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
       <p className="ink text-center text-[15px]">
         {task.status === "dormant"
           ? "Dormant. The parts appear once the agent maps out the work."
-          : "No parts to label yet — the agent is still reading the request."}
+          : "No parts to label yet. The agent is still reading the request."}
       </p>
     );
   }
@@ -41,7 +41,7 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
     stage === "ripe"
       ? "ripe fruit"
       : stage === "fruit"
-        ? "fruit setting"
+        ? "young fruit"
         : stage === "blossom"
           ? "blossom"
           : "growing tip";
@@ -136,7 +136,9 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
               <span>
                 <span className="block text-[14.5px] text-ink">Review tag</span>
                 {!compact && (
-                  <span className="typewriter block text-[10.5px] text-ink-3">the agent&apos;s honest verdict</span>
+                  <span className="typewriter block text-[10.5px] text-ink-3">
+                    the agent&apos;s review of the whole set
+                  </span>
                 )}
               </span>
               <span className="typewriter inline-flex items-center gap-1 text-[10.5px] text-cobalt">
