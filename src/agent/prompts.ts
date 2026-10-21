@@ -1,14 +1,14 @@
 import type { ChatMessage } from "./ollama";
 import { LIMITS } from "@/lib/limits";
 
-const SYSTEM = `Você é o agente do Ripe. Você trabalha devagar e com cuidado em tarefas que uma pessoa decidiu adiar, para que ela encontre algo concreto quando voltar.
+const SYSTEM = `You are Ripe's agent. You work slowly and carefully on tasks a person decided to put off, so that they find something concrete when they come back.
 
-Princípios:
-- Escreva sempre no mesmo idioma em que o pedido da pessoa foi escrito.
-- Nunca invente fatos específicos que a pessoa não forneceu: nomes, datas, valores, números, lugares, decisões, citações ou dados de terceiros. Quando algo assim for necessário, escreva no lugar o marcador [[a definir: descrição curta do que falta]].
-- Entregue material utilizável, não conselhos genéricos sobre como fazer. Escreva como quem entrega o trabalho.
-- Seu trabalho se limita a escrita e planejamento. Nunca diga que enviou, reservou, pesquisou na internet ou executou algo.
-- Seja direto. Sem preâmbulos, sem despedidas, sem mencionar que é uma IA.`;
+Principles:
+- Write in the same language the person used in their request.
+- Never invent specific facts the person did not provide: names, dates, amounts, numbers, places, decisions, quotes or third-party data. When something like that is needed, write the marker [[TBD: short description of what is missing]] in its place.
+- Deliver usable material, not generic advice on how to do it. Write as someone handing over the work.
+- Your work is limited to writing and planning. Never claim you sent, booked, searched the web or executed anything.
+- Be direct. No preambles, no sign-offs, no mention of being an AI.`;
 
 export type Brief = {
   prompt: string;
@@ -24,20 +24,20 @@ export type PlanLine = { position: number; title: string; status: string };
 export type PriorWork = { title: string; content: string };
 
 const OUTPUT_GUIDE: Record<string, string> = {
-  estrutura: "um esqueleto hierárquico com as seções e o que cada uma deve conter",
-  rascunho: "texto corrido, pronto para a pessoa editar",
-  checklist: "lista de verificação com caixas (- [ ]) agrupadas por tema",
-  cronograma: "plano em fases ou dias, em lista ou tabela; datas desconhecidas viram marcadores",
-  mensagem: "a mensagem completa, com linha de assunto se for e-mail",
-  notas: "notas organizadas em tópicos curtos",
-  slides: "roteiro slide a slide: título de cada slide, 2 a 4 pontos e uma nota curta para quem apresenta",
+  outline: "a hierarchical skeleton with the sections and what each one should contain",
+  draft: "flowing prose, ready for the person to edit",
+  checklist: "a checklist with boxes (- [ ]) grouped by theme",
+  schedule: "a plan in phases or days, as a list or table; unknown dates become markers",
+  message: "the complete message, with a subject line if it is an email",
+  notes: "notes organized in short bullet points",
+  slides: "a slide-by-slide outline: a title for each slide, 2 to 4 points and a short speaker note",
 };
 
 function quote(text: string, max: number = LIMITS.maxPromptChars) {
   return `"""\n${text.slice(0, max)}\n"""`;
 }
 
-function list(items: string[], empty = "- (nada)") {
+function list(items: string[], empty = "- (none)") {
   return items.length ? items.map((i) => `- ${i}`).join("\n") : empty;
 }
 
@@ -45,15 +45,15 @@ function briefBlock(brief: Brief) {
   const answered = brief.questions.filter((q) => q.status === "answered" && q.answer);
   const open = brief.questions.filter((q) => q.status !== "answered");
   return [
-    `Tarefa: ${brief.title}`,
-    `Pedido original da pessoa:\n${quote(brief.prompt)}`,
-    brief.outcome ? `Resultado esperado: ${brief.outcome}` : null,
-    `Fatos fornecidos pela pessoa:\n${list(brief.context)}`,
+    `Task: ${brief.title}`,
+    `The person's original request:\n${quote(brief.prompt)}`,
+    brief.outcome ? `Expected outcome: ${brief.outcome}` : null,
+    `Facts provided by the person:\n${list(brief.context)}`,
     answered.length
-      ? `Respostas da pessoa:\n${answered.map((q) => `- ${q.text}\n  Resposta: ${q.answer}`).join("\n")}`
+      ? `The person's answers:\n${answered.map((q) => `- ${q.text}\n  Answer: ${q.answer}`).join("\n")}`
       : null,
-    open.length ? `Ainda sem resposta (use [[a definir: ...]] onde precisar):\n${list(open.map((q) => q.text))}` : null,
-    brief.assumptions.length ? `Suposições adotadas:\n${list(brief.assumptions)}` : null,
+    open.length ? `Still unanswered (use [[TBD: ...]] where needed):\n${list(open.map((q) => q.text))}` : null,
+    brief.assumptions.length ? `Assumptions adopted:\n${list(brief.assumptions)}` : null,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -69,18 +69,18 @@ export function interpretMessages(prompt: string): ChatMessage[] {
     { role: "system", content: SYSTEM },
     {
       role: "user",
-      content: `Pedido da pessoa:
+      content: `The person's request:
 ${quote(prompt)}
 
-Interprete o pedido e responda em JSON com:
-- title: título curto (até 6 palavras) que nomeie a tarefa.
-- deliverable: tipo principal do resultado. Um de: "texto" (artigo, proposta, ensaio, documento), "plano" (viagem, projeto, evento, estudo, rotina), "apresentacao", "mensagem" (e-mail, carta, resposta), "checklist", "outro".
-- outcome: uma ou duas frases descrevendo o resultado concreto esperado quando a tarefa estiver pronta.
-- context: fatos que a própria pessoa forneceu no pedido. Lista vazia se não houver. Não acrescente nada.
-- assumptions: até 3 suposições seguras e genéricas que você vai adotar para avançar sem perguntar.
-- questions: até ${LIMITS.maxQuestions} informações que faltam e que só a pessoa pode dar. Para cada uma: question (pergunta direta e curta), why (por que importa, em poucas palavras), essential (true somente se, sem ela, a versão final ficaria errada ou inútil mesmo com marcadores).
+Interpret the request and answer in JSON with:
+- title: a short title (up to 6 words) naming the task.
+- deliverable: the main kind of result. One of: "document" (article, proposal, essay, report), "plan" (trip, project, event, study, routine), "presentation", "message" (email, letter, reply), "checklist", "other".
+- outcome: one or two sentences describing the concrete result expected when the task is done.
+- context: facts the person provided in the request. Empty list if none. Do not add anything.
+- assumptions: up to 3 safe, generic assumptions you will adopt to move forward without asking.
+- questions: up to ${LIMITS.maxQuestions} missing pieces of information only the person can provide. For each one: question (direct and short), why (why it matters, in a few words), essential (true only if, without it, the final version would be wrong or useless even with markers).
 
-Nomes, datas e números simples quase nunca são essenciais: viram marcadores [[a definir: ...]] no texto. Em geral há no máximo uma pergunta essencial, e muitas vezes nenhuma. Se o pedido já for claro, devolva poucas ou nenhuma pergunta.`,
+Simple names, dates and numbers are almost never essential: they become [[TBD: ...]] markers in the text. Usually there is at most one essential question, and often none. If the request is already clear, return few or no questions.`,
     },
   ];
 }
@@ -92,14 +92,14 @@ export function planMessages(brief: Brief): ChatMessage[] {
       role: "user",
       content: `${briefBlock(brief)}
 
-Tipo de resultado: ${brief.deliverable ?? "outro"}
+Kind of result: ${brief.deliverable ?? "other"}
 
-Divida o trabalho em 3 a ${LIMITS.maxSteps} etapas pequenas, executáveis apenas com escrita e planejamento. Cada etapa produz um material concreto e autocontido que a pessoa vai poder revisar e aproveitar. As primeiras etapas preparam o terreno (estrutura, pontos-chave, opções); a última entrega a versão mais completa do resultado principal, aproveitando as anteriores. Informações que faltam não impedem as etapas: elas viram marcadores [[a definir: ...]].
+Split the work into 3 to ${LIMITS.maxSteps} small steps that can be done with writing and planning alone. Each step produces a concrete, self-contained piece the person can review and reuse. The first steps prepare the ground (structure, key points, options); the last one delivers the most complete version of the main result, building on the previous ones. Missing information does not block steps: it becomes [[TBD: ...]] markers.
 
-Responda em JSON com steps. Para cada etapa:
-- title: nome curto começando por substantivo (ex.: "Estrutura da proposta").
-- description: uma frase dizendo o que será produzido.
-- output: um de "estrutura", "rascunho", "checklist", "cronograma", "mensagem", "notas", "slides".`,
+Answer in JSON with steps. For each step:
+- title: a short name starting with a noun (e.g. "Proposal outline").
+- description: one sentence saying what will be produced.
+- output: one of "outline", "draft", "checklist", "schedule", "message", "notes", "slides".`,
     },
   ];
 }
@@ -113,29 +113,29 @@ export function generateMessages(
   const planText = plan
     .map(
       (p) =>
-        `${p.position + 1}. ${p.title}${p.position === current.position ? "  <- etapa atual" : p.status === "done" ? "  (feita)" : ""}`,
+        `${p.position + 1}. ${p.title}${p.position === current.position ? "  <- current step" : p.status === "done" ? "  (done)" : ""}`,
     )
     .join("\n");
   const priorText = prior.length
     ? prior.map((p) => `### ${p.title}\n${clip(p.content, LIMITS.contextCharsPerArtifact)}`).join("\n\n")
-    : "(nenhum ainda)";
+    : "(nothing yet)";
   return [
     { role: "system", content: SYSTEM },
     {
       role: "user",
       content: `${briefBlock(brief)}
 
-Plano de trabalho:
+Work plan:
 ${planText}
 
-Material já produzido:
+Material already produced:
 ${priorText}
 
-Agora produza a etapa ${current.position + 1}: "${current.title}".
-O que ela entrega: ${current.description}
-Formato: ${OUTPUT_GUIDE[current.output] ?? "markdown organizado"}.
+Now produce step ${current.position + 1}: "${current.title}".
+What it delivers: ${current.description}
+Format: ${OUTPUT_GUIDE[current.output] ?? "organized markdown"}.
 
-Escreva em Markdown, começando direto no conteúdo, sem repetir o nome da etapa na primeira linha. Use títulos (##), listas e tabelas quando ajudarem. No máximo cerca de 600 palavras. Onde faltar informação específica, use [[a definir: ...]] em vez de inventar.`,
+Write in Markdown, starting straight with the content, without repeating the step name on the first line. Use headings (##), lists and tables when they help. At most about 600 words. Where specific information is missing, use [[TBD: ...]] instead of inventing it.`,
     },
   ];
 }
@@ -147,17 +147,17 @@ export function reviewMessages(brief: Brief, work: PriorWork[]): ChatMessage[] {
       role: "user",
       content: `${briefBlock(brief)}
 
-Materiais produzidos:
+Material produced:
 ${work.map((w) => `### ${w.title}\n${clip(w.content, LIMITS.contextCharsPerArtifact)}`).join("\n\n")}
 
-Revise o trabalho como um editor cuidadoso e honesto. Responda em JSON com:
-- verdict: "pronto" (utilizável com pequenos ajustes), "quase" (precisa de complementos) ou "rascunho" (boa base, ainda longe do final).
-- summary: duas frases sobre o estado do trabalho.
-- strengths: até 3 pontos fortes.
-- issues: até 4 problemas concretos, cada um com where (qual material), problem e suggestion.
-- missing: informações que ainda precisam vir da pessoa, incluindo marcadores [[a definir]] pendentes.
-- nextActions: até 4 próximos passos que a pessoa consegue fazer em poucos minutos ao voltar.
-Aponte qualquer trecho que pareça inventado sem base no pedido ou nas respostas.`,
+Review the work like a careful, honest editor. Answer in JSON with:
+- verdict: "ready" (usable with small tweaks), "almost" (needs additions) or "draft" (a good base, still far from final).
+- summary: two sentences on the state of the work.
+- strengths: up to 3 strong points.
+- issues: up to 4 concrete problems, each with where (which piece), problem and suggestion.
+- missing: information that still has to come from the person, including pending [[TBD]] markers.
+- nextActions: up to 4 next steps the person can do in a few minutes when they come back.
+Point out any passage that seems invented without basis in the request or the answers.`,
     },
   ];
 }
@@ -169,12 +169,12 @@ export function reviseMessages(brief: Brief, title: string, content: string, ins
       role: "user",
       content: `${briefBlock(brief)}
 
-Material atual: "${title}"
+Current material: "${title}"
 ${quote(content, 6000)}
 
-Pedido de revisão: ${instruction}
+Rewrite request: ${instruction}
 
-Reescreva o material completo aplicando o pedido. Preserve o que não precisa mudar. Mantenha [[a definir: ...]] para o que continua desconhecido e substitua os marcadores que agora têm resposta. Responda apenas com o Markdown final.`,
+Rewrite the complete material applying the request. Keep what doesn't need to change. Keep [[TBD: ...]] for what is still unknown and replace the markers that now have an answer. Answer only with the final Markdown.`,
     },
   ];
 }

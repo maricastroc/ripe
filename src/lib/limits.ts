@@ -13,15 +13,15 @@ export const LIMITS = {
 } as const;
 
 export const PACE_MS: Record<Pace, number> = {
-  calmo: 30_000,
-  constante: 6_000,
-  ligeiro: 1_000,
+  calm: 30_000,
+  steady: 6_000,
+  brisk: 1_000,
 };
 
 export const PACE_LABEL: Record<Pace, string> = {
-  calmo: "Calmo — respira 30s entre etapas",
-  constante: "Constante — respira 6s entre etapas",
-  ligeiro: "Ligeiro — quase sem pausa",
+  calm: "Calm — rests 30s between steps",
+  steady: "Steady — rests 6s between steps",
+  brisk: "Brisk — barely pauses",
 };
 
 export const NUM_PREDICT = {

@@ -59,7 +59,7 @@ class Worker {
   }
 
   private async boot() {
-    await setAgentState("starting", "Acordando o agente.").catch(() => undefined);
+    await setAgentState("starting", "Waking the agent up.").catch(() => undefined);
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         await this.recover(true);
@@ -102,7 +102,7 @@ class Worker {
 
   cancel(taskId: string) {
     if (this.running?.taskId !== taskId) return false;
-    this.running.controller.abort(new JobCancelled("Cancelado pela pessoa"));
+    this.running.controller.abort(new JobCancelled("Cancelled by the person"));
     return true;
   }
 
@@ -127,7 +127,7 @@ class Worker {
       await logEvent(
         job.taskId,
         "info",
-        `Fui interrompido no meio de uma etapa (${await labelFor(job)}). Retomo de onde parei — nada do que já estava salvo se perdeu.`,
+        `I was interrupted mid-step (${await labelFor(job)}). Picking up where I left off — nothing already saved was lost.`,
         job.id,
       );
     }
@@ -146,7 +146,7 @@ class Worker {
     await this.recover(false);
 
     if (settings.paused) {
-      await setAgentState("paused", "Agente pausado nas configurações.");
+      await setAgentState("paused", "Agent paused in settings.");
       return 4000;
     }
 
@@ -161,18 +161,18 @@ class Worker {
         where: { status: "queued", task: { status: "ripening" } },
         orderBy: { runAfter: "asc" },
       });
-      await setAgentState("idle", later ? "Esperando para tentar de novo." : null);
+      await setAgentState("idle", later ? "Waiting to try again." : null);
       if (!later) return 3000;
       return Math.min(5000, Math.max(500, later.runAfter.getTime() - now.getTime()));
     }
 
     const health = await checkHealth(settings.baseUrl);
     if (!health.online) {
-      await setAgentState("offline", `Não consegui falar com o Ollama em ${settings.baseUrl}.`);
+      await setAgentState("offline", `Couldn't reach Ollama at ${settings.baseUrl}.`);
       return 8000;
     }
     if (!hasModel(health.models, settings.model)) {
-      await setAgentState("model-missing", `O modelo ${settings.model} não está instalado no Ollama.`);
+      await setAgentState("model-missing", `Model ${settings.model} is not installed in Ollama.`);
       return 10000;
     }
 
@@ -181,7 +181,7 @@ class Worker {
     await this.run(job, settings);
 
     const rest = PACE_MS[settings.pace];
-    if (rest > 1500) await setAgentState("resting", "Respirando entre uma etapa e outra.");
+    if (rest > 1500) await setAgentState("resting", "Resting between steps.");
     return rest;
   }
 
@@ -292,8 +292,8 @@ class Worker {
         job.taskId,
         "warn",
         err instanceof ModelMissing
-          ? "O modelo configurado sumiu do Ollama. A etapa volta para a fila e continuo quando ele estiver disponível."
-          : "Perdi a conexão com o Ollama no meio da etapa. Ela volta para a fila e eu retomo sozinho quando ele voltar.",
+          ? "The configured model disappeared from Ollama. The step goes back to the queue and I'll continue once it's available."
+          : "Lost the connection to Ollama mid-step. It goes back to the queue and I'll resume on my own when Ollama is back.",
         job.id,
       );
       return;
@@ -301,7 +301,7 @@ class Worker {
 
     const message =
       reason instanceof JobTimeout
-        ? `passou do limite de ${Math.round(LIMITS.callTimeoutMs / 60000)} min`
+        ? `went past the ${Math.round(LIMITS.callTimeoutMs / 60000)} min limit`
         : err instanceof Error
           ? err.message
           : String(err);
@@ -321,7 +321,7 @@ class Worker {
       await logEvent(
         job.taskId,
         "warn",
-        `Não saiu como esperado (${message}). Tento de novo em ${Math.round(backoff / 1000)}s — tentativa ${job.attempts + 1} de ${job.maxAttempts}.`,
+        `That didn't work out (${message}). Trying again in ${Math.round(backoff / 1000)}s — attempt ${job.attempts + 1} of ${job.maxAttempts}.`,
         job.id,
       );
       return;
@@ -338,7 +338,7 @@ class Worker {
     await logEvent(
       job.taskId,
       "error",
-      `Desisti depois de ${job.maxAttempts} tentativas (${message}). Nada do que já estava pronto foi perdido — você pode pedir para eu tentar de novo.`,
+      `Gave up after ${job.maxAttempts} attempts (${message}). Nothing that was already done is lost — you can ask me to try again.`,
       job.id,
     );
   }

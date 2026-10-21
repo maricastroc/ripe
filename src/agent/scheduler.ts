@@ -72,9 +72,9 @@ export async function advance(taskId: string) {
     if ((await jobsUsed(taskId)) >= LIMITS.jobBudget) {
       await db.task.update({
         where: { id: taskId },
-        data: { status: "stalled", stallReason: "Limite de trabalho desta tarefa atingido." },
+        data: { status: "stalled", stallReason: "This task reached its work budget." },
       });
-      await logEvent(taskId, "error", `Parei: esta tarefa já usou o limite de ${LIMITS.jobBudget} execuções.`);
+      await logEvent(taskId, "error", `Stopped: this task has used its limit of ${LIMITS.jobBudget} runs.`);
       return;
     }
     if (task.status !== "ripening") await db.task.update({ where: { id: taskId }, data: { status: "ripening" } });
@@ -92,9 +92,9 @@ export async function advance(taskId: string) {
       await logEvent(
         taskId,
         "warn",
-        `Fiz tudo o que dava sem você. Para seguir com ${blocked.length === 1 ? "a etapa" : "as etapas"} ${blocked
+        `I did everything I could without you. To continue with ${blocked
           .map((s) => `“${s.title}”`)
-          .join(", ")}, preciso saber: ${needed.map((q) => q.text).join(" · ")}`,
+          .join(", ")}, I need to know: ${needed.map((q) => q.text).join(" · ")}`,
       );
     }
     return;
@@ -106,6 +106,6 @@ export async function advance(taskId: string) {
       data: { status: "ripe", ripeAt: task.ripeAt ?? new Date(), stallReason: null },
     });
     if (!task.ripeAt)
-      await logEvent(taskId, "done", "Madura. Tudo produzido e revisado — pronto para quando você voltar.");
+      await logEvent(taskId, "done", "Ripe. Everything written and reviewed — ready for when you come back.");
   }
 }

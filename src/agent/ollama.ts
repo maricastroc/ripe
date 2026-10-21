@@ -111,10 +111,10 @@ export async function chat(options: ChatOptions): Promise<ChatResult> {
     throw new OllamaOffline(err instanceof Error ? err.message : String(err));
   }
 
-  if (res.status === 404) throw new ModelMissing(`Modelo ${model} não encontrado no Ollama`);
+  if (res.status === 404) throw new ModelMissing(`Model ${model} not found in Ollama`);
   if (!res.ok || !res.body) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Ollama respondeu ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    throw new Error(`Ollama responded ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
   }
 
   const reader = res.body.getReader();

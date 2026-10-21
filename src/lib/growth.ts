@@ -28,12 +28,12 @@ export function computeGrowth(task: GrowthInput): Growth {
 }
 
 export const STAGES: { id: Stage; name: string; hint: string }[] = [
-  { id: "seed", name: "Semente", hint: "Plantada, ainda sem leitura do pedido" },
-  { id: "sprout", name: "Broto", hint: "O agente entendeu o que você quer" },
-  { id: "leafing", name: "Folhas", hint: "Existe um caminho em etapas" },
-  { id: "blossom", name: "Flor", hint: "O primeiro material ficou pronto" },
-  { id: "fruit", name: "Fruto", hint: "A maior parte do trabalho está feita" },
-  { id: "ripe", name: "Madura", hint: "Tudo produzido e revisado" },
+  { id: "seed", name: "Seed", hint: "Planted, the request hasn't been read yet" },
+  { id: "sprout", name: "Sprout", hint: "The agent understood what you want" },
+  { id: "leafing", name: "Leaves", hint: "There's a path, one step at a time" },
+  { id: "blossom", name: "Blossom", hint: "The first piece of work is ready" },
+  { id: "fruit", name: "Fruit", hint: "Most of the work is done" },
+  { id: "ripe", name: "Ripe", hint: "Everything written and reviewed" },
 ];
 
 export function stageName(stage: Stage) {
@@ -45,21 +45,21 @@ export function stageIndex(stage: Stage) {
 }
 
 export const FRUITS: Record<Fruit, { name: string; ripe: string; deep: string; mid: string; unripe: string }> = {
-  caqui: { name: "caqui", ripe: "#E3672F", deep: "#B8461C", mid: "#DDB04A", unripe: "#9DB07A" },
-  ameixa: { name: "ameixa", ripe: "#7A3A63", deep: "#4F1F3F", mid: "#C0738A", unripe: "#A3B47F" },
-  limao: { name: "limão-siciliano", ripe: "#E9C43F", deep: "#C29A1D", mid: "#CBCB58", unripe: "#A8BC72" },
-  figo: { name: "figo", ripe: "#8E4E6B", deep: "#5D2E47", mid: "#B98063", unripe: "#9FB283" },
+  persimmon: { name: "persimmon", ripe: "#E3672F", deep: "#B8461C", mid: "#DDB04A", unripe: "#9DB07A" },
+  plum: { name: "plum", ripe: "#7A3A63", deep: "#4F1F3F", mid: "#C0738A", unripe: "#A3B47F" },
+  lemon: { name: "lemon", ripe: "#E9C43F", deep: "#C29A1D", mid: "#CBCB58", unripe: "#A8BC72" },
+  fig: { name: "fig", ripe: "#8E4E6B", deep: "#5D2E47", mid: "#B98063", unripe: "#9FB283" },
 };
 
 export function fruitForDeliverable(deliverable: string | null | undefined): Fruit {
   switch (deliverable) {
-    case "texto":
-      return "ameixa";
-    case "apresentacao":
-      return "limao";
-    case "mensagem":
-      return "figo";
+    case "document":
+      return "plum";
+    case "presentation":
+      return "lemon";
+    case "message":
+      return "fig";
     default:
-      return "caqui";
+      return "persimmon";
   }
 }

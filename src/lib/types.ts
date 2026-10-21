@@ -3,10 +3,10 @@ export type StepStatus = "pending" | "blocked" | "working" | "done";
 export type QuestionStatus = "open" | "answered" | "skipped";
 export type JobType = "interpret" | "plan" | "generate" | "review" | "revise";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
-export type Fruit = "caqui" | "ameixa" | "limao" | "figo";
-export type Deliverable = "texto" | "plano" | "apresentacao" | "mensagem" | "checklist" | "outro";
+export type Fruit = "persimmon" | "plum" | "lemon" | "fig";
+export type Deliverable = "document" | "plan" | "presentation" | "message" | "checklist" | "other";
 export type Stage = "seed" | "sprout" | "leafing" | "blossom" | "fruit" | "ripe";
-export type Pace = "calmo" | "constante" | "ligeiro";
+export type Pace = "calm" | "steady" | "brisk";
 export type AgentMode =
   "starting" | "idle" | "working" | "resting" | "offline" | "model-missing" | "paused" | "stopped";
 export type EventKind = "user" | "info" | "work" | "done" | "warn" | "error";
@@ -33,7 +33,7 @@ export type Activity = {
   lastError: string | null;
 };
 
-export type LeafState = { id: string; status: StepStatus };
+export type LeafState = { id: string; status: StepStatus; artifactId: string | null; title: string };
 
 export type TaskSummary = {
   id: string;
@@ -96,6 +96,7 @@ export type EventView = {
 };
 
 export type TaskDetail = TaskSummary & {
+  number: number;
   deliverable: Deliverable | null;
   outcome: string | null;
   context: string[];

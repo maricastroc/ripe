@@ -3,36 +3,36 @@ import type { JobType } from "./types";
 export function jobLabel(type: JobType | string, subject?: string | null) {
   switch (type) {
     case "interpret":
-      return "Lendo o pedido com calma";
+      return "Reading the request carefully";
     case "plan":
-      return "Traçando o caminho em etapas";
+      return "Mapping out the steps";
     case "generate":
-      return subject ? `Escrevendo “${subject}”` : "Escrevendo";
+      return subject ? `Writing “${subject}”` : "Writing";
     case "review":
-      return "Revisando tudo o que foi produzido";
+      return "Reviewing everything produced";
     case "revise":
-      return subject ? `Reescrevendo “${subject}”` : "Reescrevendo";
+      return subject ? `Rewriting “${subject}”` : "Rewriting";
     default:
-      return "Trabalhando";
+      return "Working";
   }
 }
 
 export const OUTPUT_LABEL: Record<string, string> = {
-  estrutura: "estrutura",
-  rascunho: "rascunho",
+  outline: "outline",
+  draft: "draft",
   checklist: "checklist",
-  cronograma: "cronograma",
-  mensagem: "mensagem",
-  notas: "notas",
-  slides: "roteiro de slides",
-  review: "revisão",
+  schedule: "schedule",
+  message: "message",
+  notes: "notes",
+  slides: "slide outline",
+  review: "review",
 };
 
 export const DELIVERABLE_LABEL: Record<string, string> = {
-  texto: "Texto",
-  plano: "Plano",
-  apresentacao: "Apresentação",
-  mensagem: "Mensagem",
+  document: "Document",
+  plan: "Plan",
+  presentation: "Presentation",
+  message: "Message",
   checklist: "Checklist",
-  outro: "Material escrito",
+  other: "Written piece",
 };

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const DELIVERABLES = ["texto", "plano", "apresentacao", "mensagem", "checklist", "outro"] as const;
-export const OUTPUTS = ["estrutura", "rascunho", "checklist", "cronograma", "mensagem", "notas", "slides"] as const;
+export const DELIVERABLES = ["document", "plan", "presentation", "message", "checklist", "other"] as const;
+export const OUTPUTS = ["outline", "draft", "checklist", "schedule", "message", "notes", "slides"] as const;
 
 export const interpretSchema = z.object({
   title: z.string().min(1),
@@ -31,7 +31,7 @@ export const planSchema = z.object({
 });
 
 export const reviewSchema = z.object({
-  verdict: z.enum(["pronto", "quase", "rascunho"]),
+  verdict: z.enum(["ready", "almost", "draft"]),
   summary: z.string(),
   strengths: z.array(z.string()),
   issues: z.array(
@@ -58,14 +58,14 @@ export function formatOf(schema: z.ZodType) {
 export function parseJson<T>(schema: z.ZodType<T>, text: string): T {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("O modelo não devolveu JSON");
+  if (start < 0 || end <= start) throw new Error("the model did not return JSON");
   let raw: unknown;
   try {
     raw = JSON.parse(text.slice(start, end + 1));
   } catch {
-    throw new Error("O modelo devolveu JSON incompleto");
+    throw new Error("the model returned incomplete JSON");
   }
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) throw new Error(`Resposta fora do formato: ${parsed.error.issues[0]?.message ?? "inválida"}`);
+  if (!parsed.success) throw new Error(`response out of format: ${parsed.error.issues[0]?.message ?? "invalid"}`);
   return parsed.data;
 }

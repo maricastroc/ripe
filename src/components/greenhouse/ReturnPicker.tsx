@@ -1,6 +1,7 @@
 "use client";
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { RETURN_OPTIONS } from "@/lib/format";
 
 export function ReturnPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
@@ -8,13 +9,11 @@ export function ReturnPicker({ value, onChange }: { value: string; onChange: (id
   return (
     <Menu.Root>
       <Menu.Trigger
-        className="focus-ring inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[15px] text-ink-2 transition-colors hover:text-ink data-[state=open]:text-ink"
-        aria-label={`Quando você pretende voltar: ${current.label}`}
+        className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[15px] text-ink-2 transition-colors hover:text-ink data-[state=open]:text-ink"
+        aria-label={`When you plan to come back: ${current.label}`}
       >
-        volto <span className="underline decoration-line-2 decoration-dashed underline-offset-4">{current.label}</span>
-        <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden>
-          <path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
+        back <span className="underline decoration-line-2 decoration-dashed underline-offset-4">{current.label}</span>
+        <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content
@@ -22,7 +21,7 @@ export function ReturnPicker({ value, onChange }: { value: string; onChange: (id
           sideOffset={6}
           className="z-50 min-w-[200px] rounded-2xl border border-line bg-surface p-1.5 shadow-xl"
         >
-          <Menu.Label className="label px-3 pb-1 pt-2">quando você volta?</Menu.Label>
+          <Menu.Label className="label px-3 pb-1 pt-2">when will you be back?</Menu.Label>
           {RETURN_OPTIONS.map((option) => (
             <Menu.Item
               key={option.id}

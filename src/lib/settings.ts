@@ -1,13 +1,13 @@
 import { db } from "./db";
 import type { Pace, Settings } from "./types";
 
-const PACES: Pace[] = ["calmo", "constante", "ligeiro"];
+const PACES: Pace[] = ["calm", "steady", "brisk"];
 
 export function defaultSettings(): Settings {
   return {
     model: process.env.OLLAMA_MODEL ?? "gemma4:e4b",
     baseUrl: process.env.OLLAMA_URL ?? "http://127.0.0.1:11434",
-    pace: "constante",
+    pace: "steady",
     paused: false,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Copy, Download, PanelLeftClose, PanelLeftOpen, PenLine, Tag, Undo2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/Markdown";
@@ -14,12 +15,18 @@ type Props = {
   activity: Activity | null;
   selected: string | null;
   onSelect: (id: string) => void;
+  onHover?: (id: string | null) => void;
+  wide?: boolean;
+  onToggleWide?: () => void;
   readOnly: boolean;
   onRevise: (id: string, instruction: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
 };
 
-const QUICK = ["mais curto e direto", "tom mais formal", "mais detalhado", "em tópicos", "mais caloroso"];
+const tool =
+  "focus-ring inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-ink-2 transition-colors hover:bg-paper-2 hover:text-ink";
+
+const QUICK = ["shorter and more direct", "more formal tone", "more detailed", "as bullet points", "warmer"];
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -87,7 +94,7 @@ function Editor({
   return (
     <div>
       <label htmlFor={`edit-${artifact.id}`} className="sr-only">
-        Editar {artifact.title}
+        Edit {artifact.title}
       </label>
       <textarea
         id={`edit-${artifact.id}`}
@@ -99,18 +106,30 @@ function Editor({
       />
       <p className="label mt-3 text-right" aria-live="polite">
         {state === "saving"
-          ? "salvando…"
+          ? "saving…"
           : state === "saved"
-            ? "salvo"
+            ? "saved"
             : state === "error"
-              ? "não salvou — tente de novo"
-              : "markdown · salva sozinho"}
+              ? "not saved — try again"
+              : "markdown · saves on its own"}
       </p>
     </div>
   );
 }
 
-export function Harvest({ artifacts, steps, activity, selected, onSelect, readOnly, onRevise, onRestore }: Props) {
+export function Harvest({
+  artifacts,
+  steps,
+  activity,
+  selected,
+  onSelect,
+  onHover,
+  wide,
+  onToggleWide,
+  readOnly,
+  onRevise,
+  onRestore,
+}: Props) {
   const [chosenMode, setMode] = useState<"read" | "edit">("read");
   const [revising, setRevising] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -129,16 +148,16 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
   if (!artifacts.length) {
     const next = steps.find((s) => s.status === "working") ?? steps.find((s) => s.status === "pending");
     return (
-      <section id="colheita" aria-labelledby="harvest-title">
+      <section id="harvest" aria-labelledby="harvest-title">
         <h2 id="harvest-title" className="label mb-3">
-          colheita
+          harvest
         </h2>
         <div className="rounded-2xl border border-dashed border-line-2 px-6 py-10 text-center">
-          <p className="font-display text-xl tracking-tight text-ink-2">Ainda não há nada para colher.</p>
+          <p className="font-display text-xl tracking-tight text-ink-2">Nothing to harvest yet.</p>
           <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-3">
             {next
-              ? `O primeiro material vai ser “${next.title}”. Ele aparece aqui assim que estiver pronto — e você pode editar tudo.`
-              : "Cada etapa concluída vira um material aqui, pronto para ler, editar e copiar."}
+              ? `The first piece will be “${next.title}”. It shows up here as soon as it's ready — and you can edit all of it.`
+              : "Every finished step becomes a piece here, ready to read, edit and copy."}
           </p>
         </div>
       </section>
@@ -176,17 +195,17 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
   }
 
   return (
-    <section id="colheita" aria-labelledby="harvest-title" className="scroll-mt-6">
+    <section id="harvest" aria-labelledby="harvest-title" className="scroll-mt-6">
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 id="harvest-title" className="label">
-          colheita · {artifacts.length} {artifacts.length === 1 ? "material" : "materiais"}
+          harvest · {artifacts.length} {artifacts.length === 1 ? "piece" : "pieces"}
         </h2>
-        <span className="text-[13px] text-ink-3">tudo editável</span>
+        <span className="text-[13px] text-ink-3">all editable</span>
       </div>
 
       <div
         role="tablist"
-        aria-label="Materiais produzidos"
+        aria-label="Produced materials"
         className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible"
       >
         {artifacts.map((a) => {
@@ -198,6 +217,8 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
               role="tab"
               type="button"
               aria-selected={active}
+              onMouseEnter={() => onHover?.(a.id)}
+              onMouseLeave={() => onHover?.(null)}
               onClick={() => {
                 onSelect(a.id);
                 setMode("read");
@@ -215,7 +236,11 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                 />
               )}
               <span className="relative flex items-center gap-1.5">
-                {n ? <span className="font-mono text-[11px] opacity-60">{n}</span> : <span aria-hidden>✶</span>}
+                {n ? (
+                  <span className="font-mono text-[11px] opacity-60">{n}</span>
+                ) : (
+                  <Tag className="h-3 w-3 opacity-70" strokeWidth={1.75} aria-hidden />
+                )}
                 <span className="max-w-[16ch] truncate">{a.title}</span>
               </span>
             </button>
@@ -229,7 +254,7 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
             <div
               className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-paper-2 p-0.5 sm:flex-none"
               role="group"
-              aria-label="Modo"
+              aria-label="Mode"
             >
               {(["read", "edit"] as const).map((m) => (
                 <button
@@ -242,24 +267,22 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                     mode === m ? "bg-surface text-ink shadow-sm" : "text-ink-3 hover:text-ink"
                   }`}
                 >
-                  {m === "read" ? "Ler" : "Editar"}
+                  {m === "read" ? "Read" : "Edit"}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 text-[13px]">
-              <button
-                type="button"
-                onClick={() => void copy()}
-                className="focus-ring rounded-full px-2.5 py-1 text-ink-2 hover:bg-paper-2 hover:text-ink"
-              >
-                {copied ? "copiado ✓" : "copiar"}
+            <div className="flex flex-wrap items-center gap-0.5 text-[13px]">
+              <button type="button" onClick={() => void copy()} className={tool}>
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-leaf-dark" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                )}
+                {copied ? "copied" : "copy"}
               </button>
-              <button
-                type="button"
-                onClick={download}
-                className="focus-ring rounded-full px-2.5 py-1 text-ink-2 hover:bg-paper-2 hover:text-ink"
-              >
-                baixar .md
+              <button type="button" onClick={download} className={tool}>
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                .md
               </button>
               {!readOnly && (
                 <button
@@ -267,18 +290,32 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                   disabled={busyHere}
                   onClick={() => setRevising((r) => !r)}
                   aria-expanded={revising}
-                  className="focus-ring rounded-full px-2.5 py-1 text-ink-2 hover:bg-paper-2 hover:text-ink disabled:opacity-40"
+                  className={`${tool} disabled:opacity-40`}
                 >
-                  reescrever…
+                  <PenLine className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                  rewrite…
                 </button>
               )}
               {!readOnly && current.hasPrevious && !busyHere && (
+                <button type="button" onClick={() => void onRestore(current.id)} className={tool}>
+                  <Undo2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                  previous
+                </button>
+              )}
+              {onToggleWide && (
                 <button
                   type="button"
-                  onClick={() => void onRestore(current.id)}
-                  className="focus-ring rounded-full px-2.5 py-1 text-ink-3 hover:bg-paper-2 hover:text-ink"
+                  onClick={onToggleWide}
+                  aria-pressed={wide}
+                  className={`${tool} hidden lg:inline-flex`}
+                  title={wide ? "Give the plate its space back" : "Fold the plate to read on a wider page"}
                 >
-                  versão anterior
+                  {wide ? (
+                    <PanelLeftOpen className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                  ) : (
+                    <PanelLeftClose className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                  )}
+                  {wide ? "show plate" : "wider page"}
                 </button>
               )}
             </div>
@@ -298,14 +335,14 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
               >
                 <div className="px-5 py-4 sm:px-8">
                   <label htmlFor="revise-input" className="text-[14px] text-ink-2">
-                    O que você quer que mude em “{current.title}”?
+                    What should change in “{current.title}”?
                   </label>
                   <div className="mt-2 flex gap-2">
                     <input
                       id="revise-input"
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
-                      placeholder="ex.: corte pela metade e deixe mais pessoal"
+                      placeholder="e.g. cut it in half and make it more personal"
                       maxLength={500}
                       className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 text-[14px] placeholder:text-ink-3"
                     />
@@ -314,7 +351,7 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                       disabled={sending || !instruction.trim()}
                       className="focus-ring rounded-full bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
                     >
-                      {sending ? "…" : "pedir"}
+                      {sending ? "…" : "ask"}
                     </button>
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -330,13 +367,13 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                       </button>
                     ))}
                   </div>
-                  <p className="mt-3 text-[12px] text-ink-3">A versão atual fica guardada; dá para voltar depois.</p>
+                  <p className="mt-3 text-[12px] text-ink-3">The current version is kept; you can go back later.</p>
                 </div>
               </motion.form>
             )}
           </AnimatePresence>
 
-          <div className="relative px-5 py-6 sm:px-10 sm:py-9">
+          <div className="notebook relative py-7 pl-12 pr-5 sm:pl-14 sm:pr-10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${current.id}-${mode}-${current.version}`}
@@ -354,7 +391,7 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
                     }
                   />
                 ) : (
-                  <Markdown content={content} />
+                  <Markdown content={content} className="max-w-[72ch]" />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -362,21 +399,21 @@ export function Harvest({ artifacts, steps, activity, selected, onSelect, readOn
               <div className="absolute inset-0 flex items-start justify-center pt-16">
                 <p className="rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-ink-2 shadow-sm">
                   <span className="dot-live mr-2 inline-block h-2 w-2 rounded-full bg-leaf text-leaf" />
-                  reescrevendo agora — acompanhe em “agora”
+                  rewriting now — follow along under “now”
                 </p>
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-5 py-3 font-mono text-[11.5px] text-ink-3 sm:px-8">
-            <span>{countWords(content)} palavras</span>
+            <span>{countWords(content)} words</span>
             <span>v{current.version}</span>
-            {current.editedByUser && <span className="text-leaf-dark">editado por você</span>}
-            {current.model && current.model !== "exemplo" && <span>{current.model}</span>}
-            <span suppressHydrationWarning>atualizado {formatRelative(current.updatedAt)}</span>
+            {current.editedByUser && <span className="text-leaf-dark">edited by you</span>}
+            {current.model && current.model !== "example" && <span>{current.model}</span>}
+            <span suppressHydrationWarning>updated {formatRelative(current.updatedAt)}</span>
             {current.gaps.length > 0 && (
               <span className="text-accent-ink">
-                {current.gaps.length} {current.gaps.length === 1 ? "lacuna" : "lacunas"} em aberto
+                {current.gaps.length} open {current.gaps.length === 1 ? "gap" : "gaps"}
               </span>
             )}
           </div>

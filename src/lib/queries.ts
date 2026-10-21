@@ -30,7 +30,10 @@ const activeJobs = {
 } satisfies Prisma.Task$jobsArgs;
 
 const summaryInclude = {
-  steps: { orderBy: { position: "asc" }, select: { id: true, status: true, title: true } },
+  steps: {
+    orderBy: { position: "asc" },
+    select: { id: true, status: true, title: true, artifact: { select: { id: true } } },
+  },
   questions: { select: { status: true, blocking: true } },
   artifacts: { select: { id: true, title: true } },
   jobs: activeJobs,
@@ -101,7 +104,12 @@ function toSummary(row: SummaryRow | DetailRow): TaskSummary {
     harvestedAt: iso(row.harvestedAt),
     stallReason: row.stallReason,
     growth: computeGrowth(row),
-    leaves: row.steps.map((s) => ({ id: s.id, status: s.status as StepStatus })),
+    leaves: row.steps.map((s) => ({
+      id: s.id,
+      status: s.status as StepStatus,
+      artifactId: s.artifact?.id ?? null,
+      title: s.title,
+    })),
     openQuestions: open.length,
     essentialOpen: open.filter((q) => q.blocking).length,
     activity: toActivity(row),
@@ -132,6 +140,7 @@ export async function listTasks(): Promise<TaskSummary[]> {
 export async function getTask(id: string): Promise<TaskDetail | null> {
   const row = await db.task.findUnique({ where: { id }, include: detailInclude });
   if (!row) return null;
+  const number = await db.task.count({ where: { createdAt: { lte: row.createdAt } } });
   const artifacts = row.artifacts.map(toArtifact);
   const stepOrder = new Map(row.steps.map((s) => [s.id, s.position]));
   artifacts.sort((a, b) => {
@@ -140,6 +149,7 @@ export async function getTask(id: string): Promise<TaskDetail | null> {
   });
   return {
     ...toSummary(row),
+    number,
     deliverable: (row.deliverable as Deliverable | null) ?? null,
     outcome: row.outcome,
     context: parseList(row.context),
@@ -201,19 +211,19 @@ export async function getAgentStatus(): Promise<AgentStatus> {
   const stale = !state || Date.now() - state.heartbeatAt.getTime() > 45_000;
   if (settings.paused) {
     mode = "paused";
-    message = "Agente pausado nas configurações.";
+    message = "Agent paused in settings.";
   } else if (running) {
     mode = "working";
     message = null;
   } else if (!health.online) {
     mode = "offline";
-    message = `Não consegui falar com o Ollama em ${settings.baseUrl}.`;
+    message = `Couldn't reach Ollama at ${settings.baseUrl}.`;
   } else if (!hasModel(health.models, settings.model)) {
     mode = "model-missing";
-    message = `O modelo ${settings.model} não está instalado no Ollama.`;
+    message = `Model ${settings.model} is not installed in Ollama.`;
   } else if (stale) {
     mode = "stopped";
-    message = "O processo do agente não está respondendo.";
+    message = "The agent process is not responding.";
   } else if (["offline", "model-missing", "paused", "working", "stopped"].includes(mode)) {
     mode = "idle";
     message = null;

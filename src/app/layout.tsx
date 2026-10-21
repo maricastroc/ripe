@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Geist_Mono, Instrument_Sans } from "next/font/google";
+import { Courier_Prime, Fraunces, Instrument_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -15,30 +15,31 @@ const instrument = Instrument_Sans({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const typewriter = Courier_Prime({
+  variable: "--font-typewriter",
   subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Ripe — tarefas que amadurecem enquanto você procrastina",
+  title: "Ripe — tasks that ripen while you procrastinate",
   description:
-    "Adie uma tarefa e um agente de IA local, rodando no Ollama, trabalha nela aos poucos. Quando você voltar, encontra um plano, um rascunho ou uma primeira versão.",
+    "Put a task off and a local AI agent running on Ollama works on it, little by little. When you come back, there's a plan, a draft or a first version waiting.",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3eee4" },
-    { media: "(prefers-color-scheme: dark)", color: "#111613" },
+    { media: "(prefers-color-scheme: light)", color: "#c9ded3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1d24" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${fraunces.variable} ${instrument.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${fraunces.variable} ${instrument.variable} ${typewriter.variable} antialiased`}>
       <body>
         <Providers>
-          <div className="relative z-10 flex min-h-dvh flex-col">{children}</div>
+          <div className="relative flex min-h-dvh flex-col">{children}</div>
         </Providers>
       </body>
     </html>

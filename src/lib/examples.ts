@@ -2,111 +2,111 @@ import { db } from "./db";
 
 const STEPS = [
   {
-    title: "Estrutura da proposta",
-    description: "Esqueleto das seções que a proposta precisa ter.",
-    output: "estrutura",
-    content: `## 1. Resumo
-- O que é a horta, onde fica e quem participa (3–4 linhas).
+    title: "Proposal outline",
+    description: "Skeleton of the sections the proposal needs.",
+    output: "outline",
+    content: `## 1. Summary
+- What the garden is, where it is and who takes part (3–4 lines).
 
-## 2. Problema
-- Terreno ocioso na [[a definir: nome da rua ou praça]].
-- Pouco acesso a alimentos frescos e a espaços de convivência no bairro.
+## 2. Problem
+- Vacant lot on [[TBD: street or square name]].
+- Little access to fresh food and few places for neighbors to meet.
 
-## 3. Objetivos
-- Transformar o terreno em uma horta coletiva mantida por moradores.
-- Oferecer oficinas mensais de cultivo para crianças e adultos.
+## 3. Goals
+- Turn the lot into a shared garden run by residents.
+- Offer monthly growing workshops for kids and adults.
 
-## 4. Como vai funcionar
-- Mutirões, escala de cuidado e regras de uso dos canteiros.
+## 4. How it will work
+- Work days, a care rota and simple rules for the beds.
 
-## 5. Orçamento e cronograma
-- Itens, valores e etapas em seis meses.
+## 5. Budget and timeline
+- Items, amounts and phases over six months.
 
-## 6. Quem assina
-- Responsável e contato.`,
+## 6. Signatory
+- Person responsible and contact.`,
   },
   {
-    title: "Rascunho: problema e objetivos",
-    description: "Texto corrido das seções de problema e objetivos.",
-    output: "rascunho",
-    content: `## Problema
+    title: "Draft: problem and goals",
+    description: "Prose for the problem and goals sections.",
+    output: "draft",
+    content: `## Problem
 
-Há anos o terreno da [[a definir: nome da rua ou praça]] está sem uso. Ele acumula lixo, fica escuro à noite e afasta quem passa por ali. Ao mesmo tempo, muitos moradores comentam que é difícil comprar verduras frescas perto de casa e que faltam lugares para as famílias se encontrarem.
+For years the lot on [[TBD: street or square name]] has been unused. It collects trash, is dark at night and keeps people away. At the same time, many residents say it is hard to buy fresh vegetables close to home and that families have few places to get together.
 
-## Objetivos
+## Goals
 
-1. **Recuperar o terreno**, limpando e preparando canteiros para uma horta coletiva.
-2. **Produzir alimentos frescos** para as famílias que participam do cuidado.
-3. **Criar um ponto de encontro**, com oficinas mensais de cultivo abertas ao bairro.
-4. **Garantir continuidade**, com uma escala de cuidado e regras simples combinadas entre os participantes.`,
+1. **Restore the lot**, clearing it and preparing beds for a shared garden.
+2. **Grow fresh food** for the families who help look after it.
+3. **Create a meeting point**, with monthly growing workshops open to the neighborhood.
+4. **Make it last**, with a care rota and a few simple rules agreed by the participants.`,
   },
   {
-    title: "Orçamento e cronograma",
-    description: "Tabela de custos e plano em seis meses.",
-    output: "cronograma",
-    content: `## Orçamento (teto de R$ 8.000)
+    title: "Budget and timeline",
+    description: "Cost table and a six-month plan.",
+    output: "schedule",
+    content: `## Budget (cap of $8,000)
 
-| Item | Valor estimado |
+| Item | Estimate |
 | --- | --- |
-| Limpeza e preparo do terreno | R$ 1.800 |
-| Terra, adubo e mudas | R$ 2.200 |
-| Ferramentas e regadores | R$ 1.400 |
-| Sistema simples de irrigação | R$ 1.600 |
-| Material para oficinas | R$ 1.000 |
-| **Total** | **R$ 8.000** |
+| Clearing and preparing the lot | $1,800 |
+| Soil, compost and seedlings | $2,200 |
+| Tools and watering cans | $1,400 |
+| Simple irrigation system | $1,600 |
+| Workshop materials | $1,000 |
+| **Total** | **$8,000** |
 
-## Cronograma
+## Timeline
 
-- [ ] **Mês 1** — mutirão de limpeza e reunião de moradores
-- [ ] **Mês 2** — preparo dos canteiros e instalação da irrigação
-- [ ] **Mês 3** — primeiro plantio e escala de cuidado
-- [ ] **Meses 4 a 6** — oficinas mensais e primeira colheita`,
+- [ ] **Month 1** — clean-up day and residents' meeting
+- [ ] **Month 2** — build the beds and install irrigation
+- [ ] **Month 3** — first planting and care rota
+- [ ] **Months 4 to 6** — monthly workshops and first harvest`,
   },
   {
-    title: "Proposta completa",
-    description: "Versão integrada, pronta para revisar e enviar.",
-    output: "rascunho",
-    content: `# Horta Comunitária do Bairro
+    title: "Full proposal",
+    description: "Integrated version, ready to review and submit.",
+    output: "draft",
+    content: `# Neighborhood Community Garden
 
-## Resumo
-Propomos transformar o terreno ocioso da [[a definir: nome da rua ou praça]] em uma horta coletiva cuidada por moradores, com oficinas mensais abertas ao bairro. O apoio solicitado é de **R$ 8.000** para seis meses de implantação.
+## Summary
+We propose turning the vacant lot on [[TBD: street or square name]] into a shared garden cared for by residents, with monthly workshops open to the neighborhood. We are requesting **$8,000** for six months of setup.
 
-## Problema
-O terreno está sem uso há anos, acumula lixo e afasta quem passa. Faltam alimentos frescos por perto e espaços de convivência para as famílias.
+## Problem
+The lot has been unused for years, collects trash and keeps people away. Fresh food is hard to find nearby and families have few places to spend time together.
 
-## Objetivos
-Recuperar o terreno, produzir alimentos frescos, criar um ponto de encontro e garantir a continuidade com uma escala de cuidado combinada entre os participantes.
+## Goals
+Restore the lot, grow fresh food, create a meeting point and keep it going with a care rota agreed among the participants.
 
-## Como vai funcionar
-Os canteiros serão cuidados em mutirões e por uma escala semanal. Cada família participante assume um turno por mês. As regras de uso serão definidas na primeira reunião.
+## How it will work
+The beds will be tended on work days and through a weekly rota. Each participating family takes one shift per month. The rules for using the garden will be set at the first meeting.
 
-## Orçamento e cronograma
-O orçamento cobre preparo do terreno, insumos, ferramentas, irrigação e oficinas, somando R$ 8.000. A implantação acontece em seis meses, do mutirão de limpeza à primeira colheita.
+## Budget and timeline
+The budget covers preparing the lot, supplies, tools, irrigation and workshops, totaling $8,000. Setup takes six months, from the clean-up day to the first harvest.
 
-## Responsável
-[[a definir: nome de quem assina e contato]]`,
+## Signatory
+[[TBD: name and contact of the person signing]]`,
   },
 ];
 
-const REVIEW = `**Veredito:** Quase lá — precisa de complementos.
+const REVIEW = `**Verdict:** Almost there — needs a few additions.
 
-A proposta tem estrutura clara e um orçamento que fecha no teto informado. Faltam dois dados que só você tem para ela poder ser enviada.
+The proposal has a clear structure and a budget that matches the stated cap. Two details that only you know are still missing before it can be submitted.
 
-## O que já está bom
-- Objetivos concretos e fáceis de avaliar.
-- Orçamento detalhado e coerente com o valor pedido.
+## What already works
+- Concrete goals that are easy to evaluate.
+- A detailed budget consistent with the amount requested.
 
-## O que melhorar
-- **Proposta completa:** a seção "Como vai funcionar" ainda é genérica → cite quantas famílias já demonstraram interesse, se souber.
+## What to improve
+- **Full proposal:** the "How it will work" section is still generic → mention how many families have shown interest, if you know.
 
-## O que ainda depende de você
-- Nome da rua ou praça onde fica o terreno.
-- Nome e contato de quem assina.
+## What still depends on you
+- The name of the street or square where the lot is.
+- The name and contact of whoever signs.
 
-## Próximos passos quando voltar
-- [ ] Preencher o local do terreno
-- [ ] Definir quem assina a proposta
-- [ ] Ler a versão completa em voz alta uma vez`;
+## Next steps when you come back
+- [ ] Fill in where the lot is
+- [ ] Decide who signs the proposal
+- [ ] Read the full version out loud once`;
 
 export async function createExample() {
   const now = Date.now();
@@ -114,15 +114,15 @@ export async function createExample() {
   const task = await db.task.create({
     data: {
       prompt:
-        "Escrever a proposta de projeto da horta comunitária do bairro para o edital da prefeitura. O apoio máximo é de R$ 8.000.",
-      title: "Proposta da horta comunitária",
+        "Write the project proposal for our neighborhood community garden for the city's small grants program. The maximum grant is $8,000.",
+      title: "Community garden proposal",
       status: "ripe",
       isExample: true,
-      deliverable: "texto",
-      fruit: "ameixa",
-      outcome: "Uma proposta completa para o edital, com problema, objetivos, funcionamento, orçamento e cronograma.",
-      context: JSON.stringify(["É para o edital da prefeitura.", "O apoio máximo é de R$ 8.000."]),
-      assumptions: JSON.stringify(["Implantação em seis meses.", "Linguagem simples, sem jargão técnico."]),
+      deliverable: "document",
+      fruit: "plum",
+      outcome: "A complete grant proposal covering the problem, goals, how it will work, budget and timeline.",
+      context: JSON.stringify(["It's for the city's small grants program.", "The maximum grant is $8,000."]),
+      assumptions: JSON.stringify(["Six-month setup.", "Plain language, no jargon."]),
       createdAt: at(190),
       deferredAt: at(189),
       interpretedAt: at(187),
@@ -138,16 +138,16 @@ export async function createExample() {
       {
         taskId: task.id,
         position: 0,
-        text: "Onde fica o terreno?",
-        why: "O local aparece no resumo e no problema.",
+        text: "Where is the lot?",
+        why: "The location appears in the summary and the problem.",
         blocking: false,
         status: "skipped",
       },
       {
         taskId: task.id,
         position: 1,
-        text: "Quem assina a proposta?",
-        why: "O edital pede um responsável.",
+        text: "Who signs the proposal?",
+        why: "The grant requires a responsible person.",
         blocking: false,
         status: "open",
       },
@@ -172,12 +172,12 @@ export async function createExample() {
         kind: "step",
         title: step.title,
         content: step.content,
-        model: "exemplo",
+        model: "example",
       },
     });
   }
   await db.artifact.create({
-    data: { taskId: task.id, kind: "review", title: "Revisão do agente", content: REVIEW, model: "exemplo" },
+    data: { taskId: task.id, kind: "review", title: "Agent review", content: REVIEW, model: "example" },
   });
 
   await db.event.createMany({
@@ -185,23 +185,23 @@ export async function createExample() {
       {
         taskId: task.id,
         kind: "info",
-        message: "Este é um exemplo ilustrativo, escrito à mão para mostrar o resultado. Nada aqui foi gerado agora.",
+        message: "This is an illustrative example, written by hand to show the result. Nothing here was generated now.",
         createdAt: at(190),
       },
       {
         taskId: task.id,
         kind: "done",
-        message: "Entendi o pedido. Uma proposta completa para o edital.",
+        message: "Understood the request. A complete proposal for the grant.",
         createdAt: at(187),
       },
-      { taskId: task.id, kind: "done", message: "Tracei um caminho em 4 etapas.", createdAt: at(185) },
+      { taskId: task.id, kind: "done", message: "Mapped a path in 4 steps.", createdAt: at(185) },
       {
         taskId: task.id,
         kind: "done",
-        message: "Concluí “Proposta completa” — deixei 2 lacunas marcadas em vez de inventar.",
+        message: "Finished “Full proposal” — left 2 gaps marked instead of making things up.",
         createdAt: at(165),
       },
-      { taskId: task.id, kind: "done", message: "Madura. Tudo produzido e revisado.", createdAt: at(160) },
+      { taskId: task.id, kind: "done", message: "Ripe. Everything written and reviewed.", createdAt: at(160) },
     ],
   });
 

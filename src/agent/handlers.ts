@@ -55,7 +55,7 @@ async function loadBrief(taskId: string) {
 function gapNote(content: string) {
   const gaps = extractGaps(content).length;
   if (!gaps) return "";
-  return ` Deixei ${gaps} ${gaps === 1 ? "lacuna marcada" : "lacunas marcadas"} em vez de inventar.`;
+  return ` Left ${gaps} ${gaps === 1 ? "gap" : "gaps"} marked instead of making things up.`;
 }
 
 async function interpret(job: Job, ctx: JobContext): Promise<JobOutcome> {
@@ -93,15 +93,15 @@ async function interpret(job: Job, ctx: JobContext): Promise<JobOutcome> {
     ),
   ]);
 
-  await logEvent(task.id, "done", `Entendi o pedido. ${result.outcome.trim()}`, job.id);
+  await logEvent(task.id, "done", `Understood the request. ${result.outcome.trim()}`, job.id);
   if (questions.length) {
     const essential = questions.filter((q) => q.essential).length;
     await logEvent(
       task.id,
       "warn",
-      `Anotei ${questions.length} ${questions.length === 1 ? "dúvida" : "dúvidas"} que só você pode responder${
-        essential ? ` (${essential} ${essential === 1 ? "essencial" : "essenciais"})` : ""
-      }. Sigo com o que for possível enquanto isso.`,
+      `Noted ${questions.length} ${questions.length === 1 ? "question" : "questions"} only you can answer${
+        essential ? ` (${essential} essential)` : ""
+      }. I'll keep going with what I can in the meantime.`,
       job.id,
     );
   }
@@ -143,8 +143,8 @@ async function plan(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Tracei um caminho em ${steps.length} etapas: ${steps.map((s) => s.title.trim()).join(" → ")}.${
-      essential.length ? " Faço as primeiras com marcadores; a versão final espera o que é essencial." : ""
+    `Mapped a path in ${steps.length} steps: ${steps.map((s) => s.title.trim()).join(" → ")}.${
+      essential.length ? " I'll do the early ones with markers; the final version waits for what's essential." : ""
     }`,
     job.id,
   );
@@ -152,7 +152,7 @@ async function plan(job: Job, ctx: JobContext): Promise<JobOutcome> {
 }
 
 async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
-  if (!job.stepId) throw new Error("Job de escrita sem etapa");
+  if (!job.stepId) throw new Error("writing job without a step");
   const { task, brief } = await loadBrief(job.taskId);
   const steps = await db.step.findMany({
     where: { taskId: task.id },
@@ -160,7 +160,7 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
     include: { artifact: true },
   });
   const step = steps.find((s) => s.id === job.stepId);
-  if (!step) throw new Error("Etapa não encontrada");
+  if (!step) throw new Error("step not found");
   const prior = steps
     .filter((s) => s.position < step.position && s.artifact)
     .map((s) => ({ title: s.title, content: s.artifact!.content }));
@@ -180,7 +180,7 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
     onProgress: ctx.progress,
   });
   const content = cleanMarkdown(res.text);
-  if (countWords(content) < 15) throw new Error("O texto gerado veio vazio ou curto demais");
+  if (countWords(content) < 15) throw new Error("the generated text was empty or too short");
 
   const existing = step.artifact;
   await db.$transaction([
@@ -205,8 +205,8 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Concluí “${step.title}” — ${countWords(content)} palavras.${gapNote(content)}${
-      res.truncated ? " O texto chegou ao limite de tamanho; vale conferir o final." : ""
+    `Finished “${step.title}” — ${countWords(content)} words.${gapNote(content)}${
+      res.truncated ? " The text hit the length limit; worth checking the ending." : ""
     }`,
     job.id,
   );
@@ -214,24 +214,24 @@ async function generate(job: Job, ctx: JobContext): Promise<JobOutcome> {
 }
 
 const VERDICT: Record<Review["verdict"], string> = {
-  pronto: "Pronto para usar, com pequenos ajustes",
-  quase: "Quase lá — precisa de complementos",
-  rascunho: "Boa base, ainda um rascunho",
+  ready: "Ready to use, with small tweaks",
+  almost: "Almost there — needs a few additions",
+  draft: "A good base, still a draft",
 };
 
 function reviewMarkdown(review: Review) {
-  const parts = [`**Veredito:** ${VERDICT[review.verdict]}.`, review.summary.trim()];
-  if (review.strengths.length) parts.push(`## O que já está bom\n${review.strengths.map((s) => `- ${s}`).join("\n")}`);
+  const parts = [`**Verdict:** ${VERDICT[review.verdict]}.`, review.summary.trim()];
+  if (review.strengths.length) parts.push(`## What already works\n${review.strengths.map((s) => `- ${s}`).join("\n")}`);
   if (review.issues.length)
     parts.push(
-      `## O que melhorar\n${review.issues
+      `## What to improve\n${review.issues
         .map((i) => `- **${i.where}:** ${i.problem}${i.suggestion ? ` → ${i.suggestion}` : ""}`)
         .join("\n")}`,
     );
   if (review.missing.length)
-    parts.push(`## O que ainda depende de você\n${review.missing.map((m) => `- ${m}`).join("\n")}`);
+    parts.push(`## What still depends on you\n${review.missing.map((m) => `- ${m}`).join("\n")}`);
   if (review.nextActions.length)
-    parts.push(`## Próximos passos quando voltar\n${review.nextActions.map((a) => `- [ ] ${a}`).join("\n")}`);
+    parts.push(`## Next steps when you come back\n${review.nextActions.map((a) => `- [ ] ${a}`).join("\n")}`);
   return parts.join("\n\n");
 }
 
@@ -275,22 +275,22 @@ async function review(job: Job, ctx: JobContext): Promise<JobOutcome> {
           },
         })
       : db.artifact.create({
-          data: { taskId: task.id, kind: "review", title: "Revisão do agente", content, model: ctx.model },
+          data: { taskId: task.id, kind: "review", title: "Agent review", content, model: ctx.model },
         }),
     db.task.update({ where: { id: task.id }, data: { reviewedAt: new Date() } }),
   ]);
 
-  await logEvent(task.id, "done", `Revisei o conjunto: ${VERDICT[result.verdict].toLowerCase()}.`, job.id);
+  await logEvent(task.id, "done", `Reviewed the whole set: ${VERDICT[result.verdict].toLowerCase()}.`, job.id);
   return { tokens: res.tokens };
 }
 
 async function revise(job: Job, ctx: JobContext): Promise<JobOutcome> {
-  if (!job.artifactId) throw new Error("Revisão sem material");
+  if (!job.artifactId) throw new Error("rewrite without material");
   const { task, brief } = await loadBrief(job.taskId);
   const artifact = await db.artifact.findUniqueOrThrow({ where: { id: job.artifactId } });
   const instruction =
     job.instruction?.trim() ||
-    "Incorpore as respostas mais recentes da pessoa e substitua os marcadores [[a definir]] que agora têm resposta.";
+    "Incorporate the person's latest answers and replace the [[TBD]] markers that now have an answer.";
   const res = await chat({
     baseUrl: ctx.baseUrl,
     model: ctx.model,
@@ -301,7 +301,7 @@ async function revise(job: Job, ctx: JobContext): Promise<JobOutcome> {
     onProgress: ctx.progress,
   });
   const content = cleanMarkdown(res.text);
-  if (countWords(content) < 15) throw new Error("A revisão veio vazia ou curta demais");
+  if (countWords(content) < 15) throw new Error("the rewrite was empty or too short");
 
   await db.artifact.update({
     where: { id: artifact.id },
@@ -316,7 +316,7 @@ async function revise(job: Job, ctx: JobContext): Promise<JobOutcome> {
   await logEvent(
     task.id,
     "done",
-    `Reescrevi “${artifact.title}”${job.instruction ? ` seguindo: “${job.instruction.trim()}”` : " com as suas respostas"}.${gapNote(content)}`,
+    `Rewrote “${artifact.title}”${job.instruction ? ` following: “${job.instruction.trim()}”` : " with your answers"}.${gapNote(content)}`,
     job.id,
   );
   return { tokens: res.tokens };

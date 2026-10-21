@@ -4,11 +4,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { GAP_PATTERN } from "@/lib/markers";
 
-const GAP_HREF = "#lacuna";
+const GAP_HREF = "#tbd-gap";
 
 function prepare(content: string) {
   return content.replace(GAP_PATTERN, (_, text: string) => {
-    const clean = (text || "algo").replace(/[[\]]/g, "").trim();
+    const clean = (text || "something").replace(/[[\]]/g, "").trim();
     return `[${clean}](${GAP_HREF})`;
   });
 }
@@ -22,8 +22,8 @@ export function Markdown({ content, className }: { content: string; className?: 
           a({ href, children }) {
             if (href === GAP_HREF) {
               return (
-                <mark className="gap-chip" title="Informação que o agente não inventou">
-                  a definir: {children}
+                <mark className="gap-chip" title="Information the agent did not make up">
+                  TBD: {children}
                 </mark>
               );
             }

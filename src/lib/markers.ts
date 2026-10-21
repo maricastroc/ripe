@@ -1,4 +1,4 @@
-export const GAP_PATTERN = /\[\[\s*a definir\s*:?\s*([^\]]*?)\s*\]\]/gi;
+export const GAP_PATTERN = /\[\[\s*(?:tbd|to be defined)\s*:?\s*([^\]]*?)\s*\]\]/gi;
 
 export function extractGaps(content: string): string[] {
   const found = new Set<string>();

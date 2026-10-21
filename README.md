@@ -1,39 +1,43 @@
 # Ripe
 
-**Tarefas que amadurecem enquanto você procrastina.**
+**Tasks that ripen while you procrastinate.**
 
-Você escreve algo que vem adiando — "responder o e-mail difícil do cliente", "planejar a viagem de dezembro" — e deixa para depois. A partir daí, um agente de IA rodando **localmente no Ollama** trabalha nisso em etapas pequenas, salvando cada resultado. Quando você volta, encontra um plano, um rascunho, um checklist ou uma primeira versão — e uma lista clara do que ainda depende de você.
+You write down something you keep putting off — "reply to the difficult client email", "plan the December trip" — and leave it for later. From then on, an AI agent running **locally on Ollama** works on it in small steps, saving every result. When you come back, you find a plan, a draft, a checklist or a first version — and a clear list of what still depends on you.
 
-Projeto para o Hacktoberfest Open-Source AI Challenge, semana 3: _Slow and Steady_.
+Built for the Hacktoberfest Open-Source AI Challenge, week 3: _Slow and Steady_.
 
-## O fluxo
+## The flow
 
-**Criar → Adiar → Amadurecer → Retornar → Revisar**
+**Create → Put off → Ripen → Return → Review**
 
-1. **Criar** — uma frase em linguagem natural. Nada de formulário.
-2. **Adiar** — você diz quando pretende voltar ("amanhã", "semana que vem"). O agente começa.
-3. **Amadurecer** — o agente interpreta o pedido, divide em etapas, escreve um material por etapa e, no fim, revisa o conjunto.
-4. **Retornar** — a página da tarefa mostra o que foi feito, o que está sendo feito agora, o que falta e o que ele precisa saber de você.
-5. **Revisar** — todo material é editável, copiável, baixável em `.md` e pode ser reescrito sob instrução ("mais curto", "tom mais formal").
+1. **Create** — one sentence in plain language. No forms.
+2. **Put off** — say when you plan to come back ("tomorrow", "next week"). The agent starts.
+3. **Ripen** — the agent interprets the request, splits it into steps, writes one piece per step and finally reviews the whole set.
+4. **Return** — the task page shows what's done, what's happening right now, what's left and what the agent needs to know from you.
+5. **Review** — every piece is editable, copyable, downloadable as `.md` and can be rewritten on request ("shorter", "more formal").
 
-## A metáfora
+## The greenhouse
 
-Cada tarefa é uma planta num vaso, num parapeito. Ela é desenhada proceduralmente em SVG a partir do estado real do trabalho — **nunca pela passagem do tempo**:
+Ripe is drawn as a raised bed in a Victorian glasshouse, seen **in cross-section**: plants above the soil, roots below — and running through the soil, a glowing **mycelium network**. The mycelium is the agent: a local, open-weight model that feeds whichever plant it is working on. You can see a pulse of light travel from the mushrooms at the edge of the bed to that plant's roots. When Ollama is off, the network goes grey.
 
-| Estágio  | O que precisa ter acontecido                |
-| -------- | ------------------------------------------- |
-| Semente  | Tarefa plantada                             |
-| Broto    | O agente interpretou o pedido               |
-| Folhas   | Existe um plano; cada etapa é uma folha     |
-| Flor     | O primeiro material ficou pronto            |
-| Fruto    | A maior parte das etapas está pronta        |
-| Madura   | Tudo produzido e revisado pelo agente       |
+Every change in a plant comes from **persisted work**, never from the passage of time:
 
-Cada etapa é uma folha: botão fechado quando pendente, abrindo enquanto é escrita, aberta quando pronta e amarelada quando espera uma resposta sua. O fruto cresce e muda de cor conforme as etapas terminam. A espécie (caqui, ameixa, limão-siciliano, figo) só aparece quando o agente entende que tipo de resultado você quer.
+| What the agent finished              | What happens to the plant                                   |
+| ------------------------------------ | ----------------------------------------------------------- |
+| Interpreted the request              | The seed germinates: a taproot and two seed leaves          |
+| Mapped out the plan                  | One lateral root and one bud on the stem per step           |
+| Finished a step                      | That bud opens into a leafy branch you can click to read    |
+| Finished the first piece             | The plant blossoms                                          |
+| Finished most of the work            | Fruit sets and starts to colour                             |
+| Reviewed everything                  | The fruit ripens and a paper review tag is tied to the stem |
 
-## Rodando
+A bud that needs an answer from you dries out and shows a blue drop. The species (persimmon, plum, lemon, fig — each with its own leaves, flowers and fruit) only appears once the agent understands what kind of result you want. The number of plants shapes the bed: a single task takes the whole stage; many tasks spread into terraces. The light through the glass follows your local time, from dawn to a night where the mycelium glows.
 
-Requisitos: Node 20.9+ e [Ollama](https://ollama.com).
+New tasks are sown from a **seed packet** stuck in the soil. Harvested tasks are preserved as jars in **the pantry**. Opening a plant shows its **specimen sheet**: a field journal spread with the plant drawn as a botanical plate — numbered parts keyed to the work they hold — next to the field notes, the live writing, your open questions and the reading room.
+
+## Running it
+
+Requirements: Node 20.9+ and [Ollama](https://ollama.com).
 
 ```bash
 ollama pull gemma4:e4b
@@ -46,65 +50,72 @@ npm run setup
 npm run dev
 ```
 
-Abra http://localhost:3000. O modelo, o endereço do Ollama e o ritmo do agente podem ser trocados pela interface (clique no indicador de status no topo). Qualquer modelo instalado no Ollama funciona; modelos com suporte a saída estruturada em JSON dão os melhores resultados.
+Open http://localhost:3000. The model, the Ollama address and the agent's pace can be changed from the interface (click the mushrooms, or the mycelium chip at the top). Add `?sky=night` (or `dawn`, `dusk`) to the URL to preview another time of day. Any model installed in Ollama works; models with good structured JSON output give the best results.
 
-Para ver uma tarefa madura sem esperar, clique em "veja um exemplo" no parapeito vazio ou rode `npm run db:seed`. O exemplo é marcado como **ilustrativo** na interface e nunca é processado pelo agente.
+To see a ripe task without waiting, click "open a ripe example" on the empty bed or run `npm run db:seed`. The example is marked as **illustrative** in the interface and is never processed by the agent.
 
-### Variáveis de ambiente (opcionais)
+### Environment variables (optional)
 
-Veja `.env.example`.
+See `.env.example`.
 
-| Variável       | Padrão                       |
-| -------------- | ---------------------------- |
-| `DATABASE_URL` | `file:./prisma/ripe.db`      |
-| `OLLAMA_URL`   | `http://127.0.0.1:11434`     |
-| `OLLAMA_MODEL` | `gemma4:e4b`                 |
+| Variable       | Default                  |
+| -------------- | ------------------------ |
+| `DATABASE_URL` | `file:./prisma/ripe.db`  |
+| `OLLAMA_URL`   | `http://127.0.0.1:11434` |
+| `OLLAMA_MODEL` | `gemma4:e4b`             |
 
-## Arquitetura
+## Architecture
 
 ```
 src/
-  agent/        o agente: cliente Ollama, prompts, schemas, fila, worker
-  app/          rotas (páginas e API) do Next.js
-  components/   interface: planta, parapeito, página da tarefa
-  hooks/        polling e animação de texto ao vivo
-  lib/          domínio: tipos, crescimento, consultas, operações
-prisma/         schema, migrações e seed do exemplo
+  agent/        the agent: Ollama client, prompts, schemas, queue, worker
+  app/          Next.js routes (pages and API)
+  components/
+    flora/      procedural botanical illustration: species, anatomy, specimen
+    greenhouse/ the bed: glasshouse, soil and mycelium, seed packet, pantry
+    specimen/   the specimen sheet: plate key, growth series, status board
+    task/       field notes: live writing, questions, reading room, journal
+  hooks/        polling, time-of-day sky, live text animation
+  lib/          domain: types, growth, queries, operations
+prisma/         schema, migrations and the example seed
 ```
 
-### O agente
+### The agent
 
-- **Fases separadas** — cada tarefa passa por jobs distintos: `interpret` (entender o pedido, apontar o que falta), `plan` (dividir em 3–5 etapas), `generate` (um material por etapa), `review` (revisão crítica do conjunto) e `revise` (reescrita pedida por você).
-- **Fila persistente** — todo job vive no SQLite com estado explícito: `queued → running → done | failed | cancelled`. O worker roda no próprio servidor Next (iniciado via `instrumentation.ts`), pega um job por vez e grava o resultado antes de passar para o próximo.
-- **Recuperável** — jobs em execução têm um _lease_. Se o processo cair no meio de uma etapa, ao subir de novo o job volta para a fila sem perder o que já foi salvo, e o diário registra a retomada.
-- **Honesto** — a interface lê o estado real do banco: o texto que aparece sendo escrito é a saída do modelo em streaming, salva a cada ~700 ms. Nada é simulado.
-- **Sem inventar** — o agente marca informações ausentes como `[[a definir: ...]]`, que viram destaques no texto. Perguntas essenciais seguram apenas a versão final; as etapas anteriores avançam com marcadores.
-- **Limites** — uma etapa por vez; até 5 etapas por tarefa; 3 tentativas por etapa com espera crescente; 4 minutos por chamada; 24 execuções por tarefa; pausa configurável entre etapas (o "ritmo").
-- **Ollama fora do ar** — o worker verifica a saúde do Ollama antes de pegar um job. Se ele cair, nada é consumido: o job espera e o trabalho continua sozinho quando ele voltar.
+- **Separate phases** — each task goes through distinct jobs: `interpret` (understand the request, point out what's missing), `plan` (split into 3–5 steps), `generate` (one piece per step), `review` (a critical review of the whole set) and `revise` (a rewrite you asked for).
+- **Persistent queue** — every job lives in SQLite with an explicit state: `queued → running → done | failed | cancelled`. The worker runs inside the Next server itself (started from `instrumentation.ts`), takes one job at a time and saves the result before moving on.
+- **Recoverable** — running jobs hold a lease. If the process dies mid-step, the job goes back to the queue on restart without losing anything already saved, and the journal records the resumption.
+- **Honest** — the interface reads the real state from the database: the text you see being written is the model's streamed output, saved every ~700 ms. Nothing is simulated.
+- **No making things up** — the agent marks missing information as `[[TBD: ...]]`, rendered as highlights in the text. Essential questions only hold back the final version; earlier steps move forward with markers.
+- **Limits** — one step at a time; up to 5 steps per task; 3 attempts per step with growing back-off; 4 minutes per call; 24 runs per task; a configurable rest between steps (the "pace").
+- **Ollama down** — the worker checks Ollama's health before taking a job. If it goes down, nothing is consumed: the job waits and the work continues on its own when Ollama is back.
 
-### Estados de uma tarefa
+The agent writes in the same language as your request.
 
-| Estado      | Significado                                              |
-| ----------- | -------------------------------------------------------- |
-| `dormant`   | Plantada ou pausada; nada roda                           |
-| `ripening`  | Na fila ou sendo trabalhada                              |
-| `waiting`   | Fez tudo o que dava; precisa de uma resposta sua         |
-| `ripe`      | Tudo produzido e revisado                                |
-| `stalled`   | Falhou após as tentativas; dá para tentar de novo        |
-| `harvested` | Você colheu; fica na cesta                               |
+### Task states
+
+| State       | Meaning                                          |
+| ----------- | ------------------------------------------------ |
+| `dormant`   | Planted or paused; nothing runs                  |
+| `ripening`  | Queued or being worked on                        |
+| `waiting`   | Did everything it could; needs an answer from you |
+| `ripe`      | Everything written and reviewed                  |
+| `stalled`   | Failed after its attempts; can be retried        |
+| `harvested` | You took it; it sits in the pantry               |
 
 ## Scripts
 
-| Script              | O que faz                                   |
+| Script              | What it does                                |
 | ------------------- | ------------------------------------------- |
-| `npm run dev`       | Servidor de desenvolvimento + agente        |
-| `npm run build`     | Build de produção                           |
-| `npm run setup`     | Gera o cliente Prisma e aplica as migrações |
-| `npm run db:seed`   | Cria a tarefa de exemplo                    |
-| `npm run db:reset`  | Apaga e recria o banco                      |
-| `npm run typecheck` | Verificação de tipos                        |
+| `npm run dev`       | Development server + agent                  |
+| `npm run build`     | Production build                            |
+| `npm run setup`     | Generates the Prisma client, runs migrations |
+| `npm run db:seed`   | Creates the example task                    |
+| `npm run db:reset`  | Drops and recreates the database            |
+| `npm run typecheck` | Type checking                               |
 | `npm run lint`      | ESLint                                      |
+| `npm run format`    | Prettier                                    |
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · Prisma 7 + SQLite · Zod · Ollama
+Next.js 16 (App Router, view transitions) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · Prisma 7 + SQLite · Zod · Ollama

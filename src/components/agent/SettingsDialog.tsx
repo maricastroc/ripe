@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { api } from "@/lib/api";
@@ -34,7 +35,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
     try {
       onChange(await api<AgentStatus>("/api/agent", { method: "PUT", body: patch }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível salvar");
+      setError(err instanceof Error ? err.message : "Couldn't save");
     } finally {
       setSaving(false);
     }
@@ -58,7 +59,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
             </Dialog.Overlay>
             <Dialog.Content asChild forceMount>
               <motion.div
-                className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-3xl border border-line bg-surface p-6 shadow-2xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[min(560px,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:p-8"
+                className="paper fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-3xl border border-line p-6 shadow-2xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[min(560px,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:p-8"
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 16 }}
@@ -66,46 +67,44 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
               >
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <p className="label">agente local</p>
+                    <p className="label">local agent</p>
                     <Dialog.Title className="mt-1 font-display text-3xl tracking-tight">
-                      Quem cuida do jardim
+                      Who tends the garden
                     </Dialog.Title>
                   </div>
                   <Dialog.Close
-                    className="focus-ring -mr-2 rounded-full p-2 text-ink-3 hover:text-ink"
-                    aria-label="Fechar"
+                    className="focus-ring -mr-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-3 hover:bg-paper-2 hover:text-ink"
+                    aria-label="Close"
                   >
-                    <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden>
-                      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
+                    <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                   </Dialog.Close>
                 </div>
                 <Dialog.Description className="mt-3 text-[15px] leading-relaxed text-ink-2">
-                  Um modelo open-weight rodando no Ollama, nesta máquina. Ele faz uma etapa pequena por vez, salva o
-                  resultado e descansa antes da próxima. Nenhum texto sai do seu computador.
+                  An open-weight model running on Ollama, on this machine. It does one small step at a time, saves the
+                  result and rests before the next one. No text ever leaves your computer.
                 </Dialog.Description>
 
                 {(agent.mode === "offline" || agent.mode === "stopped") && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">O Ollama não está respondendo em {settings.baseUrl}.</p>
+                    <p className="font-medium">Ollama is not responding at {settings.baseUrl}.</p>
                     <p className="mt-1 text-ink-2">
-                      As tarefas ficam guardadas na fila. Assim que ele voltar, o trabalho continua sozinho.
+                      Tasks stay saved in the queue. As soon as it’s back, the work continues on its own.
                     </p>
                     <Command>ollama serve</Command>
                   </div>
                 )}
                 {agent.mode === "model-missing" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">O modelo {settings.model} não está instalado.</p>
-                    <p className="mt-1 text-ink-2">Escolha um dos modelos abaixo ou baixe este:</p>
+                    <p className="font-medium">Model {settings.model} is not installed.</p>
+                    <p className="mt-1 text-ink-2">Pick one of the models below or pull this one:</p>
                     <Command>{`ollama pull ${settings.model}`}</Command>
                   </div>
                 )}
 
                 <section className="mt-7">
-                  <h3 className="label">modelo</h3>
+                  <h3 className="label">model</h3>
                   {agent.online && agent.models.length === 0 && (
-                    <p className="mt-2 text-sm text-ink-2">Nenhum modelo instalado ainda.</p>
+                    <p className="mt-2 text-sm text-ink-2">No models installed yet.</p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {models.map((m) => {
@@ -125,7 +124,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                           aria-pressed={active}
                         >
                           {m}
-                          {!installed && <span className="ml-1.5 opacity-60">· ausente</span>}
+                          {!installed && <span className="ml-1.5 opacity-60">· missing</span>}
                         </button>
                       );
                     })}
@@ -141,21 +140,21 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                     <input
                       value={customModel}
                       onChange={(e) => setCustomModel(e.target.value)}
-                      placeholder="outro modelo, ex.: qwen3:8b"
+                      placeholder="another model, e.g. qwen3:8b"
                       className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[13px] placeholder:text-ink-3"
-                      aria-label="Nome de outro modelo"
+                      aria-label="Name of another model"
                     />
                     <button
                       type="submit"
                       className="focus-ring rounded-full border border-line px-4 text-sm text-ink-2 hover:text-ink"
                     >
-                      usar
+                      use
                     </button>
                   </form>
                 </section>
 
                 <section className="mt-7">
-                  <h3 className="label">ritmo</h3>
+                  <h3 className="label">pace</h3>
                   <div className="mt-3 grid gap-2">
                     {(Object.keys(PACE_LABEL) as Pace[]).map((p) => {
                       const active = p === settings.pace;
@@ -181,7 +180,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                 </section>
 
                 <section className="mt-7">
-                  <h3 className="label">endereço do ollama</h3>
+                  <h3 className="label">ollama address</h3>
                   <form
                     className="mt-3 flex gap-2"
                     onSubmit={(e) => {
@@ -193,31 +192,31 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                       value={baseUrl}
                       onChange={(e) => setBaseUrl(e.target.value)}
                       className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[13px]"
-                      aria-label="Endereço do Ollama"
+                      aria-label="Ollama address"
                     />
                     <button
                       type="submit"
                       className="focus-ring rounded-full border border-line px-4 text-sm text-ink-2 hover:text-ink"
                     >
-                      salvar
+                      save
                     </button>
                   </form>
                 </section>
 
                 <section className="mt-7 flex items-center justify-between gap-4 rounded-2xl border border-line p-4">
                   <div>
-                    <p className="text-sm font-medium">{settings.paused ? "Trabalho pausado" : "Trabalho ativo"}</p>
+                    <p className="text-sm font-medium">{settings.paused ? "Work paused" : "Work active"}</p>
                     <p className="mt-0.5 text-[13px] text-ink-2">
                       {settings.paused
-                        ? "Nada roda até você retomar."
-                        : "O agente pega a próxima etapa quando estiver livre."}
+                        ? "Nothing runs until you resume."
+                        : "The agent picks up the next step whenever it's free."}
                     </p>
                   </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={!settings.paused}
-                    aria-label="Ativar ou pausar o agente"
+                    aria-label="Activate or pause the agent"
                     disabled={saving}
                     onClick={() => save({ paused: !settings.paused })}
                     className={`focus-ring relative h-7 w-12 shrink-0 rounded-full transition-colors ${settings.paused ? "bg-line-2" : "bg-leaf"}`}
@@ -231,14 +230,14 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                 </section>
 
                 <section className="mt-7 border-t border-dashed border-line-2 pt-5">
-                  <h3 className="label">limites de execução</h3>
+                  <h3 className="label">execution limits</h3>
                   <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] text-ink-2 sm:grid-cols-2">
-                    <li>uma etapa por vez, em fila</li>
-                    <li>até {LIMITS.maxSteps} etapas por tarefa</li>
-                    <li>{LIMITS.maxAttempts} tentativas por etapa</li>
-                    <li>{Math.round(LIMITS.callTimeoutMs / 60000)} min no máximo por chamada</li>
-                    <li>{LIMITS.jobBudget} execuções por tarefa</li>
-                    <li>retoma sozinho após interrupções</li>
+                    <li>one step at a time, queued</li>
+                    <li>up to {LIMITS.maxSteps} steps per task</li>
+                    <li>{LIMITS.maxAttempts} attempts per step</li>
+                    <li>{Math.round(LIMITS.callTimeoutMs / 60000)} min max per call</li>
+                    <li>{LIMITS.jobBudget} runs per task</li>
+                    <li>resumes on its own after interruptions</li>
                   </ul>
                 </section>
 

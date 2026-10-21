@@ -15,12 +15,12 @@ const DOT: Record<EventKind, string> = {
 };
 
 const WHO: Record<EventKind, string> = {
-  user: "você",
+  user: "you",
   info: "ripe",
-  work: "agente",
-  done: "agente",
-  warn: "agente",
-  error: "agente",
+  work: "agent",
+  done: "agent",
+  warn: "agent",
+  error: "agent",
 };
 
 export function Journal({ events }: { events: EventView[] }) {
@@ -31,9 +31,9 @@ export function Journal({ events }: { events: EventView[] }) {
     <section aria-labelledby="journal-title">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 id="journal-title" className="label">
-          diário do agente
+          agent journal
         </h2>
-        <span className="text-[13px] text-ink-3">o que aconteceu, de verdade</span>
+        <span className="text-[13px] text-ink-3">what actually happened</span>
       </div>
       <ol className="font-mono text-[12.5px] leading-relaxed">
         <AnimatePresence initial={false}>
@@ -66,7 +66,7 @@ export function Journal({ events }: { events: EventView[] }) {
           onClick={() => setAll((a) => !a)}
           className="focus-ring mt-3 rounded-full px-1 text-[13px] text-ink-3 underline-offset-4 hover:text-ink hover:underline"
         >
-          {all ? "mostrar menos" : `mostrar todo o diário (${events.length})`}
+          {all ? "show less" : `show the whole journal (${events.length})`}
         </button>
       )}
     </section>

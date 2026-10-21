@@ -2,7 +2,7 @@ import { createExample } from "../src/lib/examples";
 
 createExample()
   .then((id) => {
-    console.log(`Exemplo criado: ${id}`);
+    console.log(`Example created: ${id}`);
     process.exit(0);
   })
   .catch((err) => {

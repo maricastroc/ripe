@@ -8,7 +8,7 @@ import { updateSettings } from "@/lib/settings";
 const patch = z.object({
   model: z.string().trim().min(1).max(120).optional(),
   baseUrl: z.url().max(200).optional(),
-  pace: z.enum(["calmo", "constante", "ligeiro"]).optional(),
+  pace: z.enum(["calm", "steady", "brisk"]).optional(),
   paused: z.boolean().optional(),
 });
 

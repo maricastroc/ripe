@@ -21,9 +21,9 @@ export async function api<T>(
       signal: init?.signal,
     });
   } catch {
-    throw new ApiError("Sem conexão com o servidor do Ripe.", 0);
+    throw new ApiError("Can't reach the Ripe server.", 0);
   }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new ApiError(data.error ?? `Erro ${res.status}`, res.status);
+  if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status);
   return data;
 }

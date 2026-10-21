@@ -26,7 +26,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/tasks/[id]"
   return respond(async () => {
     const { id } = await ctx.params;
     const [task, agent] = await Promise.all([getTask(id), getAgentStatus()]);
-    if (!task) throw new NotFound("Tarefa não encontrada");
+    if (!task) throw new NotFound("Task not found");
     return { task, agent };
   });
 }

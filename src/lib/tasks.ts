@@ -2,7 +2,7 @@ import { advance, enqueue, jobsUsed } from "@/agent/scheduler";
 import { cancelRunning } from "@/agent/signals";
 import { db } from "./db";
 import { logEvent } from "./events";
-import { formatReturn } from "./format";
+import { returnWhen } from "./format";
 import { LIMITS } from "./limits";
 import { extractGaps } from "./markers";
 
@@ -21,7 +21,7 @@ function provisionalTitle(prompt: string) {
 
 async function findTask(id: string) {
   const task = await db.task.findUnique({ where: { id } });
-  if (!task) throw new NotFound("Tarefa não encontrada");
+  if (!task) throw new NotFound("Task not found");
   return task;
 }
 
@@ -35,26 +35,26 @@ async function stopWork(taskId: string) {
 
 async function ensureBudget(taskId: string, needed: number) {
   if ((await jobsUsed(taskId)) + needed > LIMITS.jobBudget) {
-    throw new Invalid(`Esta tarefa já usou quase todo o limite de ${LIMITS.jobBudget} execuções do agente.`);
+    throw new Invalid(`This task has nearly used up its budget of ${LIMITS.jobBudget} agent runs.`);
   }
 }
 
 export async function createTask(prompt: string, options: { defer: boolean; returnAt?: Date }) {
   const clean = prompt.trim().slice(0, LIMITS.maxPromptChars);
-  if (clean.length < 3) throw new Invalid("Escreva um pouco mais sobre a tarefa.");
+  if (clean.length < 3) throw new Invalid("Write a little more about the task.");
   const task = await db.task.create({
     data: { prompt: clean, title: provisionalTitle(clean), status: "dormant", returnAt: options.returnAt },
   });
-  await logEvent(task.id, "user", "Semente plantada.");
+  await logEvent(task.id, "user", "Seed planted.");
   if (options.defer) await deferTask(task.id, options.returnAt);
   return task.id;
 }
 
 export async function deferTask(id: string, returnAt?: Date) {
   const task = await findTask(id);
-  if (task.isExample) throw new Invalid("Exemplos não são processados pelo agente.");
-  if (task.status === "harvested") throw new Invalid("Esta tarefa já foi colhida.");
-  if (task.status === "ripe") throw new Invalid("Esta tarefa já está madura.");
+  if (task.isExample) throw new Invalid("Examples are never processed by the agent.");
+  if (task.status === "harvested") throw new Invalid("This task has already been harvested.");
+  if (task.status === "ripe") throw new Invalid("This task is already ripe.");
   await db.task.update({
     where: { id },
     data: {
@@ -64,15 +64,15 @@ export async function deferTask(id: string, returnAt?: Date) {
       stallReason: null,
     },
   });
-  const when = returnAt ? formatReturn(returnAt.toISOString()) : null;
+  const when = returnAt ? returnWhen(returnAt.toISOString()) : null;
   await logEvent(
     id,
     "user",
     task.status === "stalled"
-      ? "Você pediu para eu tentar de novo. Retomo de onde parei."
+      ? "You asked me to try again. Picking up where I left off."
       : when
-        ? `Adiada — ${when}. Começo a trabalhar agora, no meu ritmo.`
-        : "Retomada. Volto a trabalhar de onde parei.",
+        ? `Put off until ${when}. I'm starting now, at my own pace.`
+        : "Resumed. Picking up where I left off.",
   );
   await advance(id);
 }
@@ -82,14 +82,14 @@ export async function pauseTask(id: string) {
   if (task.status !== "ripening" && task.status !== "waiting" && task.status !== "stalled") return;
   await db.task.update({ where: { id }, data: { status: "dormant" } });
   await stopWork(id);
-  await logEvent(id, "user", "Pausada. Guardei tudo o que já estava feito; nada roda até você retomar.");
+  await logEvent(id, "user", "Paused. Everything done so far is saved; nothing runs until you resume.");
 }
 
 export async function harvestTask(id: string) {
   await findTask(id);
   await db.task.update({ where: { id }, data: { status: "harvested", harvestedAt: new Date() } });
   await stopWork(id);
-  await logEvent(id, "user", "Colhida. Os materiais continuam guardados aqui.");
+  await logEvent(id, "user", "Harvested. The materials stay saved here.");
 }
 
 export async function replantTask(id: string) {
@@ -99,12 +99,12 @@ export async function replantTask(id: string) {
     where: { id },
     data: { status: task.reviewedAt ? "ripe" : "dormant", harvestedAt: null },
   });
-  await logEvent(id, "user", "Voltou para o parapeito.");
+  await logEvent(id, "user", "Back on the windowsill.");
 }
 
 export async function renameTask(id: string, title: string) {
   const clean = title.trim().slice(0, 80);
-  if (!clean) throw new Invalid("O título não pode ficar vazio.");
+  if (!clean) throw new Invalid("The title can't be empty.");
   await db.task.update({ where: { id }, data: { title: clean } });
 }
 
@@ -116,26 +116,26 @@ export async function deleteTask(id: string) {
 
 export async function answerQuestion(questionId: string, answer: string) {
   const clean = answer.trim().slice(0, 1200);
-  if (!clean) throw new Invalid("A resposta está vazia.");
+  if (!clean) throw new Invalid("The answer is empty.");
   const question = await db.question.findUnique({ where: { id: questionId } });
-  if (!question) throw new NotFound("Pergunta não encontrada");
+  if (!question) throw new NotFound("Question not found");
   await db.question.update({
     where: { id: questionId },
     data: { answer: clean, status: "answered", answeredAt: new Date() },
   });
-  await logEvent(question.taskId, "user", `Você respondeu “${question.text}”: ${clean}`);
+  await logEvent(question.taskId, "user", `You answered “${question.text}”: ${clean}`);
   await advance(question.taskId);
   return question.taskId;
 }
 
 export async function skipQuestion(questionId: string) {
   const question = await db.question.findUnique({ where: { id: questionId } });
-  if (!question) throw new NotFound("Pergunta não encontrada");
+  if (!question) throw new NotFound("Question not found");
   await db.question.update({ where: { id: questionId }, data: { status: "skipped", answeredAt: new Date() } });
   await logEvent(
     question.taskId,
     "user",
-    `Você preferiu seguir sem “${question.text}”. Fica marcado como lacuna no texto.`,
+    `You chose to go on without “${question.text}”. It stays marked as a gap in the text.`,
   );
   await advance(question.taskId);
   return question.taskId;
@@ -143,36 +143,36 @@ export async function skipQuestion(questionId: string) {
 
 export async function reopenQuestion(questionId: string) {
   const question = await db.question.findUnique({ where: { id: questionId } });
-  if (!question) throw new NotFound("Pergunta não encontrada");
+  if (!question) throw new NotFound("Question not found");
   await db.question.update({ where: { id: questionId }, data: { status: "open", answer: null, answeredAt: null } });
   return question.taskId;
 }
 
 export async function editArtifact(id: string, content: string) {
   const artifact = await db.artifact.findUnique({ where: { id } });
-  if (!artifact) throw new NotFound("Material não encontrado");
+  if (!artifact) throw new NotFound("Material not found");
   if (content === artifact.content) return artifact.taskId;
   await db.artifact.update({ where: { id }, data: { content: content.slice(0, 60_000), editedByUser: true } });
-  if (!artifact.editedByUser) await logEvent(artifact.taskId, "user", `Você começou a editar “${artifact.title}”.`);
+  if (!artifact.editedByUser) await logEvent(artifact.taskId, "user", `You started editing “${artifact.title}”.`);
   return artifact.taskId;
 }
 
 export async function restoreArtifact(id: string) {
   const artifact = await db.artifact.findUnique({ where: { id } });
-  if (!artifact) throw new NotFound("Material não encontrado");
-  if (artifact.previousContent === null) throw new Invalid("Não há versão anterior.");
+  if (!artifact) throw new NotFound("Material not found");
+  if (artifact.previousContent === null) throw new Invalid("There is no previous version.");
   await db.artifact.update({
     where: { id },
     data: { content: artifact.previousContent, previousContent: artifact.content, editedByUser: true },
   });
-  await logEvent(artifact.taskId, "user", `Você voltou para a versão anterior de “${artifact.title}”.`);
+  await logEvent(artifact.taskId, "user", `You went back to the previous version of “${artifact.title}”.`);
   return artifact.taskId;
 }
 
 async function startRevisions(taskId: string, items: { id: string; title: string }[], instruction?: string) {
   const task = await findTask(taskId);
-  if (task.isExample) throw new Invalid("Exemplos não são processados pelo agente.");
-  if (task.status === "harvested") throw new Invalid("Replante a tarefa antes de pedir revisões.");
+  if (task.isExample) throw new Invalid("Examples are never processed by the agent.");
+  if (task.status === "harvested") throw new Invalid("Put the task back on the windowsill before asking for rewrites.");
   await ensureBudget(taskId, items.length);
   const busy = await db.job.findMany({
     where: { taskId, type: "revise", status: { in: ["queued", "running"] } },
@@ -189,24 +189,24 @@ async function startRevisions(taskId: string, items: { id: string; title: string
 
 export async function reviseArtifact(id: string, instruction: string) {
   const artifact = await db.artifact.findUnique({ where: { id } });
-  if (!artifact) throw new NotFound("Material não encontrado");
+  if (!artifact) throw new NotFound("Material not found");
   const clean = instruction.trim().slice(0, 500);
-  if (!clean) throw new Invalid("Diga o que quer mudar.");
+  if (!clean) throw new Invalid("Say what you want to change.");
   const count = await startRevisions(artifact.taskId, [artifact], clean);
-  if (count) await logEvent(artifact.taskId, "user", `Você pediu para reescrever “${artifact.title}”: ${clean}`);
+  if (count) await logEvent(artifact.taskId, "user", `You asked for a rewrite of “${artifact.title}”: ${clean}`);
   return artifact.taskId;
 }
 
 export async function refreshWithAnswers(taskId: string) {
   const artifacts = await db.artifact.findMany({ where: { taskId, kind: "step" } });
   const withGaps = artifacts.filter((a) => extractGaps(a.content).length > 0);
-  if (!withGaps.length) throw new Invalid("Nenhum material tem lacunas para preencher.");
+  if (!withGaps.length) throw new Invalid("No material has gaps left to fill.");
   const count = await startRevisions(taskId, withGaps);
   if (count) {
     await logEvent(
       taskId,
       "user",
-      `Você pediu para eu atualizar ${count === 1 ? "o material" : `${count} materiais`} com as suas respostas.`,
+      `You asked me to update ${count === 1 ? "one piece" : `${count} pieces`} with your answers.`,
     );
   }
   return count;
