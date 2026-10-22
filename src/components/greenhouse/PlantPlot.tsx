@@ -4,9 +4,10 @@ import { ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ViewTransition, useMemo, useState } from "react";
+import { ViewTransition, useMemo, useState, useTransition } from "react";
 import { computeAnatomy } from "@/components/flora/anatomy";
 import { Specimen } from "@/components/flora/Specimen";
+import { PendingBar } from "@/components/PendingBar";
 import { formatReturn } from "@/lib/format";
 import { stageName } from "@/lib/growth";
 import { TONE_CLASS, TONE_DOT, focusOf, moodOf, statusLine } from "@/lib/presence";
@@ -33,6 +34,8 @@ export function catalog(n: number) {
 export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, compact }: Props) {
   const router = useRouter();
   const [hover, setHover] = useState<string | null>(null);
+  const [opening, startOpening] = useTransition();
+  const go = (href: string) => startOpening(() => router.push(href));
   const box = specimenBox(scaleH, w);
   const left = x + w / 2 - box.width / 2;
   const top = plantH - box.ground;
@@ -51,10 +54,10 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
   const back = task.status !== "ripe" ? formatReturn(task.returnAt) : null;
 
   const open = (key: string) => {
-    if (key === "apex") return router.push(`/t/${task.id}?piece=final`);
-    if (key === "tag") return router.push(`/t/${task.id}?piece=review`);
+    if (key === "apex") return go(`/t/${task.id}?piece=final`);
+    if (key === "tag") return go(`/t/${task.id}?piece=review`);
     const leaf = task.leaves.find((l) => l.id === key);
-    router.push(leaf?.artifactId ? `/t/${task.id}?piece=${leaf.artifactId}` : `/t/${task.id}`);
+    go(leaf?.artifactId ? `/t/${task.id}?piece=${leaf.artifactId}` : `/t/${task.id}`);
   };
 
   let note: { at: { x: number; y: number }; title: string; detail: string } | null = null;
@@ -101,7 +104,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
       <div
         className="specimen-bed pointer-events-none absolute z-10 cursor-pointer [&_svg_*]:pointer-events-auto"
         style={{ left, top, width: box.width, height: box.height }}
-        onClick={() => router.push(`/t/${task.id}`)}
+        onClick={() => go(`/t/${task.id}`)}
       >
         <ViewTransition name={`specimen-${task.id}`} share="specimen" default="none">
           <div className="h-full w-full">
@@ -145,6 +148,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         aria-label={`${catalog(number)}: ${task.title}. ${stageName(task.growth.stage)} stage, ${line.text}`}
       >
         <span aria-hidden className="pointer-events-none absolute inset-[3px] rounded-[1px] border border-line" />
+        <PendingBar also={opening} className="inset-x-[3px] bottom-[3px] h-[3px]" />
         <span
           aria-hidden
           className="absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-[#b3925a] shadow-[0_1px_1px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.45)]"

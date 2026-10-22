@@ -1,5 +1,6 @@
 "use client";
 
+import { LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -69,6 +70,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   const [size, setSize] = useState({ w: 1200, h: 860 });
   const [freshId, setFreshId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
+  const [openingExample, setOpeningExample] = useState(false);
 
   useEffect(() => {
     const el = bed.current;
@@ -111,8 +113,13 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   }
 
   async function example() {
-    const { id } = await api<{ id: string }>("/api/examples", { method: "POST" });
-    router.push(`/t/${id}`);
+    setOpeningExample(true);
+    try {
+      const { id } = await api<{ id: string }>("/api/examples", { method: "POST" });
+      router.push(`/t/${id}`);
+    } catch {
+      setOpeningExample(false);
+    }
   }
 
   const packetEl = <SeedPacket ref={packet} onPlanted={planted} nextNumber={data.tasks.length + 1} />;
@@ -306,9 +313,20 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                         <button
                           type="button"
                           onClick={example}
-                          className="focus-ring mt-4 self-start text-[13px] text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink"
+                          disabled={openingExample}
+                          aria-busy={openingExample}
+                          className="focus-ring mt-4 inline-flex items-center gap-2 self-start text-[13px] text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink disabled:no-underline"
                         >
-                          or open a ripe example, written by hand for the demo
+                          {openingExample && (
+                            <LoaderCircle
+                              className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                          )}
+                          {openingExample
+                            ? "opening the example…"
+                            : "or open a ripe example, written by hand for the demo"}
                         </button>
                       </div>
                     );

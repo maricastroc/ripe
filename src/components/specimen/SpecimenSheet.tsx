@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft, PanelLeftOpen, Settings2 } from "lucide-react";
+import { ArrowLeft, LoaderCircle, PanelLeftOpen, Settings2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { ViewTransition, useCallback, useMemo, useState } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
@@ -37,6 +37,24 @@ function interval(d: Data) {
 }
 
 const dayFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+function BackIcon() {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <>
+      <LoaderCircle
+        className="h-[18px] w-[18px] animate-spin motion-reduce:animate-none"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <span role="status" className="sr-only">
+        Opening the greenhouse…
+      </span>
+    </>
+  ) : (
+    <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+  );
+}
 
 function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
@@ -249,7 +267,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
             className="back-link group inline-flex min-h-11 min-w-11 items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 text-scene-ink transition-colors"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-scene-ink/35 transition-[transform,background-color,border-color] duration-300 group-hover:-translate-x-0.5 group-hover:border-scene-ink/70 group-hover:bg-scene-ink/[0.07]">
-              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+              <BackIcon />
             </span>
             <span className="font-display text-[16px] italic leading-none decoration-scene-ink/40 underline-offset-[5px] group-hover:underline">
               <span className="hidden sm:inline">Back to the greenhouse</span>

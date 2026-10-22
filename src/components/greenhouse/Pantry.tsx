@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { rand, hash } from "@/components/flora/geometry";
 import { speciesOf } from "@/components/flora/species";
+import { PendingBar } from "@/components/PendingBar";
 import { formatRelative } from "@/lib/format";
 import type { TaskSummary } from "@/lib/types";
 import { catalog } from "./PlantPlot";
@@ -79,6 +80,7 @@ export function Pantry({ tasks, numbers }: { tasks: TaskSummary[]; numbers: Map<
               aria-label={`${task.title}, harvested`}
               title={task.harvestedAt ? `harvested ${formatRelative(task.harvestedAt)}` : undefined}
             >
+              <PendingBar className="inset-x-[14px] bottom-1 z-10 h-[3px] rounded-full" />
               <div className="transition-transform duration-300 group-hover:-translate-y-1">
                 <Jar task={task} />
               </div>
