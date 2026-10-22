@@ -119,3 +119,7 @@ The agent writes in the same language as your request.
 ## Stack
 
 Next.js 16 (App Router, view transitions) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · Prisma 7 + SQLite · Zod · Ollama
+
+## License
+
+[MIT](LICENSE)
