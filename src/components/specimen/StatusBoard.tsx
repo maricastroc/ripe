@@ -162,7 +162,13 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
                 <span key={step.id} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.status]}`} />
               ))}
               <span
-                className={`h-1.5 flex-1 rounded-full ${task.growth.stage === "ripe" ? "bg-vermilion/80" : "bg-line-2"}`}
+                className={`h-1.5 flex-1 rounded-full ${
+                  task.growth.stage === "ripe"
+                    ? "bg-vermilion/80"
+                    : task.activity?.status === "running" && task.activity.type === "review"
+                      ? "glow-breathe bg-leaf-2"
+                      : "bg-line-2"
+                }`}
               />
             </span>
           )}

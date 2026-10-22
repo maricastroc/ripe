@@ -398,7 +398,7 @@ export function Harvest({
             {busyHere && (
               <div className="absolute inset-0 flex items-start justify-center pt-16">
                 <p className="rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-ink-2 shadow-sm">
-                  <span className="dot-live mr-2 inline-block h-2 w-2 rounded-full bg-leaf text-leaf" />
+                  <span className="live-dot mr-2 inline-block h-2 w-2 rounded-full bg-leaf text-leaf" />
                   rewriting now · follow along under “now”
                 </p>
               </div>

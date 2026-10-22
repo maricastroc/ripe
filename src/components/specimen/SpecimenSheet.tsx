@@ -263,6 +263,9 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
           className="focus-ring typewriter inline-flex min-h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-scene-ink/20 px-3 text-[11.5px] text-scene-ink-2 transition-colors hover:border-scene-ink/45 hover:text-scene-ink"
         >
           <Settings2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          {agent.mode === "working" && (
+            <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-leaf-2 text-leaf-2" />
+          )}
           <span className="sr-only sm:hidden">Agent settings</span>
           <span className="hidden sm:inline">
             mycelium ·{" "}

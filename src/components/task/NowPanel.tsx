@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Markdown } from "@/components/Markdown";
 import { useNow, useTypewriter } from "@/hooks/useTicker";
@@ -108,7 +109,7 @@ function Shell({
       transition={{ duration: 0.45 }}
     >
       <div className="flex items-center gap-2.5">
-        <span className={`h-2 w-2 rounded-full bg-current ${tone} ${live ? "dot-live" : ""}`} />
+        <span className={`h-2 w-2 rounded-full bg-current ${tone} ${live ? "live-dot" : ""}`} />
         <p className="font-display text-[1.45rem] leading-tight tracking-tight">{title}</p>
       </div>
       {children && <div className="mt-2 text-[15px] leading-relaxed text-ink-2">{children}</div>}
@@ -143,11 +144,26 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
           {prose && partial ? ` · ${countWords(partial)} words so far` : ""}
           {` · ${agent.settings.model}`}
         </p>
-        <div className="sheet mt-4 rounded-2xl px-5 py-4 sm:px-6">
+        <div className="sheet relative mt-4 overflow-hidden rounded-2xl px-5 pb-4 pt-5 sm:px-6">
+          <span aria-hidden className="working-bar absolute inset-x-0 top-0 h-[3px]" />
           {partial ? (
             <LiveText text={partial} type={activity.type} />
           ) : (
-            <p className="text-[14px] italic text-ink-3">Loading the model. The first words can take a moment…</p>
+            <div>
+              <p className="flex items-center gap-2.5 text-[14.5px] text-ink-2">
+                <LoaderCircle
+                  className="h-4 w-4 shrink-0 animate-spin text-leaf-dark motion-reduce:animate-none"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                Loading the model. The first words can take a moment…
+              </p>
+              <div aria-hidden className="mt-4 space-y-2.5">
+                <span className="ink-skeleton block h-2.5 w-[92%] rounded-full" />
+                <span className="ink-skeleton block h-2.5 w-[80%] rounded-full" />
+                <span className="ink-skeleton block h-2.5 w-[56%] rounded-full" />
+              </div>
+            </div>
           )}
         </div>
       </Shell>

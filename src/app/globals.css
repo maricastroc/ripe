@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="menuitem"],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
 :root {
   --paper: #f3ead8;
   --paper-2: #e8dbc2;
@@ -446,6 +460,49 @@ body::after {
   }
 }
 
+.working-bar {
+  overflow: hidden;
+  background: color-mix(in oklab, var(--leaf) 14%, transparent);
+}
+
+.working-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, var(--leaf-2) 35%, var(--leaf) 65%, transparent);
+  animation: working-bar 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes working-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(265%);
+  }
+}
+
+.ink-skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--ink) 8%, transparent) 0%,
+    color-mix(in oklab, var(--ink) 17%, transparent) 50%,
+    color-mix(in oklab, var(--ink) 8%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: ink-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes ink-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
 .prose-ripe {
   font-size: 1rem;
   line-height: 1.75;
@@ -610,8 +667,14 @@ body::after {
   .spore,
   .shaft,
   .live-caret > :last-child::after,
-  .caret::after {
+  .caret::after,
+  .ink-skeleton {
     animation: none !important;
+  }
+  .working-bar::after {
+    animation: none !important;
+    width: 100%;
+    opacity: 0.45;
   }
   .spore {
     opacity: 0 !important;
