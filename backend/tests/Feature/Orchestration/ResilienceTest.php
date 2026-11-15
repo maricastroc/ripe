@@ -156,6 +156,7 @@ it('backs off between attempts, stalls after the last one and resumes when asked
 });
 
 it('waits out a rate limit without spending an attempt', function (): void {
+    Date::setTestNow(CarbonImmutable::now());
     fakeAgent(first: [new RateLimited('Slow down.', 7.0)]);
     $task = plantTask();
     drainAgentQueue();
