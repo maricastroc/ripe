@@ -152,26 +152,41 @@ Mutations answer with the task snapshot, and creation with 201. Deleting a task 
 | Check | Result |
 |---|---|
 | Pint, Larastan at the maximum level | pass |
-| Default suite | 619 tests: Unit 104, Feature 409, Inference 95, Integration 11 |
+| Default suite | 344 tests and 1542 assertions in about 95 s: Unit 51, Feature 205, Inference 77, Integration 11 |
 | Frontend | Prettier, ESLint and TypeScript pass with the generated types |
 | Smoke test over real HTTP (`artisan serve`) | a cross-site seed is refused; a same-origin seed returns `Set-Cookie: __Host-ripe_visitor=…; secure; httponly; samesite=lax`; the cookie opens the garden; no CORS headers |
 
-The stage's own suites (128 tests):
+What this stage's suites prove:
 
 | Suite | What it proves |
 |---|---|
-| Parity (17) | each of the 20 operations, its response shape and its effect, with the journal audited |
-| Isolation (38) | every resource route with another visitor's cookie, with an invalid body and with no cookie answers 404 and changes nothing; the example is readable by all and writable by none; unknown, malformed and injected ids answer 404 |
-| Same origin (18) | every row of the table above, reads without fetch metadata, the refusal message, the check running before the rate limit, no CORS |
-| Visitor identity (11) | cookie attributes and expiry, hash-only storage, reuse, unknown and malformed tokens, hourly `last_seen_at`, refused cookie settings |
-| Drafts (11) and draft conflict (1) | autosave leaves versions untouched; keeping creates one version; two tabs; a draft overtaken by an agent finalisation, rebased and kept; restore; revise consolidates; two processes racing to keep the same draft produce exactly one version |
-| Rate limits (4) | per visitor, per network, per minute for changes and reads, with reset |
-| Errors (5) | 422 by field, 409 for state and version conflicts, no internals with debug off, `baseUrl` refused |
-| Agent (5) and settings (6) | another visitor's work stays hidden; local and public modes; pause and wake-up; the model switch in a long-running worker; heartbeat |
-| Live text (6) | text of the running attempt, none for structured runs, cleared at the end, an older attempt fenced off, expiry, a superseded writer stops |
-| Examples (3) | grown through the pipeline, read-only, idempotent, nothing left for the queue |
-| Deleting during a run (1) | the worker stops quietly and nothing is left |
-| OpenAPI (2) | the document matches the code and covers every route |
+| Parity (17) | each of the 20 operations, its response shape and its effect, with the journal audited; pausing withdraws the queued run; a revision is never delayed by the pace and keeps its provenance; a second refresh is refused |
+| Isolation (20) | every resource route, called with another visitor's cookie, with an invalid body and with no cookie, answers 404 and changes nothing; the example is readable by all and writable by none; a malformed id never reaches PostgreSQL |
+| Same origin (17) | every row of the table above, reads without fetch metadata, the check running before the rate limit, no CORS |
+| Visitor identity (9) | cookie attributes and expiry, hash-only storage, reuse, unknown and malformed tokens, hourly `last_seen_at`, refused cookie settings |
+| Drafts (8) and draft conflict (1) | autosave leaves versions untouched; keeping creates one version; two tabs; a draft overtaken by an agent finalisation, rebased and kept; restore; revise consolidates; two processes racing to keep the same draft produce exactly one version |
+| Rate limits (3), errors (4) | per visitor, per network and per minute; 422 by field, 409 for state, no internals with debug off, `baseUrl` refused |
+| Agent (3) and settings (5) | another visitor's work stays hidden; local and public modes; pause and wake-up; the model switch in a long-running worker; heartbeat |
+| Live text (5), examples (2), deletion during a run (1), OpenAPI (2) | the attempt fencing, the expiry, the example's pipeline and idempotency, a worker stopping quietly, the document matching the code |
+
+## Test suite review
+
+Before opening the PR the suite had 619 tests. A review of every file, from stage 0 on, kept a test only when it protects a real guarantee and nothing else already tests it. Real guarantees here are:
+- the growth invariant;
+- leases and fencing;
+- concurrency;
+- visitor isolation and the origin policy;
+- data integrity between tasks;
+- the provider contract and money;
+- the parity of the operations.
+
+What went:
+- **Database rows that only checked trivial input** (blank strings, non-negative numbers, JSON types, enum values covered by the enum parity check). The 22 rows kept guard what the code relies on: one running run per task, one active run per step, piece or interpretation, one version per run, version chains, cross-task references, lease consistency and the journal sequence.
+- **Fixtures and framework behaviour:** the health endpoint, table existence, the PostgreSQL version, the fake driver, request validation helpers.
+- **Duplicates across layers:** task actions now tested through the API, failure-policy cases already proven end to end by the resilience suite, driver cases already in the contract suite, journal tampering merged into one scenario, enum parity into one loop.
+- **Redundant dataset rows:** extra seeds and failure kinds that took the same code path, extra chunk sizes, durations and growth rows between the same thresholds.
+
+The cut also removed a small duplication in the code: restoring a version now goes through `Artifact::restore`.
 
 ## Problems found and fixed
 
