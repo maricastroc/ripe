@@ -22,5 +22,5 @@ it('documents every API route', function (): void {
         ->flatMap(static fn ($route): array => array_map(static fn (string $method): string => "{$method} /{$route->uri()}", array_diff($route->methods(), ['HEAD'])))
         ->sort()->values()->all();
 
-    expect($documented)->toBe($routes)->toHaveCount(22);
+    expect($documented)->toBe($routes)->toHaveCount(23);
 });

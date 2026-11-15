@@ -178,6 +178,85 @@
                 }
             }
         },
+        "/broadcasting/auth": {
+            "post": {
+                "operationId": "broadcasting.auth",
+                "tags": [
+                    "AuthorizeChannel"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AuthorizeChannelRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "auth": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "auth"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/tasks/{task}/defer": {
             "post": {
                 "operationId": "tasks.defer",
@@ -492,11 +571,18 @@
                                         },
                                         "agent": {
                                             "$ref": "#/components/schemas/AgentStatusResource"
+                                        },
+                                        "channel": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "tasks",
-                                        "agent"
+                                        "agent",
+                                        "channel"
                                     ]
                                 }
                             }
@@ -1724,6 +1810,25 @@
                     "restore"
                 ],
                 "title": "ArtifactVersionSource"
+            },
+            "AuthorizeChannelRequest": {
+                "type": "object",
+                "properties": {
+                    "socket_id": {
+                        "type": "string",
+                        "pattern": "^\\d+\\.\\d+$",
+                        "maxLength": 64
+                    },
+                    "channel_name": {
+                        "type": "string",
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "socket_id",
+                    "channel_name"
+                ],
+                "title": "AuthorizeChannelRequest"
             },
             "DeferTaskRequest": {
                 "type": "object",

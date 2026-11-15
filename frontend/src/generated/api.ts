@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/broadcasting/auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["broadcasting.auth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks/{task}/defer": {
         parameters: {
             query?: never;
@@ -359,6 +375,11 @@ export interface components {
          * @enum {string}
          */
         ArtifactVersionSource: "generate" | "revise" | "review" | "user_edit" | "restore";
+        /** AuthorizeChannelRequest */
+        AuthorizeChannelRequest: {
+            socket_id: string;
+            channel_name: string;
+        };
         /** DeferTaskRequest */
         DeferTaskRequest: {
             /** Format: date-time */
@@ -765,6 +786,56 @@ export interface operations {
             };
         };
     };
+    "broadcasting.auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizeChannelRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        auth: string;
+                    };
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     "tasks.defer": {
         parameters: {
             query?: never;
@@ -945,6 +1016,7 @@ export interface operations {
                     "application/json": {
                         tasks: components["schemas"]["TaskSummaryResource"][];
                         agent: components["schemas"]["AgentStatusResource"];
+                        channel: string | null;
                     };
                 };
             };

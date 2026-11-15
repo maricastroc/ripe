@@ -24,6 +24,8 @@ final class RealtimeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        require base_path('routes/channels.php');
+
         Event::listen(TransactionCommitted::class, function (): void {
             $this->app->make(TaskChanges::class)->flush();
         });

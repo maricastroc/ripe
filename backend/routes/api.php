@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Artifacts\DraftController;
 use App\Http\Controllers\Api\Artifacts\KeepDraftController;
 use App\Http\Controllers\Api\Artifacts\RestoreVersionController;
 use App\Http\Controllers\Api\Artifacts\ReviseArtifactController;
+use App\Http\Controllers\Api\AuthorizeChannelController;
 use App\Http\Controllers\Api\ExampleController;
 use App\Http\Controllers\Api\GardenController;
 use App\Http\Controllers\Api\Questions\AnswerQuestionController;
@@ -25,6 +26,7 @@ Route::middleware('throttle:reads')->group(static function (): void {
     Route::get('garden', [GardenController::class, 'show'])->name('garden.show');
     Route::get('tasks/{task}', [TaskController::class, 'show'])->can('view', 'task')->name('tasks.show');
     Route::get('agent', [AgentController::class, 'show'])->name('agent.show');
+    Route::post('broadcasting/auth', AuthorizeChannelController::class)->name('broadcasting.auth');
 });
 
 Route::post('tasks', [TaskController::class, 'store'])->middleware('throttle:plant')->name('tasks.store');
