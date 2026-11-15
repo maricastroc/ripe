@@ -87,7 +87,7 @@ composer setup
 composer check
 ```
 
-`composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. `composer dev` starts the backend's development processes: the HTTP server on port 8000, the agent's queue worker and the scheduler, which runs `ripe:reconcile` every minute.
+`composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. Tests are written only when they are indispensable; see [docs/testing.md](docs/testing.md) before adding one. `composer dev` starts the backend's development processes: the HTTP server on port 8000, the agent's queue worker and the scheduler, which runs `ripe:reconcile` every minute.
 
 | Command                  | What it does                                                               |
 | ------------------------ | -------------------------------------------------------------------------- |

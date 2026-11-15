@@ -15,6 +15,7 @@ Approved on 2026-11-15. Ripe moves to a Laravel 13 + PostgreSQL 17 backend and a
 - All code in English. No explanatory comments; PHPDoc appears only where static analysis needs type information it cannot infer (generics, array shapes).
 - One branch and one pull request per stage, validated before the next stage starts.
 - Conventional commit messages, without AI attribution.
+- Only indispensable tests: each one protects a guarantee nothing else protects ([docs/testing.md](../testing.md)).
 
 ## 2. Assessment of the current implementation
 
