@@ -1,0 +1,87 @@
+event: response.created
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_text","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.in_progress
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_text","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_1","type":"message","status":"in_progress","role":"assistant","content":[]}}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"## ","logprobs":[],"obfuscation":"dccc77"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":4,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"Thank-you ","logprobs":[],"obfuscation":"221cd5"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":5,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"note\n","logprobs":[],"obfuscation":"e650f8"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":6,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"\n","logprobs":[],"obfuscation":"68b329"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":7,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"Dear ","logprobs":[],"obfuscation":"467b82"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":8,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"[[TBD: ","logprobs":[],"obfuscation":"08a938"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":9,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"neighbour's ","logprobs":[],"obfuscation":"44e303"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":10,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"name]],\n","logprobs":[],"obfuscation":"95f86c"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":11,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"\n","logprobs":[],"obfuscation":"68b329"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":12,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"Thank ","logprobs":[],"obfuscation":"c0cad4"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":13,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"you ","logprobs":[],"obfuscation":"cdba2e"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":14,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"for ","logprobs":[],"obfuscation":"62fd3f"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":15,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"watering ","logprobs":[],"obfuscation":"1d97d5"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":16,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"my ","logprobs":[],"obfuscation":"56dfe8"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":17,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"plants ","logprobs":[],"obfuscation":"26c6fc"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":18,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"while ","logprobs":[],"obfuscation":"5905e8"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":19,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"I ","logprobs":[],"obfuscation":"8ae99a"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":20,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"was ","logprobs":[],"obfuscation":"8ce0b1"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":21,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"away. ","logprobs":[],"obfuscation":"17154b"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":22,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"They ","logprobs":[],"obfuscation":"7add47"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":23,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"look ","logprobs":[],"obfuscation":"cc1101"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":24,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"happier ","logprobs":[],"obfuscation":"b6881e"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":25,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"than ","logprobs":[],"obfuscation":"c6ed68"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":26,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"ever.","logprobs":[],"obfuscation":"c80a01"}
+
+event: response.output_text.done
+data: {"type":"response.output_text.done","sequence_number":27,"item_id":"msg_1","output_index":0,"content_index":0,"text":"## Thank-you note\n\nDear [[TBD: neighbour's name]],\n\nThank you for watering my plants while I was away. They look happier than ever."}
+
+event: response.completed
+data: {"type":"response.completed","sequence_number":28,"response":{"id":"resp_text","object":"response","created_at":1795000000,"status":"completed","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[{"id":"msg_1","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"## Thank-you note\n\nDear [[TBD: neighbour's name]],\n\nThank you for watering my plants while I was away. They look happier than ever.","annotations":[]}]}],"usage":{"input_tokens":1200,"input_tokens_details":{"cached_tokens":1024,"cache_write_tokens":0},"output_tokens":180,"output_tokens_details":{"reasoning_tokens":96},"total_tokens":1380},"store":false}}
+

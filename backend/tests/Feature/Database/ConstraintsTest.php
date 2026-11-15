@@ -190,6 +190,8 @@ dataset('constraint violations', [
         RunAttempt::factory()->for($run, 'run')->create();
     }, 'run_attempts_run_id_number_unique'],
     'negative token counts' => [fn () => RunAttempt::factory()->create(['prompt_tokens' => -1]), 'run_attempts_metrics_check'],
+    'negative reasoning tokens' => [fn () => RunAttempt::factory()->create(['reasoning_tokens' => -1]), 'run_attempts_usage_details_check'],
+    'negative cached tokens' => [fn () => RunAttempt::factory()->create(['cached_prompt_tokens' => -1]), 'run_attempts_usage_details_check'],
 
     'a repeated event sequence' => [function (): void {
         $task = Task::factory()->create();

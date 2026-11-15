@@ -75,7 +75,7 @@ The database queue lives in the same PostgreSQL as the domain. As a result, disp
 | `artifacts` | `step_id` unique, partial `unique(task_id) WHERE kind = 'review'`, `current_version_id` |
 | `artifact_versions` | immutable; `unique(artifact_id, number)`, `unique(run_id)`, `source`, `parent_version_id`, `inputs` (`jsonb` provenance), `content_hash` |
 | `agent_runs` | `kind ∈ {interpret, plan, generate, revise, review}`, `status`, `available_at`, `deferred_reason`, `lease_token`, `lease_expires_at`, `cancel_requested_at`, `attempt_count`, `interruption_count`; partial `unique(task_id) WHERE status = 'running'` |
-| `run_attempts` | one row per execution: worker, token, timings, TTFT, tokens, estimated cost, `outcome`, error |
+| `run_attempts` | one row per execution: worker, token, timings, TTFT, `outcome`, error; input, cached, output and reasoning tokens, whether usage was reported or estimated, cost, and the provider's request and response ids |
 | `task_events` | append-only audit log, `unique(task_id, sequence)` (section 6) |
 | `inference_budget_days` | `limit`, `reserved`, `spent` in micro-dollars |
 
@@ -116,14 +116,22 @@ Every transition goes through an explicit state machine and writes its audit eve
 
 ### 3.5 Failure policy
 
+Every inference error carries a scope, and the scope alone decides what the orchestrator does. The orchestrator never inspects provider-specific codes.
+
+| Scope | Examples | Attempt consumed | Next |
+|---|---|---|---|
+| transient | connection errors, 5xx, overload, rate limits | no | rescheduled at the provider's retry hint or with capped back-off; the mycelium shows offline while it lasts |
+| attempt | timeouts, stalled stream, invalid or truncated structured output | yes | `10s·3ⁿ⁻¹` until `max_attempts` |
+| run | a request the provider rejects, a refusal, a content filter | run fails | task stalled with the reason, retry available |
+| driver | invalid credentials, unknown model, exhausted credit or spend limit | no | the whole agent halts and the greenhouse rests until an operator acts; no task fails |
+
+Other cases:
+
 | Failure | Attempt consumed | Next |
 |---|---|---|
-| Driver unreachable, 5xx, connection error | no | rescheduled with capped back-off; mycelium shows offline |
-| 429 | no | at `Retry-After` |
 | Budget exhausted before the call | no | next budget window; the greenhouse rests |
-| Timeout, stalled stream, invalid output | yes | `10s·3ⁿ⁻¹` until `max_attempts` |
 | Worker died (lease expired) | `interruption_count`, max 3 | immediately |
-| Permanent 4xx or attempts exhausted | run fails | task stalled, retry available |
+| Attempts exhausted | run fails | task stalled, retry available |
 | Cancellation | no | run cancelled, domain untouched |
 
 ### 3.6 Inference contract
@@ -137,16 +145,45 @@ interface ModelDriver
 }
 ```
 
-- `ModelRequest` carries messages, an optional JSON schema, max tokens and temperature.
-- `ModelResponse` carries the text, the finish reason (`stop | length | aborted`), usage, model, TTFT and duration.
-- Errors are typed: `ModelUnavailable`, `ModelNotFound`, `RateLimited`, `ModelTimeout`, `InvalidModelOutput`, `ModelRequestRejected` and `StreamAborted`.
+- `ModelRequest` carries the instructions and messages, an optional named JSON schema, a visible-output budget, an optional reasoning effort, an optional temperature and an opaque safety identifier.
+- `ModelResponse` carries the text, the finish reason (`stop | length | content_filter | refusal | aborted`), usage, model, the provider's request and response ids, TTFT and duration.
+- `Usage` carries input, cached input, cache-write, output and reasoning tokens, plus whether the numbers were reported by the provider or estimated. A stream aborted by Ripe never receives the provider's final usage, so its cost is estimated and flagged as such.
+- Errors are typed exceptions that each declare a scope (section 3.5): `ModelUnavailable`, `RateLimited` (with the retry hint), `ModelTimeout`, `InvalidModelOutput`, `ModelRequestRejected`, `ModelRefused`, `DriverMisconfigured` and `ProviderQuotaExhausted`.
 
-**Drivers:**
-- `OllamaDriver` uses NDJSON and the `format` schema.
-- `OpenAICompatibleDriver` uses SSE, `response_format` (`json_schema` or `json_object` depending on capabilities) and `stream_options.include_usage`.
-- `FakeDriver` is scriptable and deterministic.
+Selecting a driver is configuration only (`RIPE_INFERENCE_DRIVER=openai|ollama|fake`). The orchestrator depends on the contract and on error scopes, never on a provider.
 
-**Structured output and language.** A shared `StructuredOutput` service extracts, validates and hydrates DTOs. The language detected during interpretation is stored on the task and stated in every later prompt.
+**OpenAIDriver**, the provider of the hosted demo, uses the official Responses API (`POST /v1/responses`) with `stream: true`:
+
+- **Events.** It reads `response.output_text.delta` and `response.refusal.delta` for content, and finishes on `response.completed`, `response.incomplete` (`incomplete_details.reason`: `max_output_tokens` or `content_filter`), `response.failed` (with the response's error code) or `error`. A stream that ends without one of these is an error.
+- **Structured outputs.** `text.format = {type: "json_schema", name, schema, strict: true}`. A refusal is a `refusal` content part, never parsed as data. An incomplete structured response is rejected even when its JSON happens to parse.
+- **Token limits.** `max_output_tokens` covers reasoning and visible tokens. Each run kind sets a visible budget plus a reasoning allowance that follows the configured `reasoning.effort`.
+- **Errors.**
+  - 429 rate limits (`rate_limit_error`, `slow_down`) and 503 `server_is_overloaded` are transient. `Retry-After` is a minimum, otherwise `x-ratelimit-reset-*`, always with jitter.
+  - 429 billing codes (`credit_balance_exhausted`, `organization_spend_limit_exceeded`, `project_spend_limit_exceeded`, `organization_usage_limit_exceeded`) and 401/403 are driver scope, because retrying cannot fix them.
+  - A rejected request or prompt is run scope.
+- **Privacy.** `store: false`, because the default keeps responses for 30 days. `safety_identifier` is an HMAC of the visitor id, never the id or the cookie.
+- **Cost.** Usage comes from the final event: `input_tokens`, `input_tokens_details.cached_tokens` and `cache_write_tokens`, `output_tokens` (reasoning included) and `output_tokens_details.reasoning_tokens`. It is priced from a per-model table in configuration, which records the date the prices were checked.
+- **Per-model capabilities.** Parameters a model does not accept, such as sampling settings on some reasoning models, are declared per model in configuration instead of being discovered by failed requests.
+- **Logging.** `x-request-id` and the response id are kept on the attempt.
+
+**OllamaDriver**, for fully local use:
+- NDJSON with the `format` schema;
+- `think: false` for thinking models;
+- usage from `prompt_eval_count` and `eval_count`, at zero cost.
+
+**FakeDriver** is scriptable and deterministic.
+
+**Not in stage 2:**
+- *Background mode.* It has resumable streaming (`starting_after`) and would let a new attempt reattach to a generation started by a dead worker, instead of paying for it again. It depends on the project's data-retention settings and adds polling. Attempts keep the response id, so stage 7 can evaluate it without schema changes.
+- *`service_tier: "flex"`.* It is billed at Batch API rates in exchange for slower answers and occasional unavailability, which suits Ripe's pace. That is why timeouts are configured per driver and per tier.
+- *A generic OpenAI-compatible driver.* Other providers' compatibility layers differ in events, errors and usage, and supporting them generically would weaken the guarantees above.
+
+**Structured output and language.** Each structured output has one schema definition, written in the subset both providers accept in strict mode:
+- every object closed with `additionalProperties: false`;
+- every property required, with optional values as nullable unions;
+- no composition keywords.
+
+A test walks every schema and rejects anything outside that subset. Stricter rules (non-empty strings, item limits) are enforced by the PHP validator after decoding. A shared `StructuredOutput` service extracts, validates and hydrates DTOs. The language detected during interpretation is stored on the task and stated in every later prompt.
 
 ### 3.7 Growth invariant
 
@@ -173,9 +210,16 @@ Dedicated tests:
   - Policies use the visitor guard; another visitor's task answers 404.
   - Mutations require a same-origin `Origin` or `Sec-Fetch-Site`.
 - **No leaks.** The agent status never exposes another visitor's task; the mycelium "feeds other greenhouses" instead.
-- **Budget.** A reservation is made before each call with `UPDATE … SET reserved = reserved + :max WHERE spent + reserved + :max <= limit` and settled afterwards. Orphaned reservations are released by the reconciler.
-- **Rest versus night.** The sky follows the visitor's clock; the mycelium shows the agent's state. Budget rest is a hibernating mycelium, distinct from night (light) and offline (grey).
-- **Modes.** `RIPE_MODE=local|public`. Local mode keeps today's settings and Ollama; public mode reads its configuration from the environment only.
+- **Budget.**
+  - A reservation is made before each call with `UPDATE … SET reserved = reserved + :max WHERE spent + reserved + :max <= limit`.
+  - `:max` prices the estimated input plus the whole `max_output_tokens`, reasoning included.
+  - The reservation is settled with the reported usage, or with the flagged estimate when Ripe aborted the stream.
+  - Orphaned reservations are released by the reconciler.
+  - Ripe's own daily budget stays below the spend limit configured on the OpenAI project, so the provider's limit is a backstop, not the mechanism.
+- **Rest versus night.** The sky follows the visitor's clock; the mycelium shows the agent's state. Budget rest is a hibernating mycelium, distinct from night (light) and offline (grey). A driver-scope halt (credit or credentials) also rests the greenhouse.
+- **Modes.**
+  - `RIPE_MODE=local|public`. Local mode keeps today's settings and Ollama; public mode uses OpenAI and reads its configuration from the environment only.
+  - The interface copy that calls the mycelium "an open model running on this machine" becomes mode-dependent: in public mode it names the hosted model.
 
 ### 3.10 Observability
 
@@ -237,6 +281,8 @@ Two ordering constraints are asserted by a test:
 - `call_timeout + lease_ttl < worker timeout < retry_after`
 
 The supervisor always aborts first, the worker's alarm is a backstop, and queue redelivery never overlaps a live call. All lease timestamps come from the application clock, which makes them controllable in tests. The deployment has a single host, so there is a single clock.
+
+`connect_timeout`, `first_byte_timeout`, `idle_timeout` and `call_timeout` are configured per driver. The values above suit Ollama and OpenAI's default tier. A slower tier such as flex needs minutes, and the worker timeout and `retry_after` follow from the ordering constraints, never the other way round.
 
 ### 4.5 Protocol
 
@@ -400,12 +446,12 @@ The current application keeps working from `frontend/`, with its own Prisma back
 |---|---|---|---|
 | 0 | Foundation | The Next app runs unchanged from `frontend/` (typecheck, lint, build and an agent run against local Ollama); Laravel 13 on PHP 8.4 in `backend/` uses PostgreSQL 17 from Docker Compose; Pest, Pint and Larastan pass; a CI workflow covers both apps; this plan is committed | S |
 | 1 | Domain and persistence | Migrations for every entity run up and down on PostgreSQL; every constraint has a test (unique, partial unique, foreign key cascade, CHECK); state machines are tested for allowed and forbidden transitions; the journal writer allocates gap-free sequences under the task lock; `GrowthCalculator` reproduces the current table; the skeleton `User` gives way to `Visitor` | M |
-| 2 | Inference | `ModelDriver` with Fake, Ollama and OpenAI-compatible drivers on the supervised `curl_multi` transport; one contract suite passes for all drivers on fixture streams; error mapping is tested (refused connection, 404, 429 with `Retry-After`, 5xx, mid-stream disconnect, invalid JSON, length truncation); socket-level transport tests cover silence longer than the lease, every timeout and supervisor aborts; prompts and schemas are ported with snapshot tests; the optional live group passes against local Ollama | M |
+| 2 | Inference | `ModelDriver` with OpenAI, Ollama and Fake drivers on the supervised `curl_multi` transport; one contract suite passes for all drivers on fixture streams (OpenAI SSE events, Ollama NDJSON); every documented OpenAI failure maps to its scope (rate limit versus credit and spend limits, overload, credentials, unknown model, rejected request, refusal, content filter, `max_output_tokens`, a stream without a terminal event), and so do Ollama's; usage and cost are computed from fixtures with cached and reasoning tokens, and estimated when a stream is aborted; every schema passes the strict-subset check; socket-level transport tests cover silence longer than the lease, every timeout and supervisor aborts; prompts and schemas are ported with snapshot tests; optional live groups pass against local Ollama and, with an API key, against OpenAI | M |
 | 3 | Orchestration and resilience | Reconciler, `ExecuteRun`, the lease protocol, committers, retry policy, pace and cancellation are in place; `ripe:simulate` drives a task to ripe through real queue workers with the FakeDriver; green suites for resilience (redelivery, crash after commit, lease loss with a late result, `kill -9` during silence, back-off, interruption cap, cancellation mid-stream, concurrent reconcile), dependencies and human input (section 5.6) and the growth invariant; the journal consistency checks pass after every scenario | L |
 | 4 | API, visitors and policies | Parity with the 20 current operations; visitor isolation tests; rate limits; OpenAPI generated and TypeScript types checked for drift in CI | M |
 | 5 | Frontend cut-over (polling) | Next talks only to Laravel; Prisma, the agent and the API routes are removed; the working twig becomes a transient signal; completion-condition waiting is drawn on the fruit; the `docs/screens` scenarios are reproduced; the full flow is verified in the browser with local Ollama | L |
 | 6 | Realtime | Reverb and Echo with version-based invalidation and offset-checked streaming; stopping Reverb mid-task lets the interface converge through polling; reconnecting restores the correct snapshot and live text | M |
-| 7 | Public demo | Provider comparison with verified prices, then the provider and budget decision; budget reservations never exceed the limit under concurrency; exhaustion rests the greenhouse (distinct from night and offline) and resumes automatically; per-visitor and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded from real runs, read-only and labelled | L |
+| 7 | Public demo | The OpenAI model, reasoning effort and service tier are chosen with verified prices, together with the daily budget and the project spend limit; budget reservations never exceed the limit under concurrency; exhaustion rests the greenhouse (distinct from night and offline) and resumes automatically; per-visitor and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded from real runs, read-only and labelled | L |
 | 8 | Observability | Structured logs with context; timeline endpoint and `ripe:inspect`; the Growth rings tab; `ripe:audit` passes for every task produced by the resilience suite and for the recorded examples; every attempt appears in the timeline; nothing claims or requires replaying state from events | M |
 | 9 | Deploy | `ripe.marianacastro.dev` on a VPS with a production Compose file separate from development; TLS; supervised HTTP, queue, scheduler, Reverb and Next processes; daily PostgreSQL backups with a tested restore; an automated smoke test; a runbook | M |
 
@@ -415,7 +461,10 @@ The current application keeps working from `frontend/`, with its own Prisma back
 |---|---|
 | Synchronous streaming in PHP | Supervised `curl_multi` loop (section 4) with socket-level tests from stage 2 |
 | `retry_after` shorter than a call | Ordering constraints asserted by a test; leases and fencing as the real guarantee |
-| Uneven structured output across OpenAI-compatible providers | Capability flags, validation and one repair attempt |
+| OpenAI retires a model or changes prices | A dated snapshot pinned in configuration; prices in configuration with the date they were checked |
+| Account-level limits at OpenAI (credit, spend, usage) | Driver-scope errors halt the agent and rest the greenhouse instead of failing tasks; Ripe's budget stays below the project spend limit |
+| Reasoning tokens exhausting `max_output_tokens` | A visible budget plus a reasoning allowance per run kind; incomplete structured output is rejected and counted |
+| Structured output differences between OpenAI and Ollama | One schema subset accepted by both, checked by a test, and validation after decoding |
 | Abuse and cost in the public demo | Budget reservations, per-visitor and hashed-IP limits, bounded prompts and outputs |
 | Reverb behind the proxy | Polling stays as a permanent fallback |
 | Visual parity at the cut-over | `docs/screens` as the reference set |
@@ -425,7 +474,13 @@ The current application keeps working from `frontend/`, with its own Prisma back
 
 **Approved on 2026-11-15:**
 - Hosting on a VPS with Docker Compose, keeping frontend and backend as separate applications.
-- Public inference through an open-weight model on an OpenAI-compatible provider. The provider and the daily budget are chosen in stage 7, after a cost comparison.
+- Inference (revised the same day, before stage 2):
+  - the hosted demo uses the official OpenAI API;
+  - Ollama stays as the fully local alternative, and the FakeDriver serves the tests;
+  - the choice between OpenAI and Ollama is configuration only;
+  - the model, reasoning effort, service tier and daily budget are chosen in stage 7.
+
+  This replaces the earlier choice of an open-weight model on an OpenAI-compatible provider.
 - Examples come from real agent runs, keeping their results and history, and are explicitly labelled as demonstrations.
 - The partial growth of `working` twigs is replaced by transient activity signals.
 - The existing local `ripe.db` is not migrated.
@@ -433,6 +488,7 @@ The current application keeps working from `frontend/`, with its own Prisma back
 - Usage limits are defined in stage 7.
 
 **Pending:**
-- Inference provider and daily budget (stage 7).
+- OpenAI model, reasoning effort, service tier and daily budget (stage 7).
+- Whether to use OpenAI's background mode to resume generations after a worker dies (stage 7).
 - Retention period (stage 7).
 - Usage limits and invisible Turnstile on task creation (stage 7).

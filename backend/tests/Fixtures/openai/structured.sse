@@ -1,0 +1,54 @@
+event: response.created
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_json","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.in_progress
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_json","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_1","type":"message","status":"in_progress","role":"assistant","content":[]}}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"{\"verdict\":\"almost\",\"summary\":\"A ","logprobs":[],"obfuscation":"2862e6"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":4,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"warm ","logprobs":[],"obfuscation":"98c105"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":5,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"note ","logprobs":[],"obfuscation":"e6f734"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":6,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"that ","logprobs":[],"obfuscation":"82dffc"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":7,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"only ","logprobs":[],"obfuscation":"3184e0"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":8,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"needs ","logprobs":[],"obfuscation":"af0d96"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":9,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"the ","logprobs":[],"obfuscation":"e3eb16"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":10,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"names.\",\"strengths\":[\"Warm ","logprobs":[],"obfuscation":"ba796e"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":11,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"tone\"],\"issues\":[],\"missing\":[\"The ","logprobs":[],"obfuscation":"f0265d"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":12,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"neighbour's ","logprobs":[],"obfuscation":"44e303"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":13,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"name\"],\"nextActions\":[\"Fill ","logprobs":[],"obfuscation":"d41a00"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":14,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"in ","logprobs":[],"obfuscation":"2d5a4e"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":15,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"the ","logprobs":[],"obfuscation":"e3eb16"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","sequence_number":16,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"name\"]}","logprobs":[],"obfuscation":"63b9e3"}
+
+event: response.completed
+data: {"type":"response.completed","sequence_number":17,"response":{"id":"resp_json","object":"response","created_at":1795000000,"status":"completed","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[{"id":"msg_1","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"{\"verdict\":\"almost\",\"summary\":\"A warm note that only needs the names.\",\"strengths\":[\"Warm tone\"],\"issues\":[],\"missing\":[\"The neighbour's name\"],\"nextActions\":[\"Fill in the name\"]}","annotations":[]}]}],"usage":{"input_tokens":900,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":512},"output_tokens":60,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":960},"store":false}}
+

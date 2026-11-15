@@ -1,0 +1,30 @@
+event: response.created
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_refusal","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.in_progress
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_refusal","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_1","type":"message","status":"in_progress","role":"assistant","content":[]}}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":3,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"I ","logprobs":[],"obfuscation":"8ae99a"}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":4,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"can't ","logprobs":[],"obfuscation":"4a7242"}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":5,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"help ","logprobs":[],"obfuscation":"9c5359"}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":6,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"with ","logprobs":[],"obfuscation":"fbcdf0"}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":7,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"that ","logprobs":[],"obfuscation":"82dffc"}
+
+event: response.refusal.delta
+data: {"type":"response.refusal.delta","sequence_number":8,"item_id":"msg_1","output_index":0,"content_index":0,"delta":"request.","logprobs":[],"obfuscation":"a75f9d"}
+
+event: response.completed
+data: {"type":"response.completed","sequence_number":9,"response":{"id":"resp_refusal","object":"response","created_at":1795000000,"status":"completed","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[{"id":"msg_1","type":"message","role":"assistant","status":"completed","content":[{"type":"refusal","refusal":"I can't help with that request.","annotations":[]}]}],"usage":{"input_tokens":300,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens":12,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":312},"store":false}}
+

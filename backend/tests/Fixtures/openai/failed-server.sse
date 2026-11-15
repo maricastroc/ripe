@@ -1,0 +1,12 @@
+event: response.created
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_failed","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.in_progress
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_failed","object":"response","created_at":1795000000,"status":"in_progress","model":"gpt-test-2026-06-01","error":null,"incomplete_details":null,"output":[],"usage":null,"store":false}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_1","type":"message","status":"in_progress","role":"assistant","content":[]}}
+
+event: response.failed
+data: {"type":"response.failed","sequence_number":3,"response":{"id":"resp_failed","object":"response","created_at":1795000000,"status":"failed","model":"gpt-test-2026-06-01","error":{"code":"server_error","message":"The model failed to generate a response."},"incomplete_details":null,"output":[],"usage":null,"store":false}}
+

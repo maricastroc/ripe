@@ -19,7 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'run_id', 'number', 'lease_token', 'worker', 'queue_job_id', 'started_at', 'last_heartbeat_at',
     'finished_at', 'outcome', 'outcome_detail', 'error_class', 'error_message', 'driver', 'model',
-    'prompt_tokens', 'completion_tokens', 'ttft_ms', 'duration_ms', 'cost_microusd', 'reserved_microusd',
+    'provider_request_id', 'provider_response_id', 'prompt_tokens', 'cached_prompt_tokens', 'cache_write_tokens',
+    'completion_tokens', 'reasoning_tokens', 'usage_estimated', 'ttft_ms', 'duration_ms', 'cost_microusd', 'reserved_microusd',
 ])]
 class RunAttempt extends Model
 {
@@ -43,7 +44,11 @@ class RunAttempt extends Model
             'last_heartbeat_at' => 'immutable_datetime',
             'finished_at' => 'immutable_datetime',
             'prompt_tokens' => 'integer',
+            'cached_prompt_tokens' => 'integer',
+            'cache_write_tokens' => 'integer',
             'completion_tokens' => 'integer',
+            'reasoning_tokens' => 'integer',
+            'usage_estimated' => 'boolean',
             'ttft_ms' => 'integer',
             'duration_ms' => 'integer',
             'cost_microusd' => 'integer',
