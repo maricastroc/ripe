@@ -28,6 +28,7 @@ use App\Orchestration\AgentSettings;
 use App\Orchestration\AttemptReport;
 use App\Orchestration\Leases;
 use App\Orchestration\LeaseSupervisor;
+use App\Orchestration\Output\PartialOutput;
 use App\Orchestration\RunDispatcher;
 use App\Orchestration\TaskOrchestrator;
 use Carbon\CarbonImmutable;
@@ -48,6 +49,7 @@ final class RunExecutor
         private readonly Leases $leases,
         private readonly AgentHalt $halt,
         private readonly AgentSettings $settings,
+        private readonly PartialOutput $output,
     ) {}
 
     public function execute(string $runId, ?string $queueJobId = null): void
@@ -59,8 +61,17 @@ final class RunExecutor
         }
 
         try {
+            $this->attempt($claim);
+        } finally {
+            $this->output->forget($claim->attempt->id);
+        }
+    }
+
+    private function attempt(Claim $claim): void
+    {
+        try {
             $call = $this->requests->prepare($claim->run);
-            $response = $this->inference->current()->generate($call->request, $this->supervisor($claim));
+            $response = $this->inference->current()->generate($call->request, $this->supervisor($claim), $this->output->open($claim->run, $claim->attempt));
             $result = $this->results->prepare($claim->run, $call, $response);
         } catch (CallAborted $abort) {
             $this->abandon($claim, $abort);
@@ -148,7 +159,13 @@ final class RunExecutor
     public function commit(Claim $claim, PreparedResult $result, ModelResponse $response): void
     {
         DB::transaction(function () use ($claim, $result, $response): void {
-            [$task, $run, $attempt] = $this->lock($claim);
+            $locked = $this->lock($claim);
+
+            if ($locked === null) {
+                return;
+            }
+
+            [$task, $run, $attempt] = $locked;
             $now = CarbonImmutable::now();
             $report = AttemptReport::fromResponse($response);
 
@@ -182,7 +199,13 @@ final class RunExecutor
     public function recordFailure(Claim $claim, InferenceException $failure, ?Throwable $cause = null): void
     {
         DB::transaction(function () use ($claim, $failure, $cause): void {
-            [$task, $run, $attempt] = $this->lock($claim);
+            $locked = $this->lock($claim);
+
+            if ($locked === null) {
+                return;
+            }
+
+            [$task, $run, $attempt] = $locked;
             $now = CarbonImmutable::now();
             $report = AttemptReport::fromFailure($cause ?? $failure, $failure instanceof ModelTimeout ? $failure->kind->value : null);
 
@@ -227,7 +250,13 @@ final class RunExecutor
     public function abandon(Claim $claim, CallAborted $abort): void
     {
         DB::transaction(function () use ($claim, $abort): void {
-            [$task, $run, $attempt] = $this->lock($claim);
+            $locked = $this->lock($claim);
+
+            if ($locked === null) {
+                return;
+            }
+
+            [$task, $run, $attempt] = $locked;
             $now = CarbonImmutable::now();
             $cancelled = $abort->reason === 'cancelled' && $run !== null && $run->status === RunStatus::Running
                 && $run->lease_token === $claim->token && $run->cancel_requested_at !== null;
@@ -269,14 +298,14 @@ final class RunExecutor
         ], EventActor::Agent, $run, $attempt);
     }
 
-    /** @return array{0: Task, 1: ?AgentRun, 2: RunAttempt} */
-    private function lock(Claim $claim): array
+    /** @return array{0: Task, 1: ?AgentRun, 2: RunAttempt}|null */
+    private function lock(Claim $claim): ?array
     {
-        $task = Task::query()->whereKey($claim->run->task_id)->lockForUpdate()->firstOrFail();
+        $task = Task::query()->whereKey($claim->run->task_id)->lockForUpdate()->first();
         $run = AgentRun::query()->whereKey($claim->run->id)->lockForUpdate()->first();
-        $attempt = RunAttempt::query()->whereKey($claim->attempt->id)->lockForUpdate()->firstOrFail();
+        $attempt = RunAttempt::query()->whereKey($claim->attempt->id)->lockForUpdate()->first();
 
-        return [$task, $run, $attempt];
+        return $task === null || $attempt === null ? null : [$task, $run, $attempt];
     }
 
     private function supervisor(Claim $claim): LeaseSupervisor

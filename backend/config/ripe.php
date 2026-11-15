@@ -22,6 +22,13 @@ return [
         'redispatch_after_seconds' => 600,
     ],
 
+    'output' => [
+        'store' => env('RIPE_OUTPUT_STORE'),
+        'ttl_seconds' => 600,
+        'flush_interval' => (float) env('RIPE_OUTPUT_FLUSH_INTERVAL', 0.25),
+        'max_characters' => 60000,
+    ],
+
     'lease' => [
         'ttl' => (float) env('RIPE_LEASE_TTL', 30),
         'renew_interval' => (float) env('RIPE_LEASE_RENEW_INTERVAL', 5),
