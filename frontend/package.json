@@ -8,12 +8,13 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "setup": "prisma generate && prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate",
-    "format": "prettier --write src prisma/seed.ts"
+    "format": "prettier --write src prisma/seed.ts",
+    "format:check": "prettier --check src prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.1",
