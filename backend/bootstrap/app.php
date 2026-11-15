@@ -7,6 +7,7 @@ use App\Exceptions\AgentSettingsRejected;
 use App\Exceptions\TaskActionRejected;
 use App\Exceptions\VersionConflict;
 use App\Http\Middleware\EnsureSameOrigin;
+use App\Http\Middleware\ThroughGateway;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [EnsureSameOrigin::class]);
+        $middleware->api(prepend: [ThroughGateway::class, EnsureSameOrigin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

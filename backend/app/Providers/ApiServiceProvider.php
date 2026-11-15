@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Middleware\ThroughGateway;
 use App\Http\Visitors\VisitorResolver;
 use App\Models\Visitor;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -46,6 +47,8 @@ final class ApiServiceProvider extends ServiceProvider
 
     private static function network(Request $request): string
     {
-        return hash_hmac('sha256', (string) $request->ip(), Config::string('app.key'));
+        $address = $request->attributes->get(ThroughGateway::CLIENT_ATTRIBUTE);
+
+        return hash_hmac('sha256', is_string($address) ? $address : (string) $request->ip(), Config::string('app.key'));
     }
 }

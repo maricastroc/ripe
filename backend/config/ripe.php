@@ -36,6 +36,11 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'gateway' => [
+        'secret' => env('RIPE_GATEWAY_SECRET'),
+        'required' => (bool) env('RIPE_GATEWAY_REQUIRED', true),
+    ],
+
     'http' => [
         'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('RIPE_ALLOWED_ORIGINS', (string) env('APP_URL', 'http://localhost')))))),
     ],
