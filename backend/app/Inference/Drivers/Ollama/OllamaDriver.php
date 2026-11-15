@@ -24,6 +24,7 @@ use App\Inference\ModelRequest;
 use App\Inference\ModelResponse;
 use App\Inference\NullSupervisor;
 use App\Inference\Streaming\JsonLines;
+use App\Inference\Support\FirstTokenTimer;
 use App\Inference\Support\Json;
 use App\Inference\Transport\StreamRequest;
 use App\Inference\Transport\StreamResponse;
@@ -100,15 +101,17 @@ final class OllamaDriver implements ModelDriver
     {
         $lines = new JsonLines;
         $stream = new OllamaStream;
+        $timer = new FirstTokenTimer;
 
         try {
             $response = $this->transport->send(
                 new StreamRequest('POST', $this->url('/api/chat'), ['Content-Type' => 'application/json'], $this->encode($this->payload($request))),
-                function (string $chunk) use ($lines, $stream, $observer): void {
+                function (string $chunk) use ($lines, $stream, $observer, $timer): void {
                     foreach ($lines->push($chunk) as $line) {
                         $delta = $stream->apply($line);
 
                         if ($delta !== null) {
+                            $timer->tokenArrived();
                             $observer?->onDelta($delta);
                         }
                     }
@@ -133,10 +136,10 @@ final class OllamaDriver implements ModelDriver
             throw $this->fromHttp($response);
         }
 
-        return $this->conclude($request, $stream, $response);
+        return $this->conclude($request, $stream, $response, $timer);
     }
 
-    private function conclude(ModelRequest $request, OllamaStream $stream, StreamResponse $response): ModelResponse
+    private function conclude(ModelRequest $request, OllamaStream $stream, StreamResponse $response, FirstTokenTimer $timer): ModelResponse
     {
         $usage = $stream->usage() ?? $this->estimate($request, $stream);
         $fail = static fn (InferenceException $exception): InferenceException => $exception->withCallDetails($usage, null, 0);
@@ -168,7 +171,7 @@ final class OllamaDriver implements ModelDriver
             costMicrodollars: 0,
             requestId: null,
             responseId: null,
-            timeToFirstTokenMs: $response->firstByteMs,
+            timeToFirstTokenMs: $timer->milliseconds(),
             durationMs: $response->durationMs,
         );
     }

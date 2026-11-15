@@ -67,7 +67,8 @@ it('streams text and reports the local token counts at no cost', function (): vo
         ->and($response->finishReason)->toBe(FinishReason::Stop)
         ->and($response->usage->inputTokens)->toBe(1200)
         ->and($response->usage->outputTokens)->toBe(180)
-        ->and($response->costMicrodollars)->toBe(0);
+        ->and($response->costMicrodollars)->toBe(0)
+        ->and($response->timeToFirstTokenMs)->toBeGreaterThanOrEqual(0);
 });
 
 it('keeps cut text and rejects cut structured output', function (): void {

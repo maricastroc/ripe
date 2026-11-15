@@ -132,6 +132,7 @@ it('streams the text, keeps the final one and accounts for every kind of token',
         ->and($response->costMicrodollars)->toBe(intdiv(176 * 1_250_000 + 1024 * 125_000 + 180 * 10_000_000 + 999_999, 1_000_000))
         ->and($response->requestId)->toBe('req_replay')
         ->and($response->responseId)->toBe('resp_text')
+        ->and($response->timeToFirstTokenMs)->toBeGreaterThanOrEqual(0)
         ->and($response->model)->toBe('gpt-test-2026-06-01')
         ->and($supervisor->ticks)->not->toBeEmpty();
 });

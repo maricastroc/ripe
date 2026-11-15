@@ -27,6 +27,7 @@ use App\Inference\ModelResponse;
 use App\Inference\NullSupervisor;
 use App\Inference\Pricing\CostCalculator;
 use App\Inference\Streaming\ServerSentEvents;
+use App\Inference\Support\FirstTokenTimer;
 use App\Inference\Support\Json;
 use App\Inference\Transport\StreamRequest;
 use App\Inference\Transport\StreamResponse;
@@ -116,16 +117,18 @@ final class OpenAIDriver implements ModelDriver
     {
         $model = $this->resolveModel();
         $stream = new OpenAIStream;
+        $timer = new FirstTokenTimer;
         $events = new ServerSentEvents;
 
         try {
             $response = $this->transport->send(
                 new StreamRequest('POST', $this->url('/responses'), $this->headers(), $this->encode($this->payload($request, $model))),
-                function (string $chunk) use ($events, $stream, $observer): void {
+                function (string $chunk) use ($events, $stream, $observer, $timer): void {
                     foreach ($events->push($chunk) as $event) {
                         $delta = $stream->apply($event);
 
                         if ($delta !== null) {
+                            $timer->tokenArrived();
                             $observer?->onDelta($delta);
                         }
                     }
@@ -147,10 +150,10 @@ final class OpenAIDriver implements ModelDriver
             throw $this->errors->fromHttp($response)->withCallDetails(null, $response->header('x-request-id'));
         }
 
-        return $this->conclude($request, $model, $stream, $response);
+        return $this->conclude($request, $model, $stream, $response, $timer);
     }
 
-    private function conclude(ModelRequest $request, OpenAIModel $model, OpenAIStream $stream, StreamResponse $response): ModelResponse
+    private function conclude(ModelRequest $request, OpenAIModel $model, OpenAIStream $stream, StreamResponse $response, FirstTokenTimer $timer): ModelResponse
     {
         $requestId = $response->header('x-request-id');
         $usage = $this->reportedUsage($stream->response()) ?? $this->estimate($request, $stream);
@@ -184,7 +187,7 @@ final class OpenAIDriver implements ModelDriver
             costMicrodollars: $cost,
             requestId: $requestId,
             responseId: $stream->responseId(),
-            timeToFirstTokenMs: $response->firstByteMs,
+            timeToFirstTokenMs: $timer->milliseconds(),
             durationMs: $response->durationMs,
         );
     }
