@@ -19,7 +19,15 @@ trait BelongsToTask
 
     public function owningTask(): Task
     {
-        return $this->task ?? throw (new ModelNotFoundException)->setModel(Task::class, [$this->task_id]);
+        $task = $this->relationLoaded('task') ? $this->task : Task::query()->find($this->task_id);
+
+        if ($task === null) {
+            throw (new ModelNotFoundException)->setModel(Task::class, [$this->task_id]);
+        }
+
+        $this->setRelation('task', $task);
+
+        return $task;
     }
 
     protected function lockOwningTask(): Task
