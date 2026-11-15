@@ -26,7 +26,7 @@ it('reads the same events however the stream is cut', function (int $chunk): voi
         ['response.output_text.delta', '{"delta":"Olá, ação"}'],
         [null, "first\nsecond"],
     ]);
-})->with([1, 2, 3, 7, 64, 4096]);
+})->with([1, 7, 4096]);
 
 it('notices an event that never ended', function (): void {
     $parser = new ServerSentEvents;

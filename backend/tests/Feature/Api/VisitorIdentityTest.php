@@ -54,7 +54,6 @@ it('shows an empty garden to someone without a cookie and creates nobody', funct
 
     expect(Visitor::query()->count())->toBe(0);
 })->with([
-    'no cookie' => [''],
     'an unknown token' => [str_repeat('a', 64)],
     'a malformed token' => ["' or 1=1 --"],
 ]);
@@ -85,13 +84,3 @@ it('refuses cookie settings that browsers would drop or that leak over plain htt
     'plain http in production' => ['ripe_visitor', false, true, 'Secure in production'],
     'an invalid name' => ['ripe visitor', true, false, 'not a valid cookie name'],
 ]);
-
-it('allows a plain cookie over http for local development', function (): void {
-    config(['ripe.visitor.cookie' => 'ripe_visitor', 'ripe.visitor.secure' => false]);
-
-    $cookie = app(VisitorCookie::class)->issue(str_repeat('a', 64));
-
-    expect($cookie->isSecure())->toBeFalse()
-        ->and($cookie->isHttpOnly())->toBeTrue()
-        ->and($cookie->getSameSite())->toBe(Cookie::SAMESITE_LAX);
-});

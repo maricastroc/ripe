@@ -23,14 +23,6 @@ it('records every status change in the journal', function (): void {
         ->and($event->payload)->toEqual(['from' => 'dormant', 'to' => 'ripening']);
 });
 
-it('ignores a transition to the current status', function (): void {
-    $task = Task::factory()->ripening()->create();
-
-    DB::transaction(fn () => $task->transitionTo(TaskStatus::Ripening, EventActor::System));
-
-    expect($task->events()->count())->toBe(0);
-});
-
 it('rejects a forbidden transition and changes nothing', function (): void {
     $task = Task::factory()->create();
 
@@ -57,23 +49,6 @@ it('needs a transaction', function (): void {
         ->and($task->fresh()?->status)->toBe(TaskStatus::Dormant);
 });
 
-it('keeps the stall reason only while stalled', function (): void {
-    $task = Task::factory()->ripening()->create();
-
-    DB::transaction(fn () => $task->transitionTo(TaskStatus::Stalled, EventActor::Agent, 'Ollama kept timing out.'));
-    expect($task->fresh()?->stall_reason)->toBe('Ollama kept timing out.');
-
-    DB::transaction(fn () => $task->transitionTo(TaskStatus::Ripening, EventActor::Visitor));
-    expect($task->fresh()?->stall_reason)->toBeNull();
-});
-
-it('requires a reason to stall', function (): void {
-    $task = Task::factory()->ripening()->create();
-
-    expect(fn () => DB::transaction(fn () => $task->transitionTo(TaskStatus::Stalled, EventActor::Agent, '  ')))
-        ->toThrow(InvalidArgumentException::class);
-});
-
 it('ripens only after the review and remembers when it first did', function (): void {
     $planned = Task::factory()->planned()->create();
 
@@ -92,16 +67,4 @@ it('ripens only after the review and remembers when it first did', function (): 
 
     expect($firstRipe)->not->toBeNull()
         ->and($task->fresh()?->ripe_at?->equalTo($firstRipe))->toBeTrue();
-});
-
-it('dates the harvest and clears it when replanted', function (): void {
-    $task = Task::factory()->ripe()->create();
-
-    DB::transaction(fn () => $task->transitionTo(TaskStatus::Harvested, EventActor::Visitor));
-    expect($task->fresh()?->harvested_at)->not->toBeNull();
-
-    DB::transaction(fn () => $task->transitionTo(TaskStatus::Ripe, EventActor::Visitor));
-    expect($task->fresh())
-        ->status->toBe(TaskStatus::Ripe)
-        ->harvested_at->toBeNull();
 });

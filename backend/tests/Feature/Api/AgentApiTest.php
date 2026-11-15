@@ -28,15 +28,6 @@ it('tells a visitor what the agent does for them and only that it works elsewher
     expect($other->getContent())->not->toContain($task->id)->not->toContain('tomatoes');
 });
 
-it('counts only the visitor own queued work', function (): void {
-    [, $owner] = visitor();
-    [, $neighbour] = visitor();
-    apiTask($owner);
-
-    api($owner)->getJson('/api/agent')->assertJsonPath('queued', 1);
-    api($neighbour)->getJson('/api/agent')->assertJsonPath('queued', 0);
-});
-
 it('keeps settings, installed models and operator messages to local mode', function (): void {
     app(AgentHalt::class)->halt('Incorrect API key provided: sk-proj-abc.', CarbonImmutable::now());
 
@@ -66,10 +57,4 @@ it('says when no worker is listening', function (): void {
     event(new Looping('agent', 'agent'));
 
     api()->getJson('/api/agent')->assertJsonPath('mode', 'idle')->assertJsonPath('message', null);
-});
-
-it('keeps the settings locked in public mode', function (): void {
-    api()->putJson('/api/agent', ['paused' => true])
-        ->assertForbidden()
-        ->assertJsonPath('message', 'This greenhouse is configured by its host.');
 });

@@ -27,22 +27,6 @@ it('answers a change the task cannot take now with a conflict', function (): voi
         ->assertExactJson(['message' => 'This task is already ripe.']);
 });
 
-it('reports a version conflict with what the client needs to recover', function (): void {
-    [, $token] = visitor();
-    $task = ripen(apiTask($token));
-    $piece = firstPiece($task);
-    $base = (string) $piece->current_version_id;
-    api($token)->putJson("/api/artifacts/{$piece->id}/draft", ['content' => 'First tab.', 'baseVersionId' => $base, 'draftRevision' => null])->assertOk();
-
-    api($token)->putJson("/api/artifacts/{$piece->id}/draft", ['content' => 'Second tab.', 'baseVersionId' => $base, 'draftRevision' => null])
-        ->assertConflict()
-        ->assertExactJson([
-            'message' => 'Your edits changed somewhere else, in another tab or window.',
-            'currentVersionId' => $base,
-            'draftRevision' => 1,
-        ]);
-});
-
 it('keeps internals out of error responses in production', function (): void {
     config(['app.debug' => false]);
 

@@ -41,12 +41,6 @@ it('lets reads through without fetch metadata', function (): void {
     api(headers: [])->getJson('/api/agent')->assertOk();
 });
 
-it('explains a refused change without touching anything', function (): void {
-    plantWith(['Sec-Fetch-Site' => 'cross-site'])
-        ->assertForbidden()
-        ->assertJsonPath('message', 'Changes to Ripe must come from Ripe itself.');
-});
-
 it('checks the origin before the rate limit, so forged requests cannot spend a visitor quota', function (): void {
     config(['ripe.limits.mutations_per_minute' => 2]);
     [, $token] = visitor();

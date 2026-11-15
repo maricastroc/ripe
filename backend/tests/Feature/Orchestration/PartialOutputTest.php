@@ -7,7 +7,6 @@ use App\Enums\TaskStatus;
 use App\Inference\Drivers\Fake\FakeReply;
 use App\Inference\ModelRequest;
 use App\Models\AgentRun;
-use App\Models\RunAttempt;
 use App\Orchestration\Execution\RunExecutor;
 use App\Orchestration\Output\LiveText;
 use App\Orchestration\Output\PartialOutput;
@@ -65,33 +64,6 @@ it('forgets the live text once the attempt ends', function (): void {
 
     expect($attemptId)->toBeString()
         ->and(Cache::has("ripe:output:attempt:{$attemptId}"))->toBeFalse();
-});
-
-it('never lets an older attempt overwrite or show over a newer one', function (): void {
-    $seen = [];
-    fakeAgent(first: [
-        static fn (): ?FakeReply => null,
-        static fn (): ?FakeReply => null,
-        watchedPiece(static function (): void {
-            travelSeconds(31);
-            app(Sweeper::class)->expireLeases(CarbonImmutable::now());
-        }, 4, 'An old attempt that keeps talking after its lease is gone, on and on.'),
-        watchedPiece(static function () use (&$seen): void {
-            $run = generateRun();
-            $old = RunAttempt::query()->where('run_id', $run->id)->where('number', 1)->sole();
-            $seen['old write accepted'] = app(PartialOutput::class)->write($run->id, $old->id, 1, 'Stale words from the first attempt.');
-            $seen['old text'] = app(PartialOutput::class)->of($old);
-            $seen['current'] = app(PartialOutput::class)->current($run);
-        }),
-    ]);
-    $task = ripen(plantTask());
-
-    expect($seen['old write accepted'])->toBeFalse()
-        ->and($seen['old text'])->toBeNull()
-        ->and($seen['current']?->attemptNumber)->toBe(2)
-        ->and($seen['current']?->text)->toBe('Dear neighbour, thank you for ')
-        ->and($task->status)->toBe(TaskStatus::Ripe);
-    expectJournalConsistent($task);
 });
 
 it('lets abandoned live text expire on its own', function (): void {

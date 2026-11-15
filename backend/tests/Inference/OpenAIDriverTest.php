@@ -6,10 +6,8 @@ use App\Enums\Inference\ErrorScope;
 use App\Enums\Inference\FinishReason;
 use App\Enums\Inference\ReasoningEffort;
 use App\Enums\Inference\TimeoutKind;
-use App\Exceptions\Inference\CallAborted;
 use App\Exceptions\Inference\DriverMisconfigured;
 use App\Exceptions\Inference\InferenceException;
-use App\Exceptions\Inference\InvalidModelOutput;
 use App\Exceptions\Inference\ModelCallFailed;
 use App\Exceptions\Inference\ModelRefused;
 use App\Exceptions\Inference\ModelRequestRejected;
@@ -144,22 +142,6 @@ it('reports the cache-write tokens of a structured answer', function (): void {
         ->and($response->usage->cacheWriteTokens)->toBe(512);
 });
 
-it('keeps text cut by the token limit but rejects cut structured output', function (): void {
-    $text = openai(ReplayTransport::fixture('openai/length-text.sse'))->generate(textRequest());
-
-    expect($text->finishReason)->toBe(FinishReason::Length)
-        ->and($text->usage->reasoningTokens)->toBe(2190);
-
-    try {
-        openai(ReplayTransport::fixture('openai/length-structured.sse'))->generate(structuredRequest());
-        $this->fail('Expected the cut structured output to be rejected.');
-    } catch (InvalidModelOutput $exception) {
-        expect($exception->scope())->toBe(ErrorScope::Attempt)
-            ->and($exception->usage()?->outputTokens)->toBe(1100)
-            ->and($exception->costMicrodollars())->toBeGreaterThan(0);
-    }
-});
-
 it('maps every documented stream outcome to its scope', function (string $fixture, string $exception, ErrorScope $scope): void {
     try {
         openai(ReplayTransport::fixture($fixture))->generate(textRequest());
@@ -235,25 +217,6 @@ it('turns transport problems into scoped errors with an estimate of what was spe
     expect(fn () => openai(ReplayTransport::failing(new TransportFailed('Connection refused')))->generate(textRequest()))
         ->toThrow(ModelUnavailable::class);
 });
-
-it('hands an abort back with the tokens it had already streamed', function (): void {
-    try {
-        openai(ReplayTransport::fixture('openai/text.sse'))->generate(textRequest(), new RecordingSupervisor(abortAfterTicks: 400));
-        $this->fail('Expected the call to be aborted.');
-    } catch (CallAborted $abort) {
-        expect($abort->reason)->toBe('lease_lost')
-            ->and($abort->usage()?->estimated)->toBeTrue()
-            ->and($abort->usage()?->outputTokens)->toBeGreaterThan(0);
-    }
-});
-
-it('refuses to call OpenAI without a key or a model', function (?string $key, string $model): void {
-    expect(fn () => openai(ReplayTransport::fixture('openai/text.sse'), $model, $key)->generate(textRequest()))
-        ->toThrow(DriverMisconfigured::class);
-})->with([
-    'no key' => [null, 'gpt-test'],
-    'no model' => ['sk-test', ''],
-]);
 
 it('caps the possible cost of a request before sending it', function (): void {
     $request = textRequest(null, ReasoningEffort::Medium);

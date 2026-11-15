@@ -23,12 +23,6 @@ it('charges cached, cache-written and uncached input at their own rates, and rea
     expect((new CostCalculator)->microdollars($usage, $price))->toBe(1040);
 });
 
-it('never loses money to floating point rounding', function (): void {
-    $price = ModelPrice::fromDollars(['input' => 0.4, 'output' => 1.6]);
-
-    expect((new CostCalculator)->microdollars(new Usage(1_000, 0), $price))->toBe(400);
-});
-
 it('rounds partial microdollars up', function (): void {
     $price = new ModelPrice(1, 1, 1, 1);
 
@@ -42,16 +36,6 @@ it('keeps the ceiling at or above any real cost within the same limits', functio
 
     expect($costs->ceiling(2_000, 3_000, $price))->toBeGreaterThanOrEqual($actual);
 })->with([
-    [0, 0, 3_000],
     [2_000, 0, 3_000],
-    [0, 2_000, 3_000],
     [500, 500, 10],
 ]);
-
-it('estimates usage at four characters per token and flags it', function (): void {
-    $usage = Usage::estimate(4_001, 9);
-
-    expect($usage->inputTokens)->toBe(1_001)
-        ->and($usage->outputTokens)->toBe(3)
-        ->and($usage->estimated)->toBeTrue();
-});

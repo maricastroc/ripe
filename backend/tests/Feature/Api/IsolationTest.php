@@ -73,32 +73,26 @@ it('never lists another visitor tasks in the garden', function (): void {
     api($intruder)->getJson('/api/garden')->assertOk()->assertJsonPath('tasks', []);
 });
 
-it('shows the example to everyone and lets nobody change it', function (string $method, string $template, array $body): void {
+it('shows the example to everyone and lets nobody change it', function (): void {
     $example = app(ExampleGarden::class)->ensure();
     [, $token] = visitor();
-    [$uri, $payload] = routeFor($template, $body, $example);
     $before = footprint($example);
 
-    if ($method === 'GET') {
-        api($token)->getJson($uri)->assertOk()->assertJsonPath('task.isExample', true);
-        api()->getJson($uri)->assertOk();
+    api()->getJson("/api/tasks/{$example->id}")->assertOk()->assertJsonPath('task.isExample', true);
 
-        return;
+    foreach (['rename a task', 'delete a task', 'answer a question', 'save a draft', 'revise a piece'] as $action) {
+        [$method, $template, $body] = RESOURCE_ROUTES[$action];
+        [$uri, $payload] = routeFor($template, $body, $example);
+
+        api($token)->json($method, $uri, $payload)->assertForbidden()->assertJsonPath('message', 'Examples can only be read.');
     }
-
-    api($token)->json($method, $uri, $payload)->assertForbidden()->assertJsonPath('message', 'Examples can only be read.');
 
     expect(footprint($example))->toBe($before);
     expectJournalConsistent($example);
-})->with(RESOURCE_ROUTES);
+});
 
-it('answers an unknown or malformed id like a missing one', function (string $uri): void {
+it('answers a malformed id like a missing one, before it reaches the database', function (): void {
     fakeAgent();
-    [, $token] = visitor();
 
-    api($token)->getJson($uri)->assertNotFound()->assertJsonPath('message', 'Nothing grows here.');
-})->with([
-    'an unknown task' => ['/api/tasks/01a1dfba-e489-7b89-a8fa-8d196860a3a7'],
-    'a malformed task id' => ['/api/tasks/not-a-uuid'],
-    'an injection attempt' => ["/api/tasks/1'%20or%20'1'='1"],
-]);
+    api()->getJson("/api/tasks/1'%20or%20'1'='1")->assertNotFound()->assertJsonPath('message', 'Nothing grows here.');
+});

@@ -82,14 +82,10 @@ it('switches a long-running worker to the chosen Ollama model without a restart'
         ->and(AgentSetting::current()->ollama_model)->toBe('qwen3:8b');
 });
 
-it('accepts a model installed under its latest tag', function (): void {
-    installedOllamaModels('llama3.2:latest');
+it('checks the model against what Ollama has installed', function (): void {
+    installedOllamaModels('gemma4:e4b', 'llama3.2:latest');
 
     expect(app(UpdateAgentSettings::class)->handle(model: 'llama3.2')->ollama_model)->toBe('llama3.2');
-});
-
-it('refuses a model Ollama does not have, or cannot be asked about', function (): void {
-    installedOllamaModels('gemma4:e4b');
 
     expect(fn () => app(UpdateAgentSettings::class)->handle(model: 'qwen3:8b'))->toThrow(AgentSettingsRejected::class, 'qwen3:8b is not installed in Ollama.')
         ->and(fn () => app(UpdateAgentSettings::class)->handle(model: '  '))->toThrow(AgentSettingsRejected::class, 'Choose a model.');
@@ -97,7 +93,7 @@ it('refuses a model Ollama does not have, or cannot be asked about', function ()
     Http::fake(['*/api/tags' => static fn () => throw new ConnectionException('Connection refused')]);
 
     expect(fn () => app(UpdateAgentSettings::class)->handle(model: 'gemma4:e4b'))->toThrow(AgentSettingsRejected::class, "Couldn't reach Ollama to check that model.")
-        ->and(AgentSetting::query()->count())->toBe(0);
+        ->and(AgentSetting::current()->ollama_model)->toBe('llama3.2');
 });
 
 it('keeps the settings in the host hands in public mode', function (): void {

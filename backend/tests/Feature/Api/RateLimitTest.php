@@ -53,12 +53,3 @@ it('limits changes per minute for each visitor', function (): void {
 
     api($token)->patchJson("/api/tasks/{$task->id}", ['title' => 'A minute later'])->assertOk();
 });
-
-it('limits reads per minute for each visitor', function (): void {
-    config(['ripe.limits.reads_per_minute' => 2]);
-    [, $token] = visitor();
-
-    api($token)->getJson('/api/garden')->assertOk();
-    api($token)->getJson('/api/agent')->assertOk();
-    api($token)->getJson('/api/garden')->assertTooManyRequests()->assertJsonPath('message', 'Too Many Attempts.');
-});

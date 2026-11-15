@@ -23,7 +23,11 @@ it('shows a draft the agent overtook as conflicting, and lets the visitor rebase
 
     api($token)->postJson("/api/artifacts/{$piece->id}/draft/keep", ['baseVersionId' => $base, 'draftRevision' => 1])
         ->assertConflict()
-        ->assertJsonPath('currentVersionId', $current);
+        ->assertExactJson([
+            'message' => 'This piece changed since you started editing it.',
+            'currentVersionId' => $current,
+            'draftRevision' => 1,
+        ]);
 
     api($token)->putJson("/api/artifacts/{$piece->id}/draft", ['content' => 'My own outline, rebased.', 'baseVersionId' => $current, 'draftRevision' => 1])
         ->assertOk()

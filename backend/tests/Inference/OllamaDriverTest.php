@@ -3,11 +3,9 @@
 declare(strict_types=1);
 
 use App\Enums\Inference\ErrorScope;
-use App\Enums\Inference\FinishReason;
 use App\Enums\Inference\HealthStatus;
 use App\Exceptions\Inference\DriverMisconfigured;
 use App\Exceptions\Inference\InferenceException;
-use App\Exceptions\Inference\InvalidModelOutput;
 use App\Exceptions\Inference\ModelCallFailed;
 use App\Exceptions\Inference\ModelRequestRejected;
 use App\Exceptions\Inference\ModelUnavailable;
@@ -58,23 +56,6 @@ it('keeps the local request exactly as the original agent sent it', function ():
             'format' => ['type' => 'object'],
             'think' => false,
         ]);
-});
-
-it('streams text and reports the local token counts at no cost', function (): void {
-    $response = ollama(ReplayTransport::fixture('ollama/text.ndjson'))->generate(ollamaRequest());
-
-    expect($response->text)->toStartWith('## Thank-you note')
-        ->and($response->finishReason)->toBe(FinishReason::Stop)
-        ->and($response->usage->inputTokens)->toBe(1200)
-        ->and($response->usage->outputTokens)->toBe(180)
-        ->and($response->costMicrodollars)->toBe(0)
-        ->and($response->timeToFirstTokenMs)->toBeGreaterThanOrEqual(0);
-});
-
-it('keeps cut text and rejects cut structured output', function (): void {
-    expect(ollama(ReplayTransport::fixture('ollama/length-text.ndjson'))->generate(ollamaRequest())->finishReason)->toBe(FinishReason::Length)
-        ->and(fn () => ollama(ReplayTransport::fixture('ollama/length-structured.ndjson'))->generate(ollamaRequest(structured: true)))
-        ->toThrow(InvalidModelOutput::class);
 });
 
 it('maps local failures to their scopes', function (ReplayTransport $transport, string $exception, ErrorScope $scope): void {

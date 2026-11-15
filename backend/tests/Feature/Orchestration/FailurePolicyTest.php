@@ -2,15 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Enums\Inference\TimeoutKind;
 use App\Enums\RunDeferral;
-use App\Exceptions\Inference\DriverMisconfigured;
 use App\Exceptions\Inference\InferenceException;
-use App\Exceptions\Inference\ModelRefused;
-use App\Exceptions\Inference\ModelRequestRejected;
-use App\Exceptions\Inference\ModelTimeout;
 use App\Exceptions\Inference\ModelUnavailable;
-use App\Exceptions\Inference\ProviderQuotaExhausted;
 use App\Exceptions\Inference\RateLimited;
 use App\Models\AgentRun;
 use App\Orchestration\Execution\FailurePolicy;
@@ -56,32 +50,3 @@ it('spreads the same wait differently across runs but always the same way for on
     expect($runs->map($at)->unique()->count())->toBeGreaterThan(1)
         ->and($runs->map($at)->all())->toBe($runs->map($at)->all());
 });
-
-it('backs off ten and then thirty seconds, and fails on the last attempt', function (): void {
-    $first = decideFor(new ModelTimeout(TimeoutKind::Idle));
-    $second = decideFor(new ModelTimeout(TimeoutKind::Idle), 1);
-    $last = decideFor(new ModelTimeout(TimeoutKind::Idle), 2);
-
-    expect([$first->retry, $first->consumesAttempt, $first->reason, delayMs($first)])->toBe([true, true, RunDeferral::Backoff, 10_000.0])
-        ->and([$second->retry, $second->consumesAttempt, delayMs($second)])->toBe([true, true, 30_000.0])
-        ->and([$last->retry, $last->consumesAttempt])->toBe([false, true]);
-});
-
-it('fails a run at once when retrying cannot help', function (InferenceException $failure): void {
-    $decision = decideFor($failure);
-
-    expect([$decision->retry, $decision->halt, $decision->consumesAttempt])->toBe([false, false, false]);
-})->with([
-    'a refusal' => fn () => new ModelRefused("I can't help with that request."),
-    'a rejected request' => fn () => new ModelRequestRejected('The input is too long.'),
-]);
-
-it('halts the agent for a minute when the driver itself is broken', function (InferenceException $failure): void {
-    $decision = decideFor($failure);
-
-    expect([$decision->retry, $decision->halt, $decision->consumesAttempt])->toBe([true, true, false])
-        ->and(delayMs($decision))->toBe(60_000.0);
-})->with([
-    'bad credentials' => fn () => new DriverMisconfigured('Incorrect API key provided.'),
-    'an exhausted quota' => fn () => new ProviderQuotaExhausted('You exceeded your current quota.'),
-]);

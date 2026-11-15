@@ -6,7 +6,6 @@ use App\Actions\Artifacts\CommitDraft;
 use App\Actions\Artifacts\DiscardDraft;
 use App\Actions\Artifacts\RestoreVersion;
 use App\Actions\Artifacts\SaveDraft;
-use App\Actions\Tasks\AnswerQuestion;
 use App\Actions\Tasks\RequestRevision;
 use App\Enums\ArtifactVersionSource;
 use App\Enums\EventActor;
@@ -18,7 +17,6 @@ use App\Models\AgentRun;
 use App\Models\Artifact;
 use App\Models\ArtifactDraft;
 use App\Models\ArtifactVersion;
-use App\Models\Question;
 use App\Models\Task;
 use App\Models\TaskEvent;
 use Illuminate\Process\Pool;
@@ -65,7 +63,9 @@ it('autosaves into a draft and leaves every version untouched', function (): voi
         ->and($second?->base_version_id)->toBe($base)
         ->and(versionFingerprint())->toBe($before)
         ->and($piece->refresh()->current_version_id)->toBe($base)
-        ->and($task->refresh()->version)->toBe($events);
+        ->and($task->refresh()->version)->toBe($events)
+        ->and(app(SaveDraft::class)->handle($piece, (string) $piece->currentVersion?->content, $base, $second?->revision))->toBeNull()
+        ->and(ArtifactDraft::query()->count())->toBe(0);
     expectJournalConsistent($task);
 });
 
@@ -88,17 +88,8 @@ it('keeps a draft as exactly one new immutable version', function (): void {
     expectJournalConsistent($task);
 });
 
-it('drops the draft once the text matches the current version again', function (): void {
-    [, $piece] = ripePiece();
-    $base = (string) $piece->current_version_id;
-    $draft = app(SaveDraft::class)->handle($piece, 'Something else entirely.', $base);
-
-    expect(app(SaveDraft::class)->handle($piece, (string) $piece->currentVersion?->content, $base, $draft?->revision))->toBeNull()
-        ->and(ArtifactDraft::query()->count())->toBe(0);
-});
-
-it('refuses edits from a tab that missed the latest autosave', function (): void {
-    [, $piece] = ripePiece();
+it('refuses edits from a tab that missed an autosave or a kept version', function (): void {
+    [$task, $piece] = ripePiece();
     $base = (string) $piece->current_version_id;
     $draft = app(SaveDraft::class)->handle($piece, 'Edited in the first tab.', $base);
     app(SaveDraft::class)->handle($piece, 'Edited again in the first tab.', $base, $draft?->revision);
@@ -110,45 +101,13 @@ it('refuses edits from a tab that missed the latest autosave', function (): void
     expect([$fresh->draftRevision, $stale->draftRevision, $discard->draftRevision])->toBe([2, 2, 2])
         ->and($fresh->currentVersionId)->toBe($base)
         ->and(ArtifactDraft::query()->sole()->content)->toBe('Edited again in the first tab.');
-});
 
-it('refuses a draft kept from a version that another tab already replaced', function (): void {
-    [$task, $piece] = ripePiece();
-    $base = (string) $piece->current_version_id;
-    $draft = app(SaveDraft::class)->handle($piece, 'Kept in the first tab.', $base);
-    $kept = app(CommitDraft::class)->handle($piece, $base, (int) $draft?->revision);
+    $kept = app(CommitDraft::class)->handle($piece, $base, 2);
+    $replaced = conflictOf(fn () => app(SaveDraft::class)->handle($piece, 'Typed in the second tab.', $base));
 
-    $conflict = conflictOf(fn () => app(SaveDraft::class)->handle($piece, 'Typed in the second tab.', $base));
-
-    expect($conflict->currentVersionId)->toBe($kept->id)
-        ->and($conflict->draftRevision)->toBeNull()
+    expect($replaced->currentVersionId)->toBe($kept->id)
+        ->and($replaced->draftRevision)->toBeNull()
         ->and(ArtifactDraft::query()->count())->toBe(0);
-    expectJournalConsistent($task);
-});
-
-it('keeps a draft when the agent rewrites the piece underneath it, and lets the visitor rebase it', function (): void {
-    fakeAgent([question('Which day works for the visit?')]);
-    $task = ripen(plantTask());
-    $piece = firstPiece($task);
-    $base = (string) $piece->current_version_id;
-    $draft = app(SaveDraft::class)->handle($piece, 'My own words for the outline.', $base);
-
-    app(AnswerQuestion::class)->handle(Question::query()->sole(), 'Saturday morning.');
-    $task = ripen($task);
-    $current = (string) $piece->refresh()->current_version_id;
-
-    expect($task->status)->toBe(TaskStatus::Ripe)
-        ->and($current)->not->toBe($base)
-        ->and($piece->currentVersion?->source)->toBe(ArtifactVersionSource::Revise)
-        ->and(ArtifactDraft::query()->sole()->base_version_id)->toBe($base)
-        ->and(conflictOf(fn () => app(CommitDraft::class)->handle($piece, $base, (int) $draft?->revision))->currentVersionId)->toBe($current)
-        ->and(conflictOf(fn () => app(SaveDraft::class)->handle($piece, 'Still typing.', $base, $draft?->revision))->currentVersionId)->toBe($current);
-
-    $rebased = app(SaveDraft::class)->handle($piece, 'My own words, merged with the new outline.', $current, $draft?->revision);
-    $kept = app(CommitDraft::class)->handle($piece, $current, (int) $rebased?->revision);
-
-    expect($kept->parent_version_id)->toBe($current)
-        ->and($kept->content)->toBe('My own words, merged with the new outline.');
     expectJournalConsistent($task);
 });
 

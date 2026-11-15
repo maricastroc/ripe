@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Enums\ArtifactVersionSource;
 use App\Enums\QuestionStatus;
 use App\Enums\RunKind;
+use App\Enums\RunStatus;
 use App\Enums\TaskStatus;
 use App\Models\AgentRun;
 use App\Models\ArtifactVersion;
 use App\Models\Question;
+use App\Models\RunAttempt;
 use App\Models\Task;
 use Carbon\CarbonImmutable;
 
@@ -88,6 +90,11 @@ it('pauses and resumes a task', function (): void {
     $task = apiTask($token);
 
     api($token)->postJson("/api/tasks/{$task->id}/pause")->assertOk()->assertJsonPath('task.status', 'dormant')->assertJsonPath('task.activity', null);
+
+    expect(interpretRun($task)->status)->toBe(RunStatus::Cancelled)
+        ->and(drainAgentQueue())->toBe(1)
+        ->and(RunAttempt::query()->count())->toBe(0);
+
     api($token)->postJson("/api/tasks/{$task->id}/resume")->assertOk()->assertJsonPath('task.status', 'ripening');
 
     expect(ripen($task)->status)->toBe(TaskStatus::Ripe);
@@ -106,6 +113,7 @@ it('refreshes the pieces that still have gaps', function (): void {
     [$token, $task] = ripeApiTask();
 
     api($token)->postJson("/api/tasks/{$task->id}/refresh")->assertOk()->assertJsonPath('task.status', 'ripening');
+    api($token)->postJson("/api/tasks/{$task->id}/refresh")->assertConflict()->assertJsonPath('message', 'None of the pieces has gaps left to fill.');
 
     expect(AgentRun::query()->where('kind', RunKind::Revise)->count())->toBe(3)
         ->and(ripen($task)->status)->toBe(TaskStatus::Ripe);
@@ -197,15 +205,23 @@ it('goes back to the previous version of a piece', function (): void {
 it('asks the agent to rewrite a piece', function (): void {
     [$token, $task] = ripeApiTask();
     $piece = firstPiece($task);
+    $before = $piece->current_version_id;
+    config(['ripe.agent.pace' => 'calm']);
 
-    api($token)->postJson("/api/artifacts/{$piece->id}/revise", ['instruction' => 'Make it warmer.'])
+    api($token)->postJson("/api/artifacts/{$piece->id}/revise", ['instruction' => '  Make it warmer.  '])
         ->assertOk()
         ->assertJsonPath('task.status', 'ripening')
         ->assertJsonPath('task.activity.kind', 'revise')
-        ->assertJsonPath('task.activity.subject', $piece->title);
+        ->assertJsonPath('task.activity.subject', $piece->title)
+        ->assertJsonPath('task.activity.deferredReason', null);
 
-    expect(ripen($task)->status)->toBe(TaskStatus::Ripe)
-        ->and($piece->refresh()->currentVersion?->instruction)->toBe('Make it warmer.');
+    expect(ripen($task)->status)->toBe(TaskStatus::Ripe);
+
+    $version = $piece->refresh()->currentVersion;
+
+    expect($version?->instruction)->toBe('Make it warmer.')
+        ->and($version?->parent_version_id)->toBe($before)
+        ->and($version?->inputs['base_version_id'] ?? null)->toBe($before);
     expectJournalConsistent($task);
 });
 

@@ -36,7 +36,11 @@ it('grows the community garden example through the real pipeline and keeps it re
         ->and(Visitor::query()->count())->toBe(0);
     expectJournalConsistent($example);
 
-    expect(fn () => app(DeferTask::class)->handle($example))->toThrow(TaskActionRejected::class)
+    $events = $example->version;
+    drainAgentQueue();
+
+    expect($example->refresh()->version)->toBe($events)
+        ->and(fn () => app(DeferTask::class)->handle($example))->toThrow(TaskActionRejected::class)
         ->and(fn () => app(RequestRevision::class)->handle($pieces->first() ?? throw new RuntimeException, 'Shorter.'))->toThrow(TaskActionRejected::class);
 });
 
@@ -46,14 +50,4 @@ it('grows the example only once', function (): void {
 
     expect($second->id)->toBe($first->id)
         ->and(Task::query()->where('is_example', true)->count())->toBe(1);
-});
-
-it('leaves nothing for the queue to do once the example is grown', function (): void {
-    $example = app(ExampleGarden::class)->ensure();
-    $events = $example->version;
-
-    drainAgentQueue();
-
-    expect($example->refresh()->version)->toBe($events)
-        ->and(RunAttempt::query()->count())->toBe(7);
 });
