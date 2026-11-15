@@ -9,12 +9,10 @@ use App\Actions\Tasks\PlantTask;
 use App\Actions\Tasks\ReplantTask;
 use App\Actions\Tasks\RequestRevision;
 use App\Agent\Limits;
-use App\Enums\ArtifactKind;
 use App\Enums\ArtifactVersionSource;
 use App\Enums\RunKind;
 use App\Enums\RunOrigin;
 use App\Enums\RunStatus;
-use App\Enums\TaskEventType;
 use App\Enums\TaskStatus;
 use App\Exceptions\TaskActionRejected;
 use App\Models\AgentRun;
@@ -23,17 +21,6 @@ use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Models\Visitor;
 use Carbon\CarbonImmutable;
-
-/** @return list<string> */
-function eventTypes(Task $task): array
-{
-    return TaskEvent::query()->where('task_id', $task->id)->orderBy('sequence')->pluck('type')->map(static fn (TaskEventType $type): string => $type->value)->all();
-}
-
-function firstPiece(Task $task): Artifact
-{
-    return Artifact::query()->where('task_id', $task->id)->where('kind', ArtifactKind::Step)->orderBy('created_at')->orderBy('id')->firstOrFail();
-}
 
 it('plants a task with a trimmed prompt and a provisional title', function (): void {
     fakeAgent();

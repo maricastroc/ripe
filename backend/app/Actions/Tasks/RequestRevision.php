@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Tasks;
 
+use App\Actions\Artifacts\CommitDraft;
 use App\Agent\Text\Markdown;
 use App\Enums\ArtifactKind;
 use App\Enums\EventActor;
@@ -11,8 +12,10 @@ use App\Enums\RunKind;
 use App\Enums\RunStatus;
 use App\Enums\TaskStatus;
 use App\Exceptions\TaskActionRejected;
+use App\Exceptions\VersionConflict;
 use App\Models\AgentRun;
 use App\Models\Artifact;
+use App\Models\ArtifactDraft;
 use App\Models\Task;
 use App\Orchestration\NextRun;
 use App\Orchestration\RunBudget;
@@ -82,11 +85,28 @@ final class RequestRevision
             throw new TaskActionRejected("This task used all {$this->budget->limit()} of its agent runs.");
         }
 
+        $this->consolidateDraft($artifact);
+
         $version = $artifact->current_version_id ?? throw new TaskActionRejected('There is nothing to rewrite yet.');
         $run = $this->dispatcher->schedule($task, NextRun::revision($artifact, $version, $instruction), EventActor::Visitor);
         $task->transitionTo(TaskStatus::Ripening, EventActor::Visitor);
 
         return $run;
+    }
+
+    private function consolidateDraft(Artifact $artifact): void
+    {
+        $draft = ArtifactDraft::query()->whereKey($artifact->id)->lockForUpdate()->first();
+
+        if ($draft === null) {
+            return;
+        }
+
+        if ($draft->base_version_id !== $artifact->current_version_id) {
+            throw VersionConflict::draftPending($artifact->current_version_id, $draft->revision);
+        }
+
+        CommitDraft::consolidate($artifact, $draft);
     }
 
     private function isBeingRevised(Artifact $artifact): bool
