@@ -23,6 +23,26 @@ final class InferenceManager extends Manager
     /** @var (Closure(string): ?string)|null */
     private ?Closure $modelResolver = null;
 
+    private ?ModelDriver $override = null;
+
+    /**
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $callback
+     * @return TResult
+     */
+    public function using(ModelDriver $driver, Closure $callback): mixed
+    {
+        $previous = $this->override;
+        $this->override = $driver;
+
+        try {
+            return $callback();
+        } finally {
+            $this->override = $previous;
+        }
+    }
+
     /** @param Closure(string): ?string $resolver */
     public function resolveModelsUsing(Closure $resolver): void
     {
@@ -36,6 +56,10 @@ final class InferenceManager extends Manager
 
     public function current(?string $name = null): ModelDriver
     {
+        if ($name === null && $this->override !== null) {
+            return $this->override;
+        }
+
         $name ??= $this->getDefaultDriver();
         $driver = $this->resolved($name);
         $preferred = $this->preferredModel($name);
