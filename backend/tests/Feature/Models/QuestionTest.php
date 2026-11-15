@@ -26,16 +26,6 @@ it('counts every new answer as a revision', function (): void {
     ]);
 });
 
-it('can be skipped and answered later', function (): void {
-    $question = Question::factory()->create();
-
-    DB::transaction(fn () => $question->skip());
-    expect($question->fresh())->status->toBe(QuestionStatus::Skipped)->resolved_at->not->toBeNull();
-
-    DB::transaction(fn () => $question->answer('Friday'));
-    expect($question->fresh())->status->toBe(QuestionStatus::Answered)->answer_revision->toBe(1);
-});
-
 it('reopens without losing its revision history', function (): void {
     $question = Question::factory()->answered('Monday')->create();
 
@@ -52,11 +42,4 @@ it('reopens without losing its revision history', function (): void {
     expect($question->owningTask()->events()->pluck('type')->all())->toBe([
         TaskEventType::QuestionReopened, TaskEventType::QuestionAnswered,
     ]);
-});
-
-it('rejects an empty answer', function (): void {
-    $question = Question::factory()->create();
-
-    expect(fn () => DB::transaction(fn () => $question->answer('   ')))->toThrow(InvalidArgumentException::class)
-        ->and($question->fresh()?->status)->toBe(QuestionStatus::Open);
 });

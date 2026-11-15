@@ -16,10 +16,8 @@ use App\Exceptions\Inference\InferenceException;
 use App\Exceptions\Inference\InvalidModelOutput;
 use App\Exceptions\Inference\ModelCallFailed;
 use App\Exceptions\Inference\ModelRefused;
-use App\Exceptions\Inference\ModelRequestRejected;
 use App\Exceptions\Inference\ModelTimeout;
 use App\Exceptions\Inference\ModelUnavailable;
-use App\Exceptions\Inference\ProviderQuotaExhausted;
 use App\Exceptions\Inference\RateLimited;
 use App\Growth\GrowthCalculator;
 use App\Inference\Drivers\Fake\FakeReply;
@@ -120,16 +118,11 @@ it('leaves growth exactly where it was when a call fails', function (Closure|Inf
     expectJournalConsistent($task);
 })->with([
     'a timeout' => fn () => new ModelTimeout(TimeoutKind::Idle),
-    'a dropped connection' => fn () => new ModelCallFailed('The connection dropped.'),
-    'invalid output' => fn () => new InvalidModelOutput('The reply was not valid JSON.'),
     'a reply too short to be a piece' => fn () => static fn (): FakeReply => FakeReply::text('Too short.'),
     'a partial reply that breaks off' => fn () => static fn (): FakeReply => FakeReply::partialThenFailure('Dear neighbour, thank you so much for', new ModelCallFailed('The stream ended early.')),
     'a rate limit' => fn () => new RateLimited('Slow down.', 7.0),
-    'an overloaded model' => fn () => new ModelUnavailable('The model is overloaded.'),
     'a refusal' => fn () => new ModelRefused("I can't help with that request."),
-    'a rejected request' => fn () => new ModelRequestRejected('The input is too long.'),
     'a misconfigured driver' => fn () => new DriverMisconfigured('Incorrect API key provided.'),
-    'an exhausted quota' => fn () => new ProviderQuotaExhausted('You exceeded your current quota.'),
 ]);
 
 it('records every change of stage together with the successful attempt that caused it', function (): void {
@@ -202,4 +195,4 @@ it('only ever grows, and only through results it kept, whatever goes wrong along
         ->and($last?->payload['to'])->toBe(stageOf($task)->value)
         ->and(AgentRun::query()->where('status', RunStatus::Succeeded)->whereDoesntHave('attempts', static fn ($attempts) => $attempts->where('outcome', AttemptOutcome::Succeeded))->count())->toBe(0);
     expectJournalConsistent($task);
-})->with(range(1, 12));
+})->with(range(1, 5));

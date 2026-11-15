@@ -12,6 +12,7 @@ use App\Inference\Drivers\OpenAI\OpenAIDriver;
 use App\Inference\Pricing\CostCalculator;
 use App\Inference\Transport\StreamTransport;
 use App\Inference\Transport\Timeouts;
+use Closure;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Manager;
@@ -19,6 +20,35 @@ use UnexpectedValueException;
 
 final class InferenceManager extends Manager
 {
+    /** @var (Closure(string): ?string)|null */
+    private ?Closure $modelResolver = null;
+
+    private ?ModelDriver $override = null;
+
+    /**
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $callback
+     * @return TResult
+     */
+    public function using(ModelDriver $driver, Closure $callback): mixed
+    {
+        $previous = $this->override;
+        $this->override = $driver;
+
+        try {
+            return $callback();
+        } finally {
+            $this->override = $previous;
+        }
+    }
+
+    /** @param Closure(string): ?string $resolver */
+    public function resolveModelsUsing(Closure $resolver): void
+    {
+        $this->modelResolver = $resolver;
+    }
+
     public function getDefaultDriver(): string
     {
         return Config::string('inference.driver');
@@ -26,10 +56,17 @@ final class InferenceManager extends Manager
 
     public function current(?string $name = null): ModelDriver
     {
-        $driver = $this->driver($name);
+        if ($name === null && $this->override !== null) {
+            return $this->override;
+        }
 
-        if (! $driver instanceof ModelDriver) {
-            throw new UnexpectedValueException('Inference drivers must implement ModelDriver.');
+        $name ??= $this->getDefaultDriver();
+        $driver = $this->resolved($name);
+        $preferred = $this->preferredModel($name);
+
+        if ($preferred !== null && $driver->model() !== $preferred) {
+            unset($this->drivers[$name]);
+            $driver = $this->resolved($name);
         }
 
         return $driver;
@@ -80,7 +117,7 @@ final class InferenceManager extends Manager
             transport: $this->container->make(StreamTransport::class),
             http: $this->container->make(HttpFactory::class),
             timeouts: Timeouts::fromConfig(Config::array("{$config}.timeouts")),
-            modelId: Config::string("{$config}.model"),
+            modelId: $this->preferredModel('ollama') ?? Config::string("{$config}.model"),
             baseUrl: Config::string("{$config}.base_url"),
             keepAlive: Config::string("{$config}.keep_alive"),
             contextWindow: Config::integer("{$config}.context_window"),
@@ -90,6 +127,22 @@ final class InferenceManager extends Manager
     protected function createFakeDriver(): FakeDriver
     {
         return FakeDriver::replying();
+    }
+
+    private function resolved(string $name): ModelDriver
+    {
+        $driver = $this->driver($name);
+
+        if (! $driver instanceof ModelDriver) {
+            throw new UnexpectedValueException('Inference drivers must implement ModelDriver.');
+        }
+
+        return $driver;
+    }
+
+    private function preferredModel(string $name): ?string
+    {
+        return $this->modelResolver === null ? null : ($this->modelResolver)($name);
     }
 
     private function optional(string $key): ?string

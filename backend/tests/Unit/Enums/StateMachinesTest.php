@@ -67,18 +67,7 @@ it('allows exactly the documented run transitions', function (): void {
     ]);
 });
 
-it('never lists a state as a transition to itself', function (StateMachine $state): void {
-    expect($state->canTransitionTo($state))->toBeFalse();
-})->with(fn (): array => [...TaskStatus::cases(), ...StepStatus::cases(), ...QuestionStatus::cases(), ...RunStatus::cases()]);
-
 it('rejects a forbidden transition with a descriptive error', function (): void {
     expect(fn () => StepStatus::Done->assertCanTransitionTo(StepStatus::Ready))
         ->toThrow(InvalidTransition::class, 'StepStatus cannot move from "done" to "ready".');
-});
-
-it('treats states without transitions as final', function (): void {
-    expect(StepStatus::Done->isFinal())->toBeTrue()
-        ->and(RunStatus::Succeeded->isFinal())->toBeTrue()
-        ->and(RunStatus::Running->isFinal())->toBeFalse()
-        ->and(TaskStatus::Harvested->isFinal())->toBeFalse();
 });

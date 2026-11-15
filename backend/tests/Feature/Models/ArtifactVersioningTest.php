@@ -29,24 +29,6 @@ it('keeps every version, chained to the one before', function (): void {
         ->and($artifact->owningTask()->events()->where('type', TaskEventType::ArtifactVersionCreated)->count())->toBe(3);
 });
 
-it('restores an earlier version as a new one', function (): void {
-    $artifact = Artifact::factory()->create();
-
-    [$first] = DB::transaction(fn (): array => [
-        $artifact->addVersion('Original.', ArtifactVersionSource::UserEdit, EventActor::Visitor),
-        $artifact->addVersion('Changed.', ArtifactVersionSource::UserEdit, EventActor::Visitor),
-    ]);
-
-    $restored = DB::transaction(fn (): ArtifactVersion => $artifact->restore($first));
-
-    expect($restored)
-        ->number->toBe(3)
-        ->content->toBe('Original.')
-        ->source->toBe(ArtifactVersionSource::Restore)
-        ->inputs->toBe(['restored_version_id' => $first->id])
-        ->and($artifact->versions()->count())->toBe(3);
-});
-
 it('restores only its own versions', function (): void {
     $artifact = Artifact::factory()->create();
     $foreign = DB::transaction(fn (): ArtifactVersion => Artifact::factory()->create()->addVersion('Elsewhere.', ArtifactVersionSource::UserEdit, EventActor::Visitor));

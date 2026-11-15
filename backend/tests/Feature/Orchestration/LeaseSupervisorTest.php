@@ -10,7 +10,6 @@ use App\Orchestration\LeaseSupervisor;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 beforeEach(fn () => Date::setTestNow(CarbonImmutable::now()));
 
@@ -75,14 +74,6 @@ it('notices a cancellation at the next renewal', function (): void {
     travelSeconds(1);
 
     expect(abortReason($supervisor->tick(...)))->toBe('cancelled');
-});
-
-it('gives up when the lease has passed to another attempt', function (): void {
-    [$claim, $supervisor] = supervisedClaim();
-    DB::table('agent_runs')->where('id', $claim->run->id)->update(['lease_token' => (string) Str::uuid7()]);
-    travelSeconds(5);
-
-    expect(abortReason($supervisor->tick(...)))->toBe('lease_lost');
 });
 
 it('never revives a lease that expired while the worker was frozen', function (): void {

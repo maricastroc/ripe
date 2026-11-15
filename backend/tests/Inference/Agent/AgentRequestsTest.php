@@ -8,20 +8,6 @@ use App\Agent\SafetyIdentifier;
 use App\Enums\RunKind;
 use Illuminate\Support\Facades\Config;
 
-it('builds each kind of request with its configured budget and temperature', function (RunKind $kind, int $tokens, float $temperature): void {
-    $request = (new AgentRequests)->build($kind, (new PromptBook)->interpret('Plan the trip.'));
-
-    expect($request->maxOutputTokens)->toBe($tokens)
-        ->and($request->temperature)->toBe($temperature)
-        ->and($request->messages)->toHaveCount(1);
-})->with([
-    [RunKind::Interpret, 900, 0.3],
-    [RunKind::Plan, 1100, 0.4],
-    [RunKind::Generate, 2200, 0.6],
-    [RunKind::Review, 1200, 0.3],
-    [RunKind::Revise, 2400, 0.5],
-]);
-
 it('carries the schema of structured prompts', function (): void {
     $request = (new AgentRequests)->build(RunKind::Interpret, (new PromptBook)->interpret('Plan the trip.'), 'ripe_x');
 

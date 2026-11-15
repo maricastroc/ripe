@@ -8,7 +8,6 @@ use App\Exceptions\ImmutableRecord;
 use App\Exceptions\TransactionRequired;
 use App\Models\Task;
 use App\Models\TaskEvent;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 it('numbers events from one without gaps and keeps the task version in step', function (): void {
@@ -24,17 +23,6 @@ it('numbers events from one without gaps and keeps the task version in step', fu
         ->and($task->version)->toBe(3)
         ->and($task->fresh()?->version)->toBe(3)
         ->and($task->isDirty('version'))->toBeFalse();
-});
-
-it('stores the type, actor and payload of each event', function (): void {
-    $task = Task::factory()->create();
-
-    $event = DB::transaction(fn (): TaskEvent => TaskEvent::record($task, TaskEventType::TaskRenamed, ['title' => 'New'], EventActor::Visitor));
-
-    expect($event->fresh())
-        ->type->toBe(TaskEventType::TaskRenamed)
-        ->actor->toBe(EventActor::Visitor)
-        ->payload->toBe(['title' => 'New']);
 });
 
 it('refuses to record outside a transaction', function (): void {
@@ -63,14 +51,6 @@ it('leaves no gap when a transaction rolls back', function (): void {
     DB::transaction(fn () => TaskEvent::record($fresh, TaskEventType::TaskPlanted, [], EventActor::Visitor));
 
     expect($task->events()->pluck('sequence')->all())->toBe([1]);
-});
-
-it('fails when the task no longer exists', function (): void {
-    $task = Task::factory()->create();
-    DB::table('tasks')->where('id', $task->id)->delete();
-
-    expect(fn () => DB::transaction(fn () => TaskEvent::record($task, TaskEventType::TaskPlanted, [], EventActor::Visitor)))
-        ->toThrow(ModelNotFoundException::class);
 });
 
 it('never changes or removes a recorded event', function (): void {

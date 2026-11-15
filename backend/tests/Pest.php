@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 use App\Actions\Tasks\PlantTask;
 use App\Agent\Simulation\SimulatedModel;
+use App\Enums\ArtifactKind;
 use App\Enums\RunKind;
 use App\Enums\RunStatus;
+use App\Enums\TaskEventType;
 use App\Exceptions\Inference\InferenceException;
 use App\Facades\Inference;
+use App\Http\Visitors\VisitorResolver;
 use App\Inference\Drivers\Fake\FakeDriver;
 use App\Inference\Drivers\Fake\FakeReply;
 use App\Inference\ModelRequest;
 use App\Journal\JournalAudit;
 use App\Models\AgentRun;
+use App\Models\Artifact;
 use App\Models\Task;
+use App\Models\TaskEvent;
 use App\Models\Visitor;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -78,6 +83,40 @@ function interpretRun(Task $task): AgentRun
 function travelSeconds(float $seconds): void
 {
     Date::setTestNow(CarbonImmutable::now()->addMilliseconds((int) ($seconds * 1000)));
+}
+
+/** @return list<string> */
+function eventTypes(Task $task): array
+{
+    return TaskEvent::query()->where('task_id', $task->id)->orderBy('sequence')->pluck('type')->map(static fn (TaskEventType $type): string => $type->value)->all();
+}
+
+function firstPiece(Task $task): Artifact
+{
+    return Artifact::query()->where('task_id', $task->id)->where('kind', ArtifactKind::Step)->orderBy('created_at')->orderBy('id')->firstOrFail();
+}
+
+/** @return array{Visitor, string} */
+function visitor(): array
+{
+    return app(VisitorResolver::class)->create();
+}
+
+function api(?string $token = null, array $headers = ['Sec-Fetch-Site' => 'same-origin']): TestCase
+{
+    app('auth')->forgetGuards();
+
+    return test()->flushHeaders()
+        ->withHeaders(['Accept' => 'application/json', ...$headers])
+        ->withCredentials()
+        ->withUnencryptedCookie(config('ripe.visitor.cookie'), $token ?? '');
+}
+
+function apiTask(string $token, string $prompt = 'Write a short thank-you note to the neighbour who watered my plants.'): Task
+{
+    $id = api($token)->postJson('/api/tasks', ['prompt' => $prompt])->assertCreated()->json('task.id');
+
+    return Task::query()->findOrFail($id);
 }
 
 function expectJournalConsistent(Task $task): void

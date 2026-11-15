@@ -103,6 +103,11 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: API types match the OpenAPI document
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/generated/api.ts
+
       - name: TypeScript
         run: npm run typecheck
 

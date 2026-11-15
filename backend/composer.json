@@ -11,6 +11,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "dedoc/scramble": "^0.13.54",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0"
     },
@@ -59,6 +60,9 @@
             "@lint",
             "@analyse",
             "@test"
+        ],
+        "openapi": [
+            "@php artisan scramble:export"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

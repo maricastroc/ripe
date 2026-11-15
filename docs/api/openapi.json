@@ -1,0 +1,2715 @@
+{
+    "openapi": "3.1.2",
+    "info": {
+        "title": "Ripe API",
+        "version": "1.0.0",
+        "description": "The API of Ripe, a greenhouse where tasks ripen while you are away. Visitors are identified by an HTTP-only cookie issued with their first seed; changes must come from the same origin."
+    },
+    "servers": [
+        {
+            "url": "https://ripe.marianacastro.dev/api",
+            "description": "Ripe"
+        }
+    ],
+    "paths": {
+        "/agent": {
+            "get": {
+                "operationId": "agent.show",
+                "tags": [
+                    "Agent"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`AgentStatusResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentStatusResource"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "agent.update",
+                "tags": [
+                    "Agent"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAgentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AgentStatusResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentStatusResource"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/questions/{question}/answer": {
+            "post": {
+                "operationId": "questions.answer",
+                "tags": [
+                    "AnswerQuestion"
+                ],
+                "parameters": [
+                    {
+                        "name": "question",
+                        "in": "path",
+                        "required": true,
+                        "description": "The question ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AnswerQuestionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/defer": {
+            "post": {
+                "operationId": "tasks.defer",
+                "tags": [
+                    "DeferTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeferTaskRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/artifacts/{artifact}/draft": {
+            "put": {
+                "operationId": "artifacts.draft.save",
+                "tags": [
+                    "Draft"
+                ],
+                "parameters": [
+                    {
+                        "name": "artifact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The artifact ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveDraftRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "draft": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "properties": {
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "baseVersionId": {
+                                                    "type": "string"
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "conflicting": {
+                                                    "type": "boolean"
+                                                },
+                                                "updatedAt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "content",
+                                                "baseVersionId",
+                                                "revision",
+                                                "conflicting",
+                                                "updatedAt"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "draft"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "artifacts.draft.discard",
+                "tags": [
+                    "Draft"
+                ],
+                "parameters": [
+                    {
+                        "name": "artifact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The artifact ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "draftRevision",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/examples": {
+            "post": {
+                "operationId": "examples.store",
+                "tags": [
+                    "Example"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/garden": {
+            "get": {
+                "operationId": "garden.show",
+                "tags": [
+                    "Garden"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tasks": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TaskSummaryResource"
+                                            }
+                                        },
+                                        "agent": {
+                                            "$ref": "#/components/schemas/AgentStatusResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "tasks",
+                                        "agent"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/harvest": {
+            "post": {
+                "operationId": "tasks.harvest",
+                "tags": [
+                    "HarvestTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/artifacts/{artifact}/draft/keep": {
+            "post": {
+                "operationId": "artifacts.draft.keep",
+                "tags": [
+                    "KeepDraft"
+                ],
+                "parameters": [
+                    {
+                        "name": "artifact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The artifact ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/KeepDraftRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/pause": {
+            "post": {
+                "operationId": "tasks.pause",
+                "tags": [
+                    "PauseTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/refresh": {
+            "post": {
+                "operationId": "tasks.refresh",
+                "tags": [
+                    "RefreshTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/questions/{question}/reopen": {
+            "post": {
+                "operationId": "questions.reopen",
+                "tags": [
+                    "ReopenQuestion"
+                ],
+                "parameters": [
+                    {
+                        "name": "question",
+                        "in": "path",
+                        "required": true,
+                        "description": "The question ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/replant": {
+            "post": {
+                "operationId": "tasks.replant",
+                "tags": [
+                    "ReplantTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/artifacts/{artifact}/restore": {
+            "post": {
+                "operationId": "artifacts.restore",
+                "tags": [
+                    "RestoreVersion"
+                ],
+                "parameters": [
+                    {
+                        "name": "artifact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The artifact ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RestoreVersionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}/resume": {
+            "post": {
+                "operationId": "tasks.resume",
+                "tags": [
+                    "ResumeTask"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/artifacts/{artifact}/revise": {
+            "post": {
+                "operationId": "artifacts.revise",
+                "tags": [
+                    "ReviseArtifact"
+                ],
+                "parameters": [
+                    {
+                        "name": "artifact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The artifact ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviseArtifactRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/questions/{question}/skip": {
+            "post": {
+                "operationId": "questions.skip",
+                "tags": [
+                    "SkipQuestion"
+                ],
+                "parameters": [
+                    {
+                        "name": "question",
+                        "in": "path",
+                        "required": true,
+                        "description": "The question ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/tasks/{task}": {
+            "get": {
+                "operationId": "tasks.show",
+                "tags": [
+                    "Task"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        },
+                                        "agent": {
+                                            "$ref": "#/components/schemas/AgentStatusResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task",
+                                        "agent"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "tasks.update",
+                "tags": [
+                    "Task"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RenameTaskRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "tasks.destroy",
+                "tags": [
+                    "Task"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/tasks": {
+            "post": {
+                "operationId": "tasks.store",
+                "tags": [
+                    "Task"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlantTaskRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "task": {
+                                            "$ref": "#/components/schemas/TaskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "task"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ActivityResource": {
+                "type": "object",
+                "properties": {
+                    "runId": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/RunKind"
+                    },
+                    "running": {
+                        "type": "boolean"
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "stepId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "artifactId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "attempts": {
+                        "type": "integer"
+                    },
+                    "maxAttempts": {
+                        "type": "integer"
+                    },
+                    "startedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "availableAt": {
+                        "type": "string"
+                    },
+                    "deferredReason": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/RunDeferral"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "lastError": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "live": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "attemptId": {
+                                "type": "string"
+                            },
+                            "attempt": {
+                                "type": "integer"
+                            },
+                            "text": {
+                                "type": "string"
+                            },
+                            "length": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "attemptId",
+                            "attempt",
+                            "text",
+                            "length"
+                        ]
+                    }
+                },
+                "required": [
+                    "runId",
+                    "kind",
+                    "running",
+                    "subject",
+                    "stepId",
+                    "artifactId",
+                    "attempts",
+                    "maxAttempts",
+                    "startedAt",
+                    "availableAt",
+                    "deferredReason",
+                    "lastError",
+                    "live"
+                ],
+                "title": "ActivityResource"
+            },
+            "AgentMode": {
+                "type": "string",
+                "enum": [
+                    "idle",
+                    "working",
+                    "paused",
+                    "halted",
+                    "offline",
+                    "model-missing",
+                    "stopped"
+                ],
+                "title": "AgentMode"
+            },
+            "AgentStatusResource": {
+                "type": "object",
+                "properties": {
+                    "hosting": {
+                        "$ref": "#/components/schemas/HostingMode"
+                    },
+                    "mode": {
+                        "$ref": "#/components/schemas/AgentMode"
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "driver": {
+                        "type": "string"
+                    },
+                    "model": {
+                        "type": "string"
+                    },
+                    "online": {
+                        "type": "boolean"
+                    },
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "settings": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "pace": {
+                                "$ref": "#/components/schemas/Pace"
+                            },
+                            "paused": {
+                                "type": "boolean"
+                            },
+                            "model": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "pace",
+                            "paused",
+                            "model"
+                        ]
+                    },
+                    "current": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "taskId": {
+                                "type": "string"
+                            },
+                            "taskTitle": {
+                                "type": "string"
+                            },
+                            "kind": {
+                                "$ref": "#/components/schemas/RunKind"
+                            },
+                            "subject": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "taskId",
+                            "taskTitle",
+                            "kind",
+                            "subject"
+                        ]
+                    },
+                    "elsewhere": {
+                        "type": "boolean"
+                    },
+                    "queued": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "hosting",
+                    "mode",
+                    "message",
+                    "driver",
+                    "model",
+                    "online",
+                    "models",
+                    "settings",
+                    "current",
+                    "elsewhere",
+                    "queued"
+                ],
+                "title": "AgentStatusResource"
+            },
+            "AnswerQuestionRequest": {
+                "type": "object",
+                "properties": {
+                    "answer": {
+                        "type": "string",
+                        "maxLength": 1200
+                    }
+                },
+                "required": [
+                    "answer"
+                ],
+                "title": "AnswerQuestionRequest"
+            },
+            "ArtifactKind": {
+                "type": "string",
+                "enum": [
+                    "step",
+                    "review"
+                ],
+                "title": "ArtifactKind"
+            },
+            "ArtifactVersionSource": {
+                "type": "string",
+                "enum": [
+                    "generate",
+                    "revise",
+                    "review",
+                    "user_edit",
+                    "restore"
+                ],
+                "title": "ArtifactVersionSource"
+            },
+            "DeferTaskRequest": {
+                "type": "object",
+                "properties": {
+                    "returnAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "title": "DeferTaskRequest"
+            },
+            "Deliverable": {
+                "type": "string",
+                "enum": [
+                    "document",
+                    "plan",
+                    "presentation",
+                    "message",
+                    "checklist",
+                    "other"
+                ],
+                "title": "Deliverable"
+            },
+            "Fruit": {
+                "type": "string",
+                "enum": [
+                    "persimmon",
+                    "plum",
+                    "lemon",
+                    "fig"
+                ],
+                "title": "Fruit"
+            },
+            "HostingMode": {
+                "type": "string",
+                "enum": [
+                    "local",
+                    "public"
+                ],
+                "title": "HostingMode"
+            },
+            "KeepDraftRequest": {
+                "type": "object",
+                "properties": {
+                    "baseVersionId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "draftRevision": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "baseVersionId",
+                    "draftRevision"
+                ],
+                "title": "KeepDraftRequest"
+            },
+            "OutputFormat": {
+                "type": "string",
+                "enum": [
+                    "outline",
+                    "draft",
+                    "checklist",
+                    "schedule",
+                    "message",
+                    "notes",
+                    "slides"
+                ],
+                "title": "OutputFormat"
+            },
+            "Pace": {
+                "type": "string",
+                "enum": [
+                    "calm",
+                    "steady",
+                    "brisk",
+                    "instant"
+                ],
+                "title": "Pace"
+            },
+            "PlantTaskRequest": {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 2000
+                    },
+                    "defer": {
+                        "type": "boolean"
+                    },
+                    "returnAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "prompt"
+                ],
+                "title": "PlantTaskRequest"
+            },
+            "QuestionKind": {
+                "type": "string",
+                "enum": [
+                    "optional",
+                    "essential"
+                ],
+                "title": "QuestionKind"
+            },
+            "QuestionStatus": {
+                "type": "string",
+                "enum": [
+                    "open",
+                    "answered",
+                    "skipped"
+                ],
+                "title": "QuestionStatus"
+            },
+            "RenameTaskRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 80
+                    }
+                },
+                "required": [
+                    "title"
+                ],
+                "title": "RenameTaskRequest"
+            },
+            "RestoreVersionRequest": {
+                "type": "object",
+                "properties": {
+                    "baseVersionId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "versionId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "baseVersionId"
+                ],
+                "title": "RestoreVersionRequest"
+            },
+            "ReviseArtifactRequest": {
+                "type": "object",
+                "properties": {
+                    "instruction": {
+                        "type": "string",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "instruction"
+                ],
+                "title": "ReviseArtifactRequest"
+            },
+            "RunDeferral": {
+                "type": "string",
+                "enum": [
+                    "pace",
+                    "backoff",
+                    "rate_limited",
+                    "budget",
+                    "driver_unavailable",
+                    "paused"
+                ],
+                "title": "RunDeferral"
+            },
+            "RunKind": {
+                "type": "string",
+                "enum": [
+                    "interpret",
+                    "plan",
+                    "generate",
+                    "revise",
+                    "review"
+                ],
+                "title": "RunKind"
+            },
+            "SaveDraftRequest": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 60000
+                    },
+                    "baseVersionId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "draftRevision": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "content",
+                    "baseVersionId",
+                    "draftRevision"
+                ],
+                "title": "SaveDraftRequest"
+            },
+            "Stage": {
+                "type": "string",
+                "enum": [
+                    "seed",
+                    "sprout",
+                    "leafing",
+                    "blossom",
+                    "fruit",
+                    "ripe"
+                ],
+                "title": "Stage"
+            },
+            "StepPhase": {
+                "type": "string",
+                "enum": [
+                    "blocked",
+                    "ready",
+                    "working",
+                    "done"
+                ],
+                "title": "StepPhase"
+            },
+            "TaskResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "prompt": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TaskStatus"
+                    },
+                    "fruit": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Fruit"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "isExample": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "returnAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "ripeAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "harvestedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "stallReason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "growth": {
+                        "type": "object",
+                        "properties": {
+                            "stage": {
+                                "$ref": "#/components/schemas/Stage"
+                            },
+                            "maturity": {
+                                "type": "number"
+                            },
+                            "stepsDone": {
+                                "type": "integer"
+                            },
+                            "stepsTotal": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "stage",
+                            "maturity",
+                            "stepsDone",
+                            "stepsTotal"
+                        ]
+                    },
+                    "leaves": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "phase": {
+                                    "$ref": "#/components/schemas/StepPhase"
+                                },
+                                "artifactId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "title",
+                                "phase",
+                                "artifactId"
+                            ]
+                        }
+                    },
+                    "openQuestions": {
+                        "type": "integer"
+                    },
+                    "essentialOpen": {
+                        "type": "integer"
+                    },
+                    "activity": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ActivityResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "deliverable": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Deliverable"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "outcome": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "context": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "assumptions": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "position": {
+                                    "type": "integer"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "output": {
+                                    "$ref": "#/components/schemas/OutputFormat"
+                                },
+                                "phase": {
+                                    "$ref": "#/components/schemas/StepPhase"
+                                },
+                                "waitingFor": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/WaitingFor"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "dependsOn": {
+                                    "type": "array",
+                                    "items": {}
+                                },
+                                "requires": {
+                                    "type": "array",
+                                    "items": {}
+                                },
+                                "artifactId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "position",
+                                "title",
+                                "description",
+                                "output",
+                                "phase",
+                                "waitingFor",
+                                "dependsOn",
+                                "requires",
+                                "artifactId"
+                            ]
+                        }
+                    },
+                    "questions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "position": {
+                                    "type": "integer"
+                                },
+                                "text": {
+                                    "type": "string"
+                                },
+                                "why": {
+                                    "type": "string"
+                                },
+                                "kind": {
+                                    "$ref": "#/components/schemas/QuestionKind"
+                                },
+                                "status": {
+                                    "$ref": "#/components/schemas/QuestionStatus"
+                                },
+                                "answer": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "answerRevision": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "position",
+                                "text",
+                                "why",
+                                "kind",
+                                "status",
+                                "answer",
+                                "answerRevision"
+                            ]
+                        }
+                    },
+                    "artifacts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "stepId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "kind": {
+                                    "$ref": "#/components/schemas/ArtifactKind"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "content": {
+                                    "type": "string"
+                                },
+                                "gaps": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "editedByUser": {
+                                    "type": "boolean"
+                                },
+                                "stale": {
+                                    "type": "boolean"
+                                },
+                                "model": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "updatedAt": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "version": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "number": {
+                                            "type": "integer"
+                                        },
+                                        "source": {
+                                            "$ref": "#/components/schemas/ArtifactVersionSource"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "number",
+                                        "source"
+                                    ]
+                                },
+                                "versions": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "number": {
+                                                "type": "integer"
+                                            },
+                                            "source": {
+                                                "$ref": "#/components/schemas/ArtifactVersionSource"
+                                            },
+                                            "instruction": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ]
+                                            },
+                                            "createdAt": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "number",
+                                            "source",
+                                            "instruction",
+                                            "createdAt"
+                                        ]
+                                    }
+                                },
+                                "draft": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "properties": {
+                                        "content": {
+                                            "type": "string"
+                                        },
+                                        "baseVersionId": {
+                                            "type": "string"
+                                        },
+                                        "revision": {
+                                            "type": "integer"
+                                        },
+                                        "conflicting": {
+                                            "type": "boolean"
+                                        },
+                                        "updatedAt": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "content",
+                                        "baseVersionId",
+                                        "revision",
+                                        "conflicting",
+                                        "updatedAt"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "stepId",
+                                "kind",
+                                "title",
+                                "content",
+                                "gaps",
+                                "editedByUser",
+                                "stale",
+                                "model",
+                                "updatedAt",
+                                "version",
+                                "versions",
+                                "draft"
+                            ]
+                        }
+                    },
+                    "events": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "runsUsed": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "runBudget": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "prompt",
+                    "status",
+                    "fruit",
+                    "isExample",
+                    "version",
+                    "returnAt",
+                    "createdAt",
+                    "ripeAt",
+                    "harvestedAt",
+                    "stallReason",
+                    "growth",
+                    "leaves",
+                    "openQuestions",
+                    "essentialOpen",
+                    "activity",
+                    "number",
+                    "language",
+                    "deliverable",
+                    "outcome",
+                    "context",
+                    "assumptions",
+                    "steps",
+                    "questions",
+                    "artifacts",
+                    "events",
+                    "runsUsed",
+                    "runBudget"
+                ],
+                "title": "TaskResource"
+            },
+            "TaskStatus": {
+                "type": "string",
+                "enum": [
+                    "dormant",
+                    "ripening",
+                    "waiting",
+                    "ripe",
+                    "stalled",
+                    "harvested"
+                ],
+                "title": "TaskStatus"
+            },
+            "TaskSummaryResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "prompt": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TaskStatus"
+                    },
+                    "fruit": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Fruit"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "isExample": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "returnAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "ripeAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "harvestedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "stallReason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "growth": {
+                        "type": "object",
+                        "properties": {
+                            "stage": {
+                                "$ref": "#/components/schemas/Stage"
+                            },
+                            "maturity": {
+                                "type": "number"
+                            },
+                            "stepsDone": {
+                                "type": "integer"
+                            },
+                            "stepsTotal": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "stage",
+                            "maturity",
+                            "stepsDone",
+                            "stepsTotal"
+                        ]
+                    },
+                    "leaves": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "phase": {
+                                    "$ref": "#/components/schemas/StepPhase"
+                                },
+                                "artifactId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "title",
+                                "phase",
+                                "artifactId"
+                            ]
+                        }
+                    },
+                    "openQuestions": {
+                        "type": "integer"
+                    },
+                    "essentialOpen": {
+                        "type": "integer"
+                    },
+                    "activity": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ActivityResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "prompt",
+                    "status",
+                    "fruit",
+                    "isExample",
+                    "version",
+                    "returnAt",
+                    "createdAt",
+                    "ripeAt",
+                    "harvestedAt",
+                    "stallReason",
+                    "growth",
+                    "leaves",
+                    "openQuestions",
+                    "essentialOpen",
+                    "activity"
+                ],
+                "title": "TaskSummaryResource"
+            },
+            "UpdateAgentRequest": {
+                "type": "object",
+                "properties": {
+                    "pace": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Pace"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "paused": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "model": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "baseUrl": {
+                        "type": "string"
+                    }
+                },
+                "title": "UpdateAgentRequest"
+            },
+            "WaitingFor": {
+                "type": "string",
+                "enum": [
+                    "step",
+                    "answer"
+                ],
+                "title": "WaitingFor"
+            }
+        },
+        "responses": {
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

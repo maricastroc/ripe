@@ -15,6 +15,7 @@ Approved on 2026-11-15. Ripe moves to a Laravel 13 + PostgreSQL 17 backend and a
 - All code in English. No explanatory comments; PHPDoc appears only where static analysis needs type information it cannot infer (generics, array shapes).
 - One branch and one pull request per stage, validated before the next stage starts.
 - Conventional commit messages, without AI attribution.
+- Only indispensable tests: each one protects a guarantee nothing else protects ([docs/testing.md](../testing.md)).
 
 ## 2. Assessment of the current implementation
 
@@ -486,6 +487,17 @@ The current application keeps working from `frontend/`, with its own Prisma back
 - The existing local `ripe.db` is not migrated.
 - Retention is decided in stage 7. A period longer than 14 days is considered, since tasks are meant to ripen while their owner is away; one option is measuring from the later of the last visit and the planned return date.
 - Usage limits are defined in stage 7.
+
+**Approved for stage 4 (2026-11-15):**
+- One endpoint per action instead of a `PATCH` with an `action` field, so each action has its own validation, policy, rate limit and schema.
+- Responses keep the current camelCase contract (`TaskSummary`, `TaskDetail`, `Garden`, `AgentStatus`), adapted to the new domain: step phases, question kinds, version history, field notes from the journal and a snapshot `version`.
+- Errors use Laravel's envelope: 422 for validation, 409 for a change the state does not allow or a version conflict, 404 for another visitor's resource, 403 for a foreign origin or a read-only example, 429 for rate limits.
+- `ArtifactVersion` stays immutable. Autosave writes a separate draft; keeping the draft creates a new version. Both use optimistic concurrency on `baseVersionId` and the draft revision, with 409 on conflict.
+- Mutations require proof of the same origin; missing `Origin` and `Sec-Fetch-Site` are rejected. The visitor cookie is `HttpOnly`, `SameSite=Lax` and `Secure` (`__Host-` prefix) in production.
+- Live text is kept in the cache per run and attempt, with a time to live; an older attempt can neither overwrite nor show over a newer one.
+- `RIPE_MODE=local|public`: settings are editable only in local mode, and the model's address is never editable from the interface.
+- Examples are shared and read-only, grown through the real pipeline with a scripted model until stage 7 records them from real runs.
+- OpenAPI is generated with Scramble; TypeScript types are generated with `openapi-typescript`; both are checked for drift.
 
 **Pending:**
 - OpenAI model, reasoning effort, service tier and daily budget (stage 7).

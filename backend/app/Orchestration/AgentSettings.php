@@ -4,14 +4,46 @@ declare(strict_types=1);
 
 namespace App\Orchestration;
 
+use App\Enums\HostingMode;
 use App\Enums\Pace;
+use App\Models\AgentSetting;
 use Illuminate\Support\Facades\Config;
 
 final class AgentSettings
 {
-    public function pace(): Pace
+    public function hosting(): HostingMode
+    {
+        return HostingMode::tryFrom(Config::string('ripe.mode')) ?? HostingMode::Public;
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->hosting() === HostingMode::Public;
+    }
+
+    public function configuredPace(): Pace
     {
         return Pace::tryFrom(Config::string('ripe.agent.pace')) ?? Pace::Steady;
+    }
+
+    public function pace(): Pace
+    {
+        return $this->stored()->pace ?? $this->configuredPace();
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->stored()->paused ?? false;
+    }
+
+    public function ollamaModel(): ?string
+    {
+        return $this->stored()?->ollama_model;
+    }
+
+    public function pausedRetrySeconds(): int
+    {
+        return Config::integer('ripe.agent.paused_retry_seconds');
     }
 
     public function maxAttempts(): int
@@ -82,5 +114,10 @@ final class AgentSettings
     public function safetyMargin(): float
     {
         return Config::float('ripe.lease.safety_margin');
+    }
+
+    private function stored(): ?AgentSetting
+    {
+        return $this->isPublic() ? null : AgentSetting::current();
     }
 }

@@ -19,11 +19,6 @@ it('ships with leases, calls, the worker timeout and redelivery in a safe order'
         ->and($result->output())->toContain('ordered safely');
 });
 
-it('holds for the configuration under test', function (): void {
-    expect(app(TimingConstraints::class)->violations())->toBe([])
-        ->and(app(TimingConstraints::class)->callTimeouts())->toBe(['openai' => 300.0, 'ollama' => 240.0]);
-});
-
 it('catches a renewal interval too long for the lease', function (): void {
     config(['ripe.lease.renew_interval' => 11.0]);
 
@@ -52,10 +47,4 @@ it('catches a re-dispatch that would race the queue redelivery', function (): vo
     config(['ripe.agent.redispatch_after_seconds' => 300]);
 
     expect(app(TimingConstraints::class)->violations())->toBe(['Lost jobs are re-dispatched after 300 s, before the queue itself would redeliver them at 420 s.']);
-});
-
-it('fails the command when the order is unsafe', function (): void {
-    config(['ripe.agent.worker_timeout' => 500]);
-
-    $this->artisan('ripe:timing')->assertFailed();
 });

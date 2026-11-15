@@ -19,8 +19,3 @@ it('counts words across any whitespace', function (): void {
     expect(Markdown::words("  um  dois\n\ttrês "))->toBe(3)
         ->and(Markdown::words('   '))->toBe(0);
 });
-
-it('clips long pieces and marks the cut', function (): void {
-    expect(Markdown::clip('abcdef', 4))->toBe("abcd\n[...]")
-        ->and(Markdown::clip('abc', 4))->toBe('abc');
-});

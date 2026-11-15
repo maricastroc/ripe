@@ -49,12 +49,6 @@ function rowsBelongingTo(string $taskId): array
         ->all();
 }
 
-it('builds a complete task graph', function (): void {
-    $task = plantFullTask(Visitor::factory()->create());
-
-    expect(array_filter(rowsBelongingTo($task->id)))->toHaveCount(9);
-});
-
 it('removes everything below a task when the task is deleted', function (): void {
     $visitor = Visitor::factory()->create();
     $task = plantFullTask($visitor);

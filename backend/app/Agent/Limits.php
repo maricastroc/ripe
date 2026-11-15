@@ -25,4 +25,10 @@ final class Limits
     public const int MAX_STEP_TITLE_CHARACTERS = 90;
 
     public const int MIN_PIECE_WORDS = 15;
+
+    public const int MAX_PIECE_CHARACTERS = 60000;
+
+    public const int MAX_ANSWER_CHARACTERS = 1200;
+
+    public const int MAX_INSTRUCTION_CHARACTERS = 500;
 }

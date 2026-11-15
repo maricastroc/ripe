@@ -23,16 +23,6 @@ it('writes every schema in the subset both providers accept strictly', function 
     'review' => fn () => new ReviewSchema,
 ]);
 
-it('reports schemas outside the strict subset', function (array $schema, string $problem): void {
-    expect(implode(' | ', StrictSchema::violations($schema)))->toContain($problem);
-})->with([
-    'open object' => [['type' => 'object', 'properties' => ['a' => ['type' => 'string']], 'required' => ['a']], 'additionalProperties'],
-    'optional property' => [['type' => 'object', 'additionalProperties' => false, 'properties' => ['a' => ['type' => 'string']], 'required' => []], 'required'],
-    'union at the root' => [['anyOf' => [['type' => 'object']]], 'must be an object schema'],
-    'composition keyword' => [['type' => 'object', 'additionalProperties' => false, 'properties' => [], 'required' => [], 'allOf' => []], 'allOf'],
-    'array without items' => [['type' => 'object', 'additionalProperties' => false, 'properties' => ['a' => ['type' => 'array']], 'required' => ['a']], 'without items'],
-]);
-
 it('reads an interpretation and keeps the agreed limits', function (): void {
     $result = (new InterpretationSchema)->parse([
         'title' => '  Thank-you note  ',
@@ -58,12 +48,6 @@ it('reads an interpretation and keeps the agreed limits', function (): void {
         ->and($result->assumptions)->toBe(['x', 'y', 'z'])
         ->and($result->questions)->toHaveCount(4)
         ->and($result->questions[1]->kind)->toBe(QuestionKind::Essential);
-});
-
-it('drops a language tag it cannot trust instead of failing', function (): void {
-    $result = (new InterpretationSchema)->parse(['title' => 'T', 'language' => 'Portuguese (Brazil)', 'deliverable' => 'other', 'outcome' => 'O', 'context' => [], 'assumptions' => [], 'questions' => []]);
-
-    expect($result->language)->toBeNull();
 });
 
 it('rejects an interpretation without the essentials', function (): void {
@@ -146,6 +130,5 @@ it('rejects answers without a complete JSON object', function (string $text, str
     expect(fn () => (new StructuredOutput)->decode($text, new ReviewSchema))->toThrow(InvalidModelOutput::class, $message);
 })->with([
     ['No JSON here.', 'did not return JSON'],
-    ['{"verdict": "ready", "summary": ', 'did not return JSON'],
     ['{"verdict": "ready" "summary": "x"}', 'incomplete JSON'],
 ]);

@@ -32,21 +32,19 @@ it('finds nothing wrong with a task the agent ripened', function (): void {
     expect(auditOf(ripeTask()))->toBe([]);
 });
 
-it('notices a status that changed behind the journal', function (): void {
+it('notices every kind of change made behind the journal', function (): void {
     $task = ripeTask();
-    DB::table('tasks')->where('id', $task->id)->update(['status' => 'waiting']);
-
-    expect(auditOf($task))->toContain('the task is waiting but the journal says ripe');
-});
-
-it('notices a version that no event records', function (): void {
-    $task = ripeTask();
+    $events = $task->version;
     $artifact = Artifact::query()->where('task_id', $task->id)->where('kind', ArtifactKind::Step)->firstOrFail();
     $current = ArtifactVersion::query()->findOrFail($artifact->current_version_id);
-    $id = (string) Str::uuid7();
+    $attempt = RunAttempt::query()->whereIn('run_id', AgentRun::query()->where('task_id', $task->id)->select('id'))->firstOrFail();
+    $run = AgentRun::query()->where('task_id', $task->id)->where('status', RunStatus::Succeeded)->whereKeyNot($attempt->run_id)->firstOrFail();
+    $question = Question::query()->where('task_id', $task->id)->sole();
+    $step = $task->steps()->firstOrFail();
+    $version = (string) Str::uuid7();
 
     DB::table('artifact_versions')->insert([
-        'id' => $id,
+        'id' => $version,
         'artifact_id' => $artifact->id,
         'number' => $current->number + 1,
         'content' => 'Edited outside the application.',
@@ -54,53 +52,20 @@ it('notices a version that no event records', function (): void {
         'source' => 'user_edit',
         'parent_version_id' => $current->id,
     ]);
-
-    expect(auditOf($task))->toContain("artifact version {$id} is recorded 0 times");
-});
-
-it('notices a sequence that no longer matches the task version', function (): void {
-    $task = ripeTask();
-    $events = $task->version;
-    DB::table('tasks')->where('id', $task->id)->increment('version');
-
-    expect(auditOf($task))->toBe(['the task version '.($events + 1)." does not match {$events} events"]);
-});
-
-it('notices an attempt whose outcome the journal never saw', function (): void {
-    $task = ripeTask();
-    $attempt = RunAttempt::query()->whereIn('run_id', AgentRun::query()->where('task_id', $task->id)->select('id'))->firstOrFail();
+    DB::table('tasks')->where('id', $task->id)->update(['reviewed_at' => null, 'ripe_at' => null, 'status' => 'waiting', 'version' => $events + 1]);
     DB::table('run_attempts')->where('id', $attempt->id)->update(['outcome' => AttemptOutcome::TimedOut->value]);
-
-    expect(auditOf($task))->toContain("attempt {$attempt->id} ended as timed_out without a matching event");
-});
-
-it('notices a run that ended differently from what the journal says', function (): void {
-    $task = ripeTask();
-    $run = AgentRun::query()->where('task_id', $task->id)->where('status', RunStatus::Succeeded)->firstOrFail();
     DB::table('agent_runs')->where('id', $run->id)->update(['status' => RunStatus::Failed->value, 'failure_reason' => 'Rewritten by hand.']);
-
-    expect(auditOf($task))->toContain("run {$run->id} is failed but has 0 run.failed events");
-});
-
-it('notices a question answered behind the journal', function (): void {
-    $task = ripeTask();
-    $question = Question::query()->where('task_id', $task->id)->sole();
     DB::table('questions')->where('id', $question->id)->update(['status' => 'skipped', 'resolved_at' => now()]);
-
-    expect(auditOf($task))->toContain("question {$question->id} is skipped but the journal says open");
-});
-
-it('notices a step completed behind the journal', function (): void {
-    $task = ripeTask();
-    $step = $task->steps()->firstOrFail();
     DB::table('steps')->where('id', $step->id)->update(['status' => 'ready', 'completed_at' => null]);
 
-    expect(auditOf($task))->toContain('2 steps are done but the journal records 3');
-});
-
-it('notices growth that the journal never recorded', function (): void {
-    $task = ripeTask();
-    DB::table('tasks')->where('id', $task->id)->update(['reviewed_at' => null, 'ripe_at' => null, 'status' => 'waiting']);
-
-    expect(auditOf($task))->toContain('the plant is fruit but the journal says ripe');
+    expect(auditOf($task))->toContain(
+        'the task is waiting but the journal says ripe',
+        "artifact version {$version} is recorded 0 times",
+        'the task version '.($events + 1)." does not match {$events} events",
+        "attempt {$attempt->id} ended as timed_out without a matching event",
+        "run {$run->id} is failed but has 0 run.failed events",
+        "question {$question->id} is skipped but the journal says open",
+        '2 steps are done but the journal records 3',
+        'the plant is fruit but the journal says ripe',
+    );
 });

@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use InvalidArgumentException;
 
 #[DateFormat('Y-m-d H:i:s.uP')]
@@ -42,6 +43,12 @@ class Artifact extends Model
     public function versions(): HasMany
     {
         return $this->hasMany(ArtifactVersion::class)->orderBy('number');
+    }
+
+    /** @return HasOne<ArtifactDraft, $this> */
+    public function draft(): HasOne
+    {
+        return $this->hasOne(ArtifactDraft::class);
     }
 
     /** @return BelongsTo<ArtifactVersion, $this> */
