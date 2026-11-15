@@ -1,0 +1,15 @@
+The person's request:
+"""
+Responder o e-mail difícil do cliente.
+"""
+
+Interpret the request and answer in JSON with:
+- title: a short title (up to 6 words) naming the task.
+- language: the BCP 47 tag of the language the person wrote in, for example "en" or "pt-BR".
+- deliverable: the main kind of result. One of: "document" (article, proposal, essay, report), "plan" (trip, project, event, study, routine), "presentation", "message" (email, letter, reply), "checklist", "other".
+- outcome: one or two sentences describing the concrete result expected when the task is done.
+- context: facts the person provided in the request. Empty list if none. Do not add anything.
+- assumptions: up to 3 safe, generic assumptions you will adopt to move forward without asking.
+- questions: up to 4 missing pieces of information only the person can provide. For each one: question (direct and short), why (why it matters, in a few words), kind ("essential" only if, without it, the final version would be wrong or useless even with markers; otherwise "optional").
+
+Simple names, dates and numbers are almost never essential: they become [[TBD: ...]] markers in the text. Usually there is at most one essential question, and often none. If the request is already clear, return few or no questions.

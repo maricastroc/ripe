@@ -8,7 +8,7 @@ use PHPUnit\Framework\AssertionFailedError;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->use(DatabaseTruncation::class)->in('Feature');
-pest()->extend(TestCase::class)->in('Inference', 'Integration');
+pest()->extend(TestCase::class)->in('Inference', 'Integration', 'Live');
 
 function expectConstraintViolation(Closure $change, string $constraint): void
 {

@@ -1,0 +1,37 @@
+Task: Resposta ao cliente
+
+The person's original request:
+"""
+Responder o e-mail difícil do cliente sobre o novo prazo do projeto.
+"""
+
+Language of the request: pt-BR. Write everything in this language.
+
+Expected outcome: Uma resposta educada e firme sobre o prazo.
+
+Facts provided by the person:
+- O cliente pediu entrega em duas semanas.
+
+The person's answers:
+- Qual o nome do cliente?
+  Answer: Marta
+
+Still unanswered (use [[TBD: ...]] where needed):
+- Você aceita o novo prazo?
+- Há algum desconto possível?
+
+Assumptions adopted:
+- Tom profissional.
+
+Material produced:
+### Resposta
+Olá Marta, [[TBD: decisão sobre o prazo]].
+
+Review the work like a careful, honest editor. Answer in JSON with:
+- verdict: "ready" (usable with small tweaks), "almost" (needs additions) or "draft" (a good base, still far from final).
+- summary: two sentences on the state of the work.
+- strengths: up to 3 strong points.
+- issues: up to 4 concrete problems, each with where (which piece), problem and suggestion.
+- missing: information that still has to come from the person, including pending [[TBD]] markers.
+- nextActions: up to 4 next steps the person can do in a few minutes when they come back.
+Point out any passage that seems invented without basis in the request or the answers.

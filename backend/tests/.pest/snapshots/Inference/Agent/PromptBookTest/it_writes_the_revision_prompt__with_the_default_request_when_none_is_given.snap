@@ -1,0 +1,33 @@
+Task: Resposta ao cliente
+
+The person's original request:
+"""
+Responder o e-mail difícil do cliente sobre o novo prazo do projeto.
+"""
+
+Language of the request: pt-BR. Write everything in this language.
+
+Expected outcome: Uma resposta educada e firme sobre o prazo.
+
+Facts provided by the person:
+- O cliente pediu entrega em duas semanas.
+
+The person's answers:
+- Qual o nome do cliente?
+  Answer: Marta
+
+Still unanswered (use [[TBD: ...]] where needed):
+- Você aceita o novo prazo?
+- Há algum desconto possível?
+
+Assumptions adopted:
+- Tom profissional.
+
+Current material: "Resposta"
+"""
+Texto.
+"""
+
+Rewrite request: Mais curto.
+
+Rewrite the complete material applying the request. Keep what doesn't need to change. Keep [[TBD: ...]] for what is still unknown and replace the markers that now have an answer. Answer only with the final Markdown.
