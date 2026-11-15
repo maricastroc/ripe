@@ -10,7 +10,7 @@ return [
     'stores' => [
         'array' => [
             'driver' => 'array',
-            'serialize' => false,
+            'serialize' => true,
         ],
 
         'database' => [

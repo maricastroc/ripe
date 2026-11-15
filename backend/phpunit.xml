@@ -45,6 +45,9 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="RIPE_MODE" value="public"/>
+        <env name="RIPE_VISITOR_COOKIE" value="__Host-ripe_visitor"/>
+        <env name="RIPE_VISITOR_COOKIE_SECURE" value="true"/>
+        <env name="RIPE_ALLOWED_ORIGINS" value="https://ripe.example.test"/>
         <env name="RIPE_PACE" value="instant"/>
         <env name="RIPE_LEASE_RENEW_INTERVAL" value="0"/>
         <env name="RIPE_OUTPUT_FLUSH_INTERVAL" value="0"/>

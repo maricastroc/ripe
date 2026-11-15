@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[DateFormat('Y-m-d H:i:s.uP')]
 #[Fillable([
@@ -58,6 +59,12 @@ class AgentRun extends Model
     public function baseVersion(): BelongsTo
     {
         return $this->belongsTo(ArtifactVersion::class, 'base_version_id');
+    }
+
+    /** @return HasOne<RunAttempt, $this> */
+    public function latestAttempt(): HasOne
+    {
+        return $this->hasOne(RunAttempt::class, 'run_id')->orderByDesc('number');
     }
 
     /** @return HasMany<RunAttempt, $this> */

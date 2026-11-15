@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\Deliverable;
 use App\Enums\EventActor;
 use App\Enums\Fruit;
+use App\Enums\RunStatus;
 use App\Enums\TaskEventType;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\GuardsStatusTransitions;
@@ -77,6 +78,12 @@ class Task extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(AgentRun::class);
+    }
+
+    /** @return HasMany<AgentRun, $this> */
+    public function activeRuns(): HasMany
+    {
+        return $this->hasMany(AgentRun::class)->whereIn('status', [RunStatus::Queued, RunStatus::Running]);
     }
 
     /** @return HasMany<TaskEvent, $this> */

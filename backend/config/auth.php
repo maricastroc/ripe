@@ -6,12 +6,12 @@ use App\Models\Visitor;
 
 return [
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        'guard' => 'visitor',
     ],
 
     'guards' => [
-        'web' => [
-            'driver' => 'session',
+        'visitor' => [
+            'driver' => 'visitor-cookie',
             'provider' => 'visitors',
         ],
     ],
