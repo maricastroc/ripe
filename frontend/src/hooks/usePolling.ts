@@ -3,22 +3,45 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 
-export function usePolling<T>(url: string, initial: T, interval: (data: T) => number) {
-  const [data, setData] = useState<T>(initial);
+export const REALTIME_POLL_MS = 30_000;
+const REQUEST_DELAY_MS = 150;
+
+type Options<T> = {
+  version?: (data: T) => number;
+};
+
+export function usePolling<T>(url: string, initial: T, interval: (data: T) => number, options: Options<T> = {}) {
+  const { version } = options;
+  const [data, setState] = useState<T>(initial);
   const [error, setError] = useState<string | null>(null);
   const dataRef = useRef(data);
   const intervalRef = useRef(interval);
+  const versionRef = useRef(version);
+  const realtimeRef = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requested = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inflight = useRef<AbortController | null>(null);
+  const reschedule = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     intervalRef.current = interval;
-  }, [interval]);
+    versionRef.current = version;
+  }, [interval, version]);
 
   const apply = useCallback((next: T) => {
+    const of = versionRef.current;
+    if (of && of(next) < of(dataRef.current)) return;
     dataRef.current = next;
-    setData(next);
+    setState(next);
   }, []);
+
+  const setData = useCallback(
+    (next: T) => {
+      inflight.current?.abort();
+      apply(next);
+    },
+    [apply],
+  );
 
   const refresh = useCallback(async () => {
     inflight.current?.abort();
@@ -35,15 +58,26 @@ export function usePolling<T>(url: string, initial: T, interval: (data: T) => nu
     }
   }, [url, apply]);
 
+  const request = useCallback(() => {
+    if (requested.current) return;
+    requested.current = setTimeout(() => {
+      requested.current = null;
+      void refresh();
+    }, REQUEST_DELAY_MS);
+  }, [refresh]);
+
   useEffect(() => {
     let alive = true;
     const schedule = () => {
+      if (timer.current) clearTimeout(timer.current);
       if (!alive) return;
+      const wait = realtimeRef.current ? REALTIME_POLL_MS : intervalRef.current(dataRef.current);
       timer.current = setTimeout(async () => {
         if (document.visibilityState === "visible") await refresh();
         schedule();
-      }, intervalRef.current(dataRef.current));
+      }, wait);
     };
+    reschedule.current = schedule;
     schedule();
     const onVisible = () => {
       if (document.visibilityState === "visible") void refresh();
@@ -52,12 +86,25 @@ export function usePolling<T>(url: string, initial: T, interval: (data: T) => nu
     window.addEventListener("focus", onVisible);
     return () => {
       alive = false;
+      reschedule.current = () => undefined;
       if (timer.current) clearTimeout(timer.current);
+      if (requested.current) clearTimeout(requested.current);
+      requested.current = null;
       inflight.current?.abort();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
   }, [refresh]);
 
-  return { data, setData: apply, error, refresh };
+  const setRealtime = useCallback(
+    (live: boolean) => {
+      if (realtimeRef.current === live) return;
+      realtimeRef.current = live;
+      void refresh();
+      reschedule.current();
+    },
+    [refresh],
+  );
+
+  return { data, setData, error, refresh, request, setRealtime };
 }

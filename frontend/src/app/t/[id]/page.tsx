@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SpecimenSheet } from "@/components/specimen/SpecimenSheet";
 import { serverApi } from "@/lib/server/api";
+import { realtimeConfig } from "@/lib/server/realtime";
 import type { TaskPage as TaskPageData } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/t/[id]">): Promise<Metadata> {
@@ -15,5 +16,5 @@ export default async function TaskPage(props: PageProps<"/t/[id]">) {
   const page = await serverApi<TaskPageData>(`/api/tasks/${encodeURIComponent(id)}`);
   if (!page) notFound();
   const piece = typeof query.piece === "string" ? query.piece : null;
-  return <SpecimenSheet key={page.task.id} initial={page} initialPiece={piece} />;
+  return <SpecimenSheet key={page.task.id} initial={page} initialPiece={piece} realtime={realtimeConfig()} />;
 }

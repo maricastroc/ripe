@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
 import { usePolling } from "@/hooks/usePolling";
+import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
+import type { RealtimeConfig } from "@/lib/realtime";
 import type { AgentStatus, Garden as GardenData, TaskDetail, TaskSummary } from "@/lib/types";
 import { Fungus } from "./Fungus";
 import { Glasshouse } from "./Glasshouse";
@@ -76,8 +78,13 @@ const SUGGESTIONS = [
   "Sort out ideas for an article",
 ];
 
-export function Greenhouse({ initial }: { initial: GardenData }) {
-  const { data, setData, error, refresh } = usePolling<GardenData>("/api/garden", initial, interval);
+export function Greenhouse({ initial, realtime }: { initial: GardenData; realtime: RealtimeConfig | null }) {
+  const { data, setData, error, refresh, request, setRealtime } = usePolling<GardenData>(
+    "/api/garden",
+    initial,
+    interval,
+  );
+  const live = useChannel(realtime, data.channel, { "task.changed": request }, request);
   const { sky, time } = useSky();
   const router = useRouter();
   const bed = useRef<HTMLDivElement>(null);
@@ -100,6 +107,8 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
       window.removeEventListener("resize", measure);
     };
   }, []);
+
+  useEffect(() => setRealtime(live), [live, setRealtime]);
 
   const onAgentChange = useCallback((agent: AgentStatus) => setData({ ...data, agent }), [data, setData]);
 
@@ -143,6 +152,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   return (
     <div
       data-sky={sky}
+      data-realtime={live ? "live" : "polling"}
       className="relative flex flex-1 flex-col overflow-x-clip"
       style={{ background: "var(--soil-3)" }}
     >

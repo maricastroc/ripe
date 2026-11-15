@@ -4,7 +4,7 @@ import { ArrowLeft, LoaderCircle, PanelLeftOpen, Settings2 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react";
 import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
-import { ViewTransition, useCallback, useMemo, useState } from "react";
+import { ViewTransition, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
 import { Specimen } from "@/components/flora/Specimen";
 import { speciesOf } from "@/components/flora/species";
@@ -17,17 +17,22 @@ import { NowPanel } from "@/components/task/NowPanel";
 import { Questions } from "@/components/task/Questions";
 import { Understanding } from "@/components/task/Understanding";
 import { usePolling } from "@/hooks/usePolling";
+import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
 import { returnWhen } from "@/lib/format";
 import { DELIVERABLE_LABEL } from "@/lib/labels";
+import { LiveStore, asChange, asDelta } from "@/lib/live";
 import { awaitsAnswer, focusOf, moodOf } from "@/lib/presence";
+import type { RealtimeConfig } from "@/lib/realtime";
 import type { AgentStatus, TaskDetail } from "@/lib/types";
 import { GrowthSeries } from "./GrowthSeries";
 import { StatusBoard } from "./StatusBoard";
 import { Legend } from "./Legend";
 
 type Data = { task: TaskDetail; agent: AgentStatus };
+
+const versionOf = (d: Data) => d.task.version;
 
 function interval(d: Data) {
   const a = d.task.activity;
@@ -119,11 +124,46 @@ function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string)
   );
 }
 
-export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initialPiece: string | null }) {
-  const { data, setData, error, refresh } = usePolling<Data>(`/api/tasks/${initial.task.id}`, initial, interval);
+export function SpecimenSheet({
+  initial,
+  initialPiece,
+  realtime,
+}: {
+  initial: Data;
+  initialPiece: string | null;
+  realtime: RealtimeConfig | null;
+}) {
+  const { data, setData, error, refresh, request, setRealtime } = usePolling<Data>(
+    `/api/tasks/${initial.task.id}`,
+    initial,
+    interval,
+    { version: versionOf },
+  );
   const { task, agent } = data;
   const { sky } = useSky();
   const router = useRouter();
+  const [liveStore] = useState(() => new LiveStore(initial.task));
+  const liveText = useSyncExternalStore(liveStore.subscribe, liveStore.current, liveStore.current)?.text ?? null;
+  const live = useChannel(
+    realtime,
+    `task.${initial.task.id}`,
+    {
+      "task.changed": (payload) => {
+        const change = asChange(payload);
+        if (!change) return;
+        if (change.deleted) router.replace("/");
+        else if (change.version > task.version) request();
+      },
+      "output.streamed": (payload) => {
+        const delta = asDelta(payload);
+        if (delta && liveStore.delta(delta)) request();
+      },
+    },
+    request,
+  );
+
+  useEffect(() => liveStore.snapshot(task), [liveStore, task]);
+  useEffect(() => setRealtime(live), [live, setRealtime]);
   const [hover, setHover] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(initialPiece);
   const [busy, setBusy] = useState(false);
@@ -263,6 +303,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
 
   return (
     <div
+      data-realtime={live ? "live" : "polling"}
       data-sky={sky}
       className="relative flex min-h-dvh flex-1 flex-col overflow-x-clip"
       style={{ background: "var(--soil-3)" }}
@@ -439,7 +480,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
           <main className="min-w-0 space-y-14 border-t border-dashed border-line-2 px-5 pb-12 pt-10 sm:px-10 lg:border-t-0 lg:pl-14">
             <Title task={task} onRename={rename} />
             <StatusBoard task={task} agent={agent} />
-            <NowPanel task={task} agent={agent} busy={busy} onAct={() => act("resume")} />
+            <NowPanel task={task} agent={agent} liveText={liveText} busy={busy} onAct={() => act("resume")} />
             <Questions
               questions={task.questions}
               disabled={readOnly}

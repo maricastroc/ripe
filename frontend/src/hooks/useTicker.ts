@@ -21,6 +21,11 @@ export function useTypewriter(text: string) {
     const head = previous.current.slice(0, 40);
     if (!text.startsWith(head) || text.length < shownRef.current) shownRef.current = 0;
     previous.current = text;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      shownRef.current = text.length;
+      const frame = requestAnimationFrame(() => setShown(text.length));
+      return () => cancelAnimationFrame(frame);
+    }
     let frame = 0;
     let last = performance.now();
     const step = (t: number) => {

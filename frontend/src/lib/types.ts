@@ -1,6 +1,11 @@
-import type { components } from "@/generated/api";
+import type { components, operations } from "@/generated/api";
 
 type Schemas = components["schemas"];
+type Ok<Name extends keyof operations> = operations[Name]["responses"] extends {
+  200: { content: { "application/json": infer Body } };
+}
+  ? Body
+  : never;
 
 export type TaskStatus = Schemas["TaskStatus"];
 export type Stage = Schemas["Stage"];
@@ -27,5 +32,5 @@ export type ArtifactView = TaskDetail["artifacts"][number];
 export type ArtifactDraft = NonNullable<ArtifactView["draft"]>;
 export type EventView = TaskDetail["events"][number];
 
-export type Garden = { tasks: TaskSummary[]; agent: AgentStatus };
-export type TaskPage = { task: TaskDetail; agent: AgentStatus };
+export type Garden = Ok<"garden.show">;
+export type TaskPage = Ok<"tasks.show">;
