@@ -14,17 +14,20 @@ use App\Http\Visitors\VisitorResolver;
 use App\Inference\Drivers\Fake\FakeDriver;
 use App\Inference\Drivers\Fake\FakeReply;
 use App\Inference\ModelRequest;
+use App\Jobs\PublishSignal;
 use App\Journal\JournalAudit;
 use App\Models\AgentRun;
 use App\Models\Artifact;
 use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Models\Visitor;
+use App\Realtime\Signal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\AssertionFailedError;
 use Tests\Support\RecordingBroadcaster;
@@ -189,4 +192,15 @@ function recordBroadcasts(string $queueConnection = 'sync'): RecordingBroadcaste
     ]);
 
     return $recorder;
+}
+
+/** @return list<Signal> */
+function queuedSignals(): array
+{
+    return DB::table('jobs')->where('queue', 'realtime')->orderBy('id')->pluck('payload')
+        ->map(static function (mixed $payload): Signal {
+            $command = unserialize(json_decode((string) $payload, true, flags: JSON_THROW_ON_ERROR)['data']['command']);
+
+            return $command instanceof PublishSignal ? $command->signal : throw new RuntimeException('Unexpected job on the realtime queue.');
+        })->values()->all();
 }

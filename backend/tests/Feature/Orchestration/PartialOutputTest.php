@@ -11,6 +11,7 @@ use App\Orchestration\Execution\RunExecutor;
 use App\Orchestration\Output\LiveText;
 use App\Orchestration\Output\PartialOutput;
 use App\Orchestration\Sweeper;
+use App\Realtime\Signal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
@@ -82,7 +83,8 @@ it('lets abandoned live text expire on its own', function (): void {
     expect(app(PartialOutput::class)->of($claim->attempt))->toBeNull();
 });
 
-it('stops writing once a newer attempt has taken over', function (): void {
+it('stops writing and relaying once a newer attempt has taken over', function (): void {
+    recordBroadcasts('realtime');
     fakeAgent();
     $task = plantTask();
     drainAgentQueue(2);
@@ -97,7 +99,11 @@ it('stops writing once a newer attempt has taken over', function (): void {
     app(PartialOutput::class)->open($second->run, $second->attempt)?->onDelta('Second attempt.');
     $writer->onDelta('Still the first attempt.');
 
+    $relayed = collect(queuedSignals())->filter(static fn (Signal $signal): bool => $signal->event === Signal::OUTPUT_STREAMED)
+        ->map(static fn (Signal $signal): array => [$signal->payload['attempt'], $signal->payload['offset'], $signal->payload['delta']])->values()->all();
+
     expect($writer->isSuperseded())->toBeTrue()
         ->and(app(PartialOutput::class)->of($first->attempt))->toBeNull()
-        ->and(app(PartialOutput::class)->current($run->refresh())?->text)->toBe('Second attempt.');
+        ->and(app(PartialOutput::class)->current($run->refresh())?->text)->toBe('Second attempt.')
+        ->and($relayed)->toBe([[1, 0, 'First attempt. '], [2, 0, 'Second attempt.']]);
 });

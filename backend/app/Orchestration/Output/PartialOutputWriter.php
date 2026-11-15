@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Orchestration\Output;
 
 use App\Inference\Contracts\StreamObserver;
+use App\Realtime\Relay;
+use App\Realtime\Signal;
 
 final class PartialOutputWriter implements StreamObserver
 {
@@ -14,8 +16,12 @@ final class PartialOutputWriter implements StreamObserver
 
     private bool $superseded = false;
 
+    private int $relayed = 0;
+
     public function __construct(
         private readonly PartialOutput $output,
+        private readonly Relay $relay,
+        private readonly string $taskId,
         private readonly string $runId,
         private readonly string $attemptId,
         private readonly int $number,
@@ -35,6 +41,25 @@ final class PartialOutputWriter implements StreamObserver
         if ($now - $this->flushedAt >= $this->flushInterval) {
             $this->flushedAt = $now;
             $this->superseded = ! $this->output->write($this->runId, $this->attemptId, $this->number, $this->text);
+
+            if (! $this->superseded) {
+                $this->relay();
+            }
+        }
+    }
+
+    private function relay(): void
+    {
+        $length = mb_strlen($this->text);
+
+        if ($length <= $this->relayed || ! $this->relay->enabled()) {
+            return;
+        }
+
+        $signal = Signal::outputStreamed($this->taskId, $this->runId, $this->attemptId, $this->number, $this->relayed, mb_substr($this->text, $this->relayed));
+
+        if ($this->relay->send($signal)) {
+            $this->relayed = $length;
         }
     }
 
