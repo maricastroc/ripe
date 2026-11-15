@@ -16,8 +16,9 @@ final class AgentServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->afterResolving(InferenceManager::class, static function (InferenceManager $manager): void {
+        $this->app->afterResolving(InferenceManager::class, function (InferenceManager $manager): void {
             $manager->extend('fake', fn (): FakeDriver => FakeDriver::respondingWith((new SimulatedModel(Config::float('inference.drivers.fake.pause')))(...)));
+            $manager->resolveModelsUsing(fn (string $driver): ?string => $driver === 'ollama' ? $this->app->make(AgentSettings::class)->ollamaModel() : null);
         });
     }
 

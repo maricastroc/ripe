@@ -116,6 +116,13 @@ class AgentRun extends Model
         $this->save();
     }
 
+    public function wake(CarbonImmutable $now): void
+    {
+        $this->available_at = $now;
+        $this->deferred_reason = null;
+        $this->save();
+    }
+
     public function succeed(CarbonImmutable $now): void
     {
         $this->status = RunStatus::Succeeded;

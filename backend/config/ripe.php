@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 return [
+    'mode' => env('RIPE_MODE', 'local'),
+
     'agent' => [
         'queue_connection' => 'agent',
         'queue' => 'agent',
@@ -15,6 +17,7 @@ return [
         'transient_retry_seconds' => 15,
         'max_transient_retry_seconds' => 300,
         'halt_retry_seconds' => 60,
+        'paused_retry_seconds' => 30,
         'worker_timeout' => (int) env('RIPE_WORKER_TIMEOUT', 360),
         'redispatch_after_seconds' => 600,
     ],

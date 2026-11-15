@@ -109,8 +109,15 @@ final class RunExecutor
                 return null;
             }
 
-            if ($this->halt->isHalted() || $this->anotherRunIsRunning($run)) {
-                $run->defer($now->addSeconds($this->halt->isHalted() ? $this->settings->haltRetrySeconds() : 5), $this->halt->isHalted() ? RunDeferral::DriverUnavailable : RunDeferral::Pace);
+            $deferral = match (true) {
+                $this->settings->isPaused() => [RunDeferral::Paused, $this->settings->pausedRetrySeconds()],
+                $this->halt->isHalted() => [RunDeferral::DriverUnavailable, $this->settings->haltRetrySeconds()],
+                $this->anotherRunIsRunning($run) => [RunDeferral::Pace, 5],
+                default => null,
+            };
+
+            if ($deferral !== null) {
+                $run->defer($now->addSeconds($deferral[1]), $deferral[0]);
                 $this->dispatcher->dispatch($run, $now);
 
                 return null;
