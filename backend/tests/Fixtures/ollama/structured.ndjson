@@ -1,0 +1,15 @@
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"{\"verdict\":\"almost\",\"summary\":\"A "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"warm "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"note "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"that "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"only "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"needs "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"the "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"names.\",\"strengths\":[\"Warm "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"tone\"],\"issues\":[],\"missing\":[\"The "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"neighbour's "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"name\"],\"nextActions\":[\"Fill "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"in "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"the "},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:00Z","message":{"role":"assistant","content":"name\"]}"},"done":false}
+{"model":"gemma4:e4b","created_at":"2026-11-15T12:00:05Z","message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","total_duration":5000000000,"prompt_eval_count":1200,"eval_count":180}
