@@ -108,6 +108,16 @@ The agent is configured in `backend/.env`; the model is a matter of configuratio
 
 `php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, and OpenAI when a key and a model are set.
 
+The API lives under `/api`. The frontend does not use it yet; it switches over in stage 5.
+
+| Variable                  | Meaning                                                         |
+| ------------------------- | --------------------------------------------------------------- |
+| `RIPE_MODE`               | `local` (settings editable from the interface) or `public` (configuration from the environment only) |
+| `RIPE_VISITOR_COOKIE`, `RIPE_VISITOR_COOKIE_SECURE` | the visitor cookie: `__Host-ripe_visitor` and `Secure` by default; plain `ripe_visitor` over http for local development |
+| `RIPE_ALLOWED_ORIGINS`    | origins allowed to send changes besides the API's own, comma separated |
+
+The OpenAPI document is [`docs/api/openapi.json`](docs/api/openapi.json). After changing the API, run `composer openapi` in `backend/` (against a migrated database) and `npm run api:types` in `frontend/`. The test suite and CI fail when either is out of date.
+
 ## Architecture
 
 ```
@@ -159,6 +169,7 @@ Frontend, from `frontend/`:
 | `npm run db:seed`      | Creates the example task                     |
 | `npm run db:reset`     | Drops and recreates the database             |
 | `npm run typecheck`    | Generates route types and type-checks        |
+| `npm run api:types`    | Generates the API types from the OpenAPI document |
 | `npm run lint`         | ESLint                                       |
 | `npm run format`       | Prettier                                     |
 | `npm run format:check` | Prettier, without writing                    |
@@ -174,6 +185,7 @@ Backend, from `backend/`:
 | `composer analyse` | Larastan at the maximum level                 |
 | `composer test`    | Pest                                          |
 | `composer check`   | All of the above checks                       |
+| `composer openapi` | Exports the OpenAPI document                  |
 
 ## Stack
 
