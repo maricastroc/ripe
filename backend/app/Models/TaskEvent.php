@@ -8,6 +8,7 @@ use App\Casts\JsonObject;
 use App\Enums\EventActor;
 use App\Enums\TaskEventType;
 use App\Models\Concerns\Immutable;
+use App\Realtime\TaskChanges;
 use App\Support\Transactions;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\DateFormat;
@@ -49,6 +50,7 @@ class TaskEvent extends Model
 
         $sequence = (int) $row->version;
         $task->forceFill(['version' => $sequence])->syncOriginalAttribute('version');
+        app(TaskChanges::class)->changed($task);
 
         return self::query()->create([
             'task_id' => $task->id,

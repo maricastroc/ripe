@@ -13,6 +13,7 @@ import type { AgentStatus, RunKind, TaskDetail } from "@/lib/types";
 type Props = {
   task: TaskDetail;
   agent: AgentStatus;
+  liveText?: string | null;
   onAct: (action: "resume" | "retry") => void;
   busy: boolean;
 };
@@ -118,7 +119,7 @@ function Shell({
   );
 }
 
-export function NowPanel({ task, agent, onAct, busy }: Props) {
+export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
   const activity = task.activity;
   const running = activity?.running === true;
   const now = useNow(Boolean(activity));
@@ -137,7 +138,7 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
   } else if (running && activity) {
     key = `run-${activity.runId}-${activity.live?.attempt ?? 0}`;
     const prose = activity.kind === "generate" || activity.kind === "revise";
-    const partial = activity.live?.text ?? "";
+    const partial = liveText ?? activity.live?.text ?? "";
     content = (
       <Shell tone="text-leaf" title={activityLabel(activity.kind, activity.subject)} live>
         <p className="font-mono text-[12px] text-ink-3" suppressHydrationWarning>

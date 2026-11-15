@@ -23,6 +23,7 @@ final class GardenController extends Controller
         return new JsonResponse([
             'tasks' => TaskSummaryResource::collection($snapshots->garden($visitor)),
             'agent' => new AgentStatusResource($agent->for($visitor)),
+            'channel' => $visitor === null ? null : "greenhouse.{$visitor->id}",
         ]);
     }
 }

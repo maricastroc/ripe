@@ -54,7 +54,7 @@ Approved on 2026-11-15. Ripe moves to a Laravel 13 + PostgreSQL 17 backend and a
 backend/  (Laravel 13, PHP 8.4)
   HTTP (php-fpm or artisan serve)   API and broadcasting auth
   queue:work --queue=agent          model calls, one run per worker
-  queue:work --queue=default        broadcasts and light work
+  queue:work realtime               relays signals to Reverb, off the critical path
   schedule:work                     reconcile, prune
   reverb:start                      WebSocket server
 frontend/ (Next.js 16, React 19)    renders API snapshots, Echo + polling fallback
@@ -200,9 +200,10 @@ Dedicated tests:
 
 ### 3.8 Realtime
 
-- **Domain changes.** After commit, `TaskChanged {taskId, version}` goes out on private `task.{id}` and `greenhouse.{visitor}` channels. The client refetches the snapshot when the version is newer than its own and never applies domain deltas itself.
-- **Transient output.** `RunOutputStreamed {attemptId, offset, delta}` is sent with `ShouldBroadcastNow`, throttled to about four per second. The partial text is kept in the cache store, outside domain tables, so the client can resynchronise when offsets do not match.
-- **Fallback.** Polling continues on a long interval and on reconnect or tab focus, so the interface converges without Reverb.
+- **Domain changes.** Each journal event registers its task's change for after the commit. When the outermost transaction commits, every changed task sends one `task.changed {taskId, version, deleted}` with its final version, on private `task.{id}` and `greenhouse.{visitor}` channels. A rolled-back transaction, or savepoint, sends nothing. A deletion carries what it needs, captured before the row is gone. The client refetches the snapshot when the version is newer than its own and never applies domain deltas itself.
+- **Transient output.** `output.streamed {runId, attemptId, attempt, offset, delta}` follows the partial text the writer saves every 0.25 s; the offset counts characters. A superseded attempt sends nothing. The client appends a delta only when its attempt and offset match, and refetches the snapshot otherwise; a snapshot never shortens the text of the attempt on screen.
+- **Off the critical path.** The executor and the API only queue signals, on their own `realtime` queue. A separate worker publishes them with a one-second timeout, pauses after a failure, and drops signals that have gone stale.
+- **Fallback.** Polling continues every 30 s while the channel is subscribed, at the usual intervals otherwise, and on reconnect or tab focus, so the interface converges without Reverb.
 - **Scale.** A single Reverb instance is enough; horizontal Reverb scaling would need Redis and is out of scope.
 
 ### 3.9 Public demo
@@ -513,6 +514,15 @@ Until stage 5 the original application kept working from `frontend/`, with its o
   - the step being written is a stirring bud and only grows once its piece is saved;
   - a fruit waiting for an essential answer carries a paper tag.
 - **Tests:** one Playwright scenario through the whole stack, with no frontend unit suite.
+
+**Approved for stage 6 (2026-11-15):**
+- **Agent mode** stays on polling, because working, paused and offline depend on time; each task's activity arrives with its own signal.
+- **The browser connects to Reverb's own host**, in development and on Railway. Private channels are authorized by Laravel through the gateway.
+- **Adjustments:**
+  - `task.changed` goes out only after the commit, once per task with the final version, and a deletion does not depend on reading the deleted row;
+  - live text is reconciled by attempt and offset as well as by task version, so a snapshot with the same version cannot erase newer text, and a new attempt replaces the old one;
+  - publishing never touches the executor, lease renewal or stall detection, and a prolonged Reverb outage is tested, not only a single failure;
+  - channel authorization covers both channels, crossed visitors, missing cookies, arbitrary identifiers and examples, and keeps the origin and gateway checks.
 
 **Pending:**
 - OpenAI model, reasoning effort, service tier and daily budget (stage 7).

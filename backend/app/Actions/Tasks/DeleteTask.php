@@ -8,13 +8,14 @@ use App\Enums\EventActor;
 use App\Exceptions\TaskActionRejected;
 use App\Models\Task;
 use App\Orchestration\RunCancellation;
+use App\Realtime\TaskChanges;
 use Illuminate\Support\Facades\DB;
 
 final readonly class DeleteTask
 {
     use LocksTasks;
 
-    public function __construct(private RunCancellation $cancellation) {}
+    public function __construct(private RunCancellation $cancellation, private TaskChanges $changes) {}
 
     public function handle(Task $task): void
     {
@@ -26,6 +27,7 @@ final readonly class DeleteTask
             }
 
             $this->cancellation->cancelActive($task, EventActor::Visitor);
+            $this->changes->deleted($task);
             $task->delete();
         });
     }
