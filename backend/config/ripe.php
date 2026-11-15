@@ -36,6 +36,15 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'realtime' => [
+        'enabled' => (bool) env('RIPE_REALTIME_ENABLED', env('BROADCAST_CONNECTION', 'null') === 'reverb'),
+        'queue_connection' => env('RIPE_REALTIME_QUEUE_CONNECTION', 'realtime'),
+        'queue' => 'realtime',
+        'pause_seconds' => (int) env('RIPE_REALTIME_PAUSE_SECONDS', 15),
+        'stale_output_seconds' => 5,
+        'stale_change_seconds' => 60,
+    ],
+
     'gateway' => [
         'secret' => env('RIPE_GATEWAY_SECRET'),
         'required' => (bool) env('RIPE_GATEWAY_REQUIRED', true),

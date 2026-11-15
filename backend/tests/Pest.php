@@ -23,9 +23,11 @@ use App\Models\Visitor;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\AssertionFailedError;
+use Tests\Support\RecordingBroadcaster;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->use(DatabaseTruncation::class)->in('Feature');
@@ -173,4 +175,18 @@ function fakeAgent(array $questions = [], ?array $steps = null, array $first = [
             default => $simulated($request),
         };
     }));
+}
+
+function recordBroadcasts(string $queueConnection = 'sync'): RecordingBroadcaster
+{
+    $recorder = new RecordingBroadcaster;
+    Broadcast::extend('recording', static fn (): RecordingBroadcaster => $recorder);
+    config([
+        'broadcasting.default' => 'recording',
+        'broadcasting.connections.recording' => ['driver' => 'recording'],
+        'ripe.realtime.enabled' => true,
+        'ripe.realtime.queue_connection' => $queueConnection,
+    ]);
+
+    return $recorder;
 }

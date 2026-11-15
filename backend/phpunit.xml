@@ -52,5 +52,6 @@
         <env name="RIPE_PACE" value="instant"/>
         <env name="RIPE_LEASE_RENEW_INTERVAL" value="0"/>
         <env name="RIPE_OUTPUT_FLUSH_INTERVAL" value="0"/>
+        <env name="RIPE_REALTIME_QUEUE_CONNECTION" value="sync"/>
     </php>
 </phpunit>
