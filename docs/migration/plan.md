@@ -61,7 +61,9 @@ frontend/ (Next.js 16, React 19)    renders API snapshots, Echo + polling fallba
 PostgreSQL 17                       domain + jobs + cache
 ```
 
-The database queue lives in the same PostgreSQL as the domain. As a result, dispatching a job inside a domain transaction is atomic with the state change: the `jobs` row commits or rolls back with it. In production a single origin (`ripe.marianacastro.dev`) routes `/api`, `/broadcasting` and the WebSocket path to Laravel and Reverb, and everything else to Next. Cookies are first-party and no CORS is needed.
+The database queue lives in the same PostgreSQL as the domain. As a result, dispatching a job inside a domain transaction is atomic with the state change: the `jobs` row commits or rolls back with it.
+
+In production the site runs on Vercel (`ripe.marianacastro.dev`) and the backend on Railway: HTTP, the agent worker, the scheduler, Reverb and PostgreSQL. The browser only talks to the site's origin. Next's `proxy.ts` forwards `/api` to Laravel with a shared secret and the client address taken from the platform's own header, and server rendering calls Laravel the same way. Laravel refuses API requests without the secret and never trusts an address a client sent. The same path runs in development, cookies stay first-party and no CORS is needed.
 
 ### 3.2 Entities
 
@@ -441,7 +443,7 @@ The same checks run as a Pest assertion at the end of every orchestration and re
 
 ## 7. Stages
 
-The current application keeps working from `frontend/`, with its own Prisma backend and agent, until stage 5 replaces them.
+Until stage 5 the original application kept working from `frontend/`, with its own Prisma backend and agent; stage 5 replaced them.
 
 | # | Stage | Done when | Size |
 |---|---|---|---|
@@ -454,7 +456,7 @@ The current application keeps working from `frontend/`, with its own Prisma back
 | 6 | Realtime | Reverb and Echo with version-based invalidation and offset-checked streaming; stopping Reverb mid-task lets the interface converge through polling; reconnecting restores the correct snapshot and live text | M |
 | 7 | Public demo | The OpenAI model, reasoning effort and service tier are chosen with verified prices, together with the daily budget and the project spend limit; budget reservations never exceed the limit under concurrency; exhaustion rests the greenhouse (distinct from night and offline) and resumes automatically; per-visitor and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded from real runs, read-only and labelled | L |
 | 8 | Observability | Structured logs with context; timeline endpoint and `ripe:inspect`; the Growth rings tab; `ripe:audit` passes for every task produced by the resilience suite and for the recorded examples; every attempt appears in the timeline; nothing claims or requires replaying state from events | M |
-| 9 | Deploy | `ripe.marianacastro.dev` on a VPS with a production Compose file separate from development; TLS; supervised HTTP, queue, scheduler, Reverb and Next processes; daily PostgreSQL backups with a tested restore; an automated smoke test; a runbook | M |
+| 9 | Deploy | `ripe.marianacastro.dev` on Vercel, with the API, the agent worker, the scheduler, Reverb and PostgreSQL on Railway; the gateway secret and client address in place; daily PostgreSQL backups with a tested restore; an automated smoke test; a runbook | M |
 
 ## 8. Risks
 
@@ -474,7 +476,7 @@ The current application keeps working from `frontend/`, with its own Prisma back
 ## 9. Decisions
 
 **Approved on 2026-11-15:**
-- Hosting on a VPS with Docker Compose, keeping frontend and backend as separate applications.
+- Frontend and backend stay separate applications. Hosting was revised before stage 5: Vercel for the site, Railway for the backend and PostgreSQL (earlier: a VPS with Docker Compose).
 - Inference (revised the same day, before stage 2):
   - the hosted demo uses the official OpenAI API;
   - Ollama stays as the fully local alternative, and the FakeDriver serves the tests;
@@ -498,6 +500,19 @@ The current application keeps working from `frontend/`, with its own Prisma back
 - `RIPE_MODE=local|public`: settings are editable only in local mode, and the model's address is never editable from the interface.
 - Examples are shared and read-only, grown through the real pipeline with a scripted model until stage 7 records them from real runs.
 - OpenAPI is generated with Scramble; TypeScript types are generated with `openapi-typescript`; both are checked for drift.
+
+**Approved for stage 5 (2026-11-15):**
+- **Routing:** the site's `/api` goes through Next's `proxy.ts` to Laravel, signed with a shared secret and the client address from the platform. Server rendering uses the same headers. It is the production path on Vercel, not a temporary proxy.
+- **Types:** the frontend's types come from the OpenAPI document, not from hand-written definitions.
+- **Editing pieces:**
+  - autosave writes the draft 800 ms after typing stops;
+  - a version is created when the visitor leaves editing, switches piece, asks for a rewrite or leaves the page, or after 30 s without typing (the timer restarts on every edit);
+  - the last autosave always finishes before a version is created;
+  - a conflict keeps the draft until the visitor chooses.
+- **The plant:**
+  - the step being written is a stirring bud and only grows once its piece is saved;
+  - a fruit waiting for an essential answer carries a paper tag.
+- **Tests:** one Playwright scenario through the whole stack, with no frontend unit suite.
 
 **Pending:**
 - OpenAI model, reasoning effort, service tier and daily budget (stage 7).
