@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Agent\Text\Markdown;
 use App\Enums\ArtifactVersionSource;
+use App\Enums\NoteKind;
 use App\Enums\RunStatus;
 use App\Models\AgentRun;
 use App\Models\Artifact;
@@ -13,7 +14,7 @@ use App\Models\ArtifactVersion;
 use App\Models\Question;
 use App\Models\Step;
 use App\Models\Task;
-use App\Orchestration\AgentSettings;
+use App\Orchestration\RunBudget;
 use App\Snapshots\FieldNote;
 use App\Snapshots\FieldNotes;
 use App\Snapshots\Staleness;
@@ -34,12 +35,12 @@ final class TaskResource extends TaskSummaryResource
 
         return [
             ...$this->summary($state),
-            'number' => app(TaskSnapshots::class)->number($task),
+            'number' => TaskSnapshots::numberOf($task),
             'language' => $task->language,
             'deliverable' => $task->deliverable,
             'outcome' => $task->outcome,
-            'context' => array_values(array_filter($task->context, is_string(...))),
-            'assumptions' => array_values(array_filter($task->assumptions, is_string(...))),
+            'context' => collect($task->context)->map(static fn (string $fact): string => trim($fact))->values()->all(),
+            'assumptions' => collect($task->assumptions)->map(static fn (string $assumption): string => trim($assumption))->values()->all(),
             'steps' => $task->steps->map(static fn (Step $step): array => [
                 'id' => $step->id,
                 'position' => $step->position,
@@ -48,8 +49,8 @@ final class TaskResource extends TaskSummaryResource
                 'output' => $step->output_format,
                 'phase' => $state->phaseOf($step),
                 'waitingFor' => TaskState::waitingFor($step),
-                'dependsOn' => $step->dependencies->pluck('id')->values()->all(),
-                'requires' => $step->requirements->pluck('id')->values()->all(),
+                'dependsOn' => $step->dependencies->map(static fn (Step $dependency): string => $dependency->id)->values()->all(),
+                'requires' => $step->requirements->map(static fn (Question $question): string => $question->id)->values()->all(),
                 'artifactId' => $step->artifact?->id,
             ])->values()->all(),
             'questions' => $task->questions->map(static fn (Question $question): array => [
@@ -63,15 +64,25 @@ final class TaskResource extends TaskSummaryResource
                 'answerRevision' => $question->answer_revision,
             ])->values()->all(),
             'artifacts' => $task->artifacts->map(fn (Artifact $artifact): array => $this->artifact($artifact, $numbers))->values()->all(),
-            'events' => array_map(static fn (FieldNote $note): array => [
-                'id' => $note->sequence,
-                'kind' => $note->kind,
-                'message' => $note->message,
+            'events' => collect($notes)->map(static fn (FieldNote $note): array => [
+                'id' => (int) $note->sequence,
+                'kind' => self::kindOf($note),
+                'message' => (string) $note->message,
                 'createdAt' => $note->at->toIso8601ZuluString('microsecond'),
-            ], $notes),
+            ])->values()->all(),
             'runsUsed' => AgentRun::query()->where('task_id', $task->id)->where('status', '!=', RunStatus::Cancelled)->count(),
-            'runBudget' => app(AgentSettings::class)->runBudget(),
+            'runBudget' => self::runBudget(),
         ];
+    }
+
+    private static function kindOf(FieldNote $note): NoteKind
+    {
+        return $note->kind;
+    }
+
+    private static function runBudget(): int
+    {
+        return app(RunBudget::class)->limit();
     }
 
     /**

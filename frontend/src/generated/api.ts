@@ -386,6 +386,11 @@ export interface components {
             draftRevision: number;
         };
         /**
+         * NoteKind
+         * @enum {string}
+         */
+        NoteKind: "user" | "info" | "work" | "done" | "warn" | "error";
+        /**
          * OutputFormat
          * @enum {string}
          */
@@ -483,12 +488,12 @@ export interface components {
             openQuestions: number;
             essentialOpen: number;
             activity: components["schemas"]["ActivityResource"] | null;
-            number: string;
+            number: number;
             language: string | null;
             deliverable: components["schemas"]["Deliverable"] | null;
             outcome: string | null;
-            context: unknown[];
-            assumptions: unknown[];
+            context: string[];
+            assumptions: string[];
             steps: {
                 id: string;
                 position: number;
@@ -497,8 +502,8 @@ export interface components {
                 output: components["schemas"]["OutputFormat"];
                 phase: components["schemas"]["StepPhase"];
                 waitingFor: components["schemas"]["WaitingFor"] | null;
-                dependsOn: unknown[];
-                requires: unknown[];
+                dependsOn: string[];
+                requires: string[];
                 artifactId: string | null;
             }[];
             questions: {
@@ -542,9 +547,14 @@ export interface components {
                     updatedAt: string | null;
                 } | null;
             }[];
-            events: unknown[];
+            events: {
+                id: number;
+                kind: components["schemas"]["NoteKind"];
+                message: string;
+                createdAt: string;
+            }[];
             runsUsed: number;
-            runBudget: string;
+            runBudget: number;
         };
         /**
          * TaskStatus
