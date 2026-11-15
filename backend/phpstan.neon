@@ -3,6 +3,7 @@ includes:
 
 parameters:
     level: max
+    parseModelCastsMethod: true
     paths:
         - app
         - bootstrap/app.php
