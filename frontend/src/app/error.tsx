@@ -8,9 +8,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       <p className="label">something wilted</p>
       <h1 className="mt-3 font-display text-4xl tracking-tight">This page didn’t load.</h1>
       <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
-        The agent’s work is saved in the local database, so nothing was lost. If this keeps happening, check that the
-        database was created with{" "}
-        <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">npm run setup</code>.
+        The agent’s work is saved as it goes, so nothing was lost. If this keeps happening, check that Ripe&apos;s API
+        is running.
       </p>
       {error.digest && <p className="mt-2 font-mono text-[12px] text-ink-3">{error.digest}</p>}
       <div className="mt-8 flex gap-3">

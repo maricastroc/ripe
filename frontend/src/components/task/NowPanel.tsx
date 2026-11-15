@@ -6,8 +6,9 @@ import { useState } from "react";
 import { Markdown } from "@/components/Markdown";
 import { useNow, useTypewriter } from "@/hooks/useTicker";
 import { returnWhen } from "@/lib/format";
+import { activityLabel } from "@/lib/labels";
 import { countWords } from "@/lib/markers";
-import type { AgentStatus, TaskDetail } from "@/lib/types";
+import type { AgentStatus, RunKind, TaskDetail } from "@/lib/types";
 
 type Props = {
   task: TaskDetail;
@@ -41,10 +42,10 @@ function peek(type: string, raw: string) {
   return lines;
 }
 
-function LiveText({ text, type }: { text: string; type: string }) {
+function LiveText({ text, kind }: { text: string; kind: RunKind }) {
   const shown = useTypewriter(text);
   const [raw, setRaw] = useState(false);
-  if (type === "generate" || type === "revise") {
+  if (kind === "generate" || kind === "revise") {
     return (
       <div className="relative max-h-[360px] overflow-hidden">
         <Markdown content={shown || " "} className="live-caret text-[15px]" />
@@ -52,7 +53,7 @@ function LiveText({ text, type }: { text: string; type: string }) {
       </div>
     );
   }
-  const lines = peek(type, shown).map((line, i, all) => ({
+  const lines = peek(kind, shown).map((line, i, all) => ({
     ...line,
     tag: line.label === "step" ? `step ${all.slice(0, i + 1).filter((l) => l.label === "step").length}` : line.label,
   }));
@@ -119,7 +120,7 @@ function Shell({
 
 export function NowPanel({ task, agent, onAct, busy }: Props) {
   const activity = task.activity;
-  const running = activity?.status === "running";
+  const running = activity?.running === true;
   const now = useNow(Boolean(activity));
 
   let key: string = task.status;
@@ -129,25 +130,26 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
     key = "example";
     content = (
       <Shell tone="text-ink-3" title="Illustrative example">
-        Nothing is running here. Every piece was written by hand to show what you would find once a task is ripe.
+        Nothing is running here. A scripted model wrote every piece ahead of time, to show what you find once a task is
+        ripe.
       </Shell>
     );
   } else if (running && activity) {
-    key = `run-${activity.jobId}`;
-    const prose = activity.type === "generate" || activity.type === "revise";
-    const partial = activity.partial ?? "";
+    key = `run-${activity.runId}-${activity.live?.attempt ?? 0}`;
+    const prose = activity.kind === "generate" || activity.kind === "revise";
+    const partial = activity.live?.text ?? "";
     content = (
-      <Shell tone="text-leaf" title={activity.label} live>
+      <Shell tone="text-leaf" title={activityLabel(activity.kind, activity.subject)} live>
         <p className="font-mono text-[12px] text-ink-3" suppressHydrationWarning>
           {activity.startedAt ? `for ${seconds(now - new Date(activity.startedAt).getTime())}` : "starting"}
           {activity.attempts > 1 ? ` · attempt ${activity.attempts} of ${activity.maxAttempts}` : ""}
           {prose && partial ? ` · ${countWords(partial)} words so far` : ""}
-          {` · ${agent.settings.model}`}
+          {` · ${agent.model}`}
         </p>
         <div className="sheet relative mt-4 overflow-hidden rounded-2xl px-5 pb-4 pt-5 sm:px-6">
           <span aria-hidden className="working-bar absolute inset-x-0 top-0 h-[3px]" />
           {partial ? (
-            <LiveText text={partial} type={activity.type} />
+            <LiveText text={partial} kind={activity.kind} />
           ) : (
             <div>
               <p className="flex items-center gap-2.5 text-[14.5px] text-ink-2">
@@ -208,7 +210,7 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
       </Shell>
     );
   } else if (task.status === "waiting") {
-    const essentials = task.questions.filter((q) => q.status === "open" && q.blocking);
+    const essentials = task.questions.filter((q) => q.status === "open" && q.kind === "essential");
     content = (
       <Shell tone="text-accent" title="Answer below to keep it growing">
         Everything that didn&apos;t depend on you is done. The rest needs{" "}
@@ -217,49 +219,61 @@ export function NowPanel({ task, agent, onAct, busy }: Props) {
         {essentials.length === 1 ? "a gap" : "the gaps"} marked.
       </Shell>
     );
-  } else if (activity && activity.status === "queued") {
+  } else if (activity && !activity.running) {
     key = `queued-${agent.mode}`;
-    const retryIn = new Date(activity.runAfter).getTime() - now;
-    if (agent.settings.paused) {
+    const retryIn = activity.availableAt ? new Date(activity.availableAt).getTime() - now : 0;
+    if (agent.mode === "paused") {
       content = (
         <Shell tone="text-ochre" title="Agent paused">
           The work stays in the queue until you turn the agent back on.
         </Shell>
       );
-    } else if (agent.mode === "offline") {
+    } else if (agent.mode === "halted") {
       content = (
-        <Shell tone="text-ochre" title="Waiting for Ollama">
-          The agent can’t reach Ollama at <span className="font-mono text-[13px]">{agent.settings.baseUrl}</span>. The
-          step is saved and will continue on its own once Ollama is back. To start it, run{" "}
-          <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama serve</code>
+        <Shell tone="text-ochre" title="Resting for now">
+          The greenhouse is resting. The step is saved and will continue on its own.
         </Shell>
       );
+    } else if (agent.mode === "offline") {
+      content =
+        agent.driver === "ollama" ? (
+          <Shell tone="text-ochre" title="Waiting for Ollama">
+            The agent can’t reach Ollama. The step is saved and will continue on its own once Ollama is back. To start
+            it, run <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama serve</code>
+          </Shell>
+        ) : (
+          <Shell tone="text-ochre" title="Waiting for the model">
+            The model can’t be reached right now. The step is saved and will continue on its own.
+          </Shell>
+        );
     } else if (agent.mode === "model-missing") {
       content = (
         <Shell tone="text-ochre" title="Waiting for the model">
-          Model <span className="font-mono text-[13px]">{agent.settings.model}</span> is not installed. Run{" "}
-          <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">
-            ollama pull {agent.settings.model}
-          </code>{" "}
-          or pick another one in the agent settings.
+          Model <span className="font-mono text-[13px]">{agent.model}</span> is not installed. Run{" "}
+          <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama pull {agent.model}</code> or
+          pick another one in the agent settings.
         </Shell>
       );
     } else if (retryIn > 1500 && activity.lastError) {
       content = (
         <Shell tone="text-ochre" title={`Trying again in ${seconds(retryIn)}`}>
-          {activity.label}. What went wrong last time: <span className="italic">{activity.lastError}</span>
+          {activityLabel(activity.kind, activity.subject)}. What went wrong last time:{" "}
+          <span className="italic">{activity.lastError}</span>
         </Shell>
       );
-    } else if (agent.current && agent.current.taskId !== task.id) {
+    } else if ((agent.current && agent.current.taskId !== task.id) || agent.elsewhere) {
       content = (
         <Shell tone="text-ink-3" title="In the queue">
-          The agent works on one thing at a time. It’s busy with “{agent.current.taskTitle}”, and this task is next.
+          The agent works on one thing at a time.{" "}
+          {agent.current && agent.current.taskId !== task.id
+            ? `It’s busy with “${agent.current.taskTitle}”, and this task is next.`
+            : "It’s feeding another greenhouse, and this task is next."}
         </Shell>
       );
     } else {
       content = (
         <Shell tone="text-leaf" title="Getting the next step ready" live>
-          {activity.label}.
+          {activityLabel(activity.kind, activity.subject)}.
         </Shell>
       );
     }

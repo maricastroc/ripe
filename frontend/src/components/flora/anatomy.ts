@@ -1,15 +1,16 @@
 import { stageIndex } from "@/lib/growth";
-import type { Fruit, Growth, StepStatus } from "@/lib/types";
+import type { Fruit, Growth, StepPhase } from "@/lib/types";
 import { type Pt, bezier, bezierAngle, hash, lerp, polar, r1, rand, sample } from "./geometry";
 import { type Species, speciesOf } from "./species";
 
-export type SpecimenStep = { id: string; status: StepStatus; artifactId: string | null; title?: string };
+export type SpecimenStep = { id: string; status: StepPhase; artifactId: string | null; title?: string };
 
 export type SpecimenState = {
   seed: string;
   fruit: Fruit | null;
   growth: Growth;
   steps: SpecimenStep[];
+  awaiting?: boolean;
 };
 
 export type LeafSpec = {
@@ -34,7 +35,7 @@ export type Decor = {
 export type BranchSpec = {
   stepId: string;
   index: number;
-  status: StepStatus;
+  status: StepPhase;
   artifactId: string | null;
   title?: string;
   side: number;
@@ -75,6 +76,7 @@ export type Anatomy = {
   hairs: string;
   seed: { pos: Pt; angle: number; open: boolean };
   tag: { knot: Pt; card: Pt } | null;
+  waiting: { knot: Pt; card: Pt } | null;
 };
 
 function along(points: Pt[], u: number) {
@@ -116,6 +118,7 @@ export function computeAnatomy(state: SpecimenState): Anatomy {
     hairs: "",
     seed,
     tag: null,
+    waiting: null,
   };
   if (idx === 0) return empty;
 
@@ -201,14 +204,14 @@ export function computeAnatomy(state: SpecimenState): Anatomy {
       anchor: node,
     };
 
-    if (step.status === "pending" || step.status === "blocked") {
+    if (step.status !== "done") {
       const blocked = step.status === "blocked";
       const angle = stemAngle + side * (blocked ? 112 : 30);
       const pos = polar(node, angle, 2);
       return { ...base, bud: { pos, angle, size: blocked ? 11 : 9.5 }, anchor: polar(node, angle, 11) };
     }
 
-    const reach = step.status === "working" ? length * 0.42 : length;
+    const reach = length;
     const laden =
       step.status === "done" && idx >= 5 ? 9 + rnd(60 + i) * 6 : idx === 4 && step.status === "done" ? 4 : 0;
     const droop = species.branch.droop + laden;
@@ -216,27 +219,6 @@ export function computeAnatomy(state: SpecimenState): Anatomy {
     const c1 = polar(node, dir, reach * 0.36);
     const c2 = polar(node, dir + side * droop * 0.55, reach * 0.74);
     const twig = sample(node, c1, c2, end, 9);
-    const endInfo = along(twig, 1);
-
-    if (step.status === "working") {
-      return {
-        ...base,
-        twig,
-        twigWidth: [species.stem.tip, 0.9],
-        leaves: [
-          {
-            key: `${step.id}-unfurl`,
-            base: endInfo.pos,
-            angle: endInfo.angle - side * 18,
-            size: species.leafSize * 0.42,
-            mirror: side,
-            tone: 0.1,
-          },
-        ],
-        bud: { pos: endInfo.pos, angle: endInfo.angle + side * 14, size: 8 },
-        anchor: polar(endInfo.pos, endInfo.angle, 10),
-      };
-    }
 
     const leaves: LeafSpec[] = [];
     const k = species.leavesPerBranch;
@@ -393,6 +375,15 @@ export function computeAnatomy(state: SpecimenState): Anatomy {
         })()
       : null;
 
+  const waiting =
+    state.awaiting && apex?.stalk
+      ? (() => {
+          const knot = along(apex.stalk, 0.5).pos;
+          const side = apex.pos.x >= top.x ? 1 : -1;
+          return { knot, card: { x: knot.x + side * 34, y: knot.y + 30 } };
+        })()
+      : null;
+
   return {
     species,
     stageIndex: idx,
@@ -409,5 +400,6 @@ export function computeAnatomy(state: SpecimenState): Anatomy {
     hairs: hairs.join(" "),
     seed,
     tag,
+    waiting,
   };
 }

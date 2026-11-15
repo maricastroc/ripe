@@ -2,12 +2,12 @@
 
 import { ArrowRight } from "lucide-react";
 import { OUTPUT_LABEL } from "@/lib/labels";
-import type { ArtifactView, QuestionView, StepStatus, StepView, TaskDetail } from "@/lib/types";
+import type { ArtifactView, QuestionView, StepPhase, StepView, TaskDetail } from "@/lib/types";
 
-const STATE: Record<StepStatus, { organ: string; word: string; tone: string }> = {
+const STATE: Record<StepPhase, { organ: string; word: string; tone: string }> = {
   done: { organ: "leafy branch", word: "ready", tone: "text-leaf-dark" },
-  working: { organ: "opening bud", word: "being written", tone: "text-cobalt" },
-  pending: { organ: "closed bud", word: "not started", tone: "text-ink-3" },
+  working: { organ: "stirring bud", word: "being written", tone: "text-cobalt" },
+  ready: { organ: "closed bud", word: "ready to start", tone: "text-ink-3" },
   blocked: { organ: "dry bud", word: "waiting on you", tone: "text-vermilion-ink" },
 };
 
@@ -23,7 +23,7 @@ type Props = {
 
 function needsText(step: StepView, questions: QuestionView[]) {
   const map = new Map(questions.map((q) => [q.id, q.text]));
-  return step.needs.map((id) => map.get(id)).filter(Boolean) as string[];
+  return step.requires.map((id) => map.get(id)).filter((text): text is string => typeof text === "string");
 }
 
 export function Legend({ task, finalId, review, highlight, onHover, onOpen, compact = false }: Props) {
@@ -50,9 +50,9 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
       <p className="label mb-2">key to the plate</p>
       <ol className="divide-y divide-dashed divide-line-2 border-y border-dashed border-line-2">
         {task.steps.map((step) => {
-          const s = STATE[step.status];
+          const s = STATE[step.phase];
           const lit = highlight === step.id;
-          const waits = step.status === "blocked" ? needsText(step, task.questions) : [];
+          const waits = step.phase === "blocked" && step.waitingFor === "answer" ? needsText(step, task.questions) : [];
           return (
             <li key={step.id}>
               <button

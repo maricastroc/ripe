@@ -1,9 +1,9 @@
-import { connection } from "next/server";
 import { Greenhouse } from "@/components/greenhouse/Greenhouse";
-import { getAgentStatus, listTasks } from "@/lib/queries";
+import { serverApi } from "@/lib/server/api";
+import type { Garden } from "@/lib/types";
 
 export default async function Home() {
-  await connection();
-  const [tasks, agent] = await Promise.all([listTasks(), getAgentStatus()]);
-  return <Greenhouse initial={{ tasks, agent }} />;
+  const garden = await serverApi<Garden>("/api/garden");
+  if (!garden) throw new Error("The greenhouse could not be read.");
+  return <Greenhouse initial={garden} />;
 }

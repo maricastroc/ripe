@@ -6,7 +6,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { LIMITS, PACE_LABEL } from "@/lib/limits";
-import type { AgentStatus, Pace, Settings } from "@/lib/types";
+import type { AgentStatus, Pace } from "@/lib/types";
+
+type Patch = { pace?: Pace; paused?: boolean; model?: string };
 
 type Props = {
   open: boolean;
@@ -27,9 +29,8 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customModel, setCustomModel] = useState("");
-  const [baseUrl, setBaseUrl] = useState(agent.settings.baseUrl);
 
-  async function save(patch: Partial<Settings>) {
+  async function save(patch: Patch) {
     setSaving(true);
     setError(null);
     try {
@@ -41,8 +42,9 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
     }
   }
 
-  const { settings } = agent;
-  const models = agent.models.includes(settings.model) ? agent.models : [settings.model, ...agent.models];
+  const settings = agent.settings;
+  if (!settings) return null;
+  const models = agent.models.includes(agent.model) ? agent.models : [agent.model, ...agent.models];
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -80,24 +82,33 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                   </Dialog.Close>
                 </div>
                 <Dialog.Description className="mt-3 text-[15px] leading-relaxed text-ink-2">
-                  An open-weight model running in Ollama on this machine. It takes one small step at a time, saves the
-                  result and rests before the next. Nothing you write leaves your computer.
+                  {agent.driver === "fake"
+                    ? "A simulated model for development. It takes one small step at a time, saves the result and rests before the next."
+                    : "An open-weight model running in Ollama on this machine. It takes one small step at a time, saves the result and rests before the next. Nothing you write leaves your computer."}
                 </Dialog.Description>
 
-                {(agent.mode === "offline" || agent.mode === "stopped") && (
+                {agent.mode === "offline" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">Ollama is not responding at {settings.baseUrl}.</p>
+                    <p className="font-medium">Ollama is not responding.</p>
                     <p className="mt-1 text-ink-2">
-                      Your tasks wait in the queue, and the work picks up again as soon as Ollama is back.
+                      Your tasks wait in the queue, and the work picks up again as soon as Ollama is back. Its address
+                      is set in the backend&apos;s <span className="font-mono text-[13px]">.env</span>.
                     </p>
                     <Command>ollama serve</Command>
                   </div>
                 )}
+                {agent.mode === "stopped" && (
+                  <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
+                    <p className="font-medium">The agent&apos;s worker is not running.</p>
+                    <p className="mt-1 text-ink-2">Your tasks wait in the queue. Start it from the backend folder:</p>
+                    <Command>composer dev</Command>
+                  </div>
+                )}
                 {agent.mode === "model-missing" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">Model {settings.model} is not installed.</p>
+                    <p className="font-medium">Model {agent.model} is not installed.</p>
                     <p className="mt-1 text-ink-2">Pick one of the models below or pull this one:</p>
-                    <Command>{`ollama pull ${settings.model}`}</Command>
+                    <Command>{`ollama pull ${agent.model}`}</Command>
                   </div>
                 )}
 
@@ -108,7 +119,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {models.map((m) => {
-                      const active = m === settings.model;
+                      const active = m === agent.model;
                       const installed = agent.models.includes(m);
                       return (
                         <button
@@ -156,7 +167,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                 <section className="mt-7">
                   <h3 className="label">pace</h3>
                   <div className="mt-3 grid gap-2">
-                    {(Object.keys(PACE_LABEL) as Pace[]).map((p) => {
+                    {(Object.keys(PACE_LABEL) as (keyof typeof PACE_LABEL)[]).map((p) => {
                       const active = p === settings.pace;
                       return (
                         <button
@@ -177,30 +188,6 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                       );
                     })}
                   </div>
-                </section>
-
-                <section className="mt-7">
-                  <h3 className="label">ollama address</h3>
-                  <form
-                    className="mt-3 flex gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void save({ baseUrl: baseUrl.trim() });
-                    }}
-                  >
-                    <input
-                      value={baseUrl}
-                      onChange={(e) => setBaseUrl(e.target.value)}
-                      className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[13px]"
-                      aria-label="Ollama address"
-                    />
-                    <button
-                      type="submit"
-                      className="focus-ring rounded-full border border-line px-4 text-sm text-ink-2 hover:text-ink"
-                    >
-                      save
-                    </button>
-                  </form>
                 </section>
 
                 <section className="mt-7 flex items-center justify-between gap-4 rounded-2xl border border-line p-4">
@@ -235,8 +222,6 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                     <li>one step at a time</li>
                     <li>up to {LIMITS.maxSteps} steps per task</li>
                     <li>{LIMITS.maxAttempts} attempts per step</li>
-                    <li>up to {Math.round(LIMITS.callTimeoutMs / 60000)} minutes per call</li>
-                    <li>up to {LIMITS.jobBudget} runs per task</li>
                     <li>resumes on its own after interruptions</li>
                   </ul>
                 </section>

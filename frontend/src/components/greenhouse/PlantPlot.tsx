@@ -10,7 +10,7 @@ import { Specimen } from "@/components/flora/Specimen";
 import { PendingBar } from "@/components/PendingBar";
 import { formatReturn } from "@/lib/format";
 import { stageName } from "@/lib/growth";
-import { TONE_CLASS, TONE_DOT, focusOf, moodOf, statusLine } from "@/lib/presence";
+import { TONE_CLASS, TONE_DOT, awaitsAnswer, focusOf, moodOf, statusLine } from "@/lib/presence";
 import type { AgentStatus, TaskSummary } from "@/lib/types";
 import { VIEW, specimenBox } from "./layout";
 import { StepTicks } from "./StepTicks";
@@ -44,9 +44,10 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
       seed: task.id,
       fruit: task.fruit,
       growth: task.growth,
-      steps: task.leaves.map((l) => ({ id: l.id, status: l.status, artifactId: l.artifactId, title: l.title })),
+      steps: task.leaves.map((l) => ({ id: l.id, status: l.phase, artifactId: l.artifactId, title: l.title })),
+      awaiting: awaitsAnswer(task),
     }),
-    [task.id, task.fruit, task.growth, task.leaves],
+    [task],
   );
   const anatomy = useMemo(() => computeAnatomy(state), [state]);
   const line = statusLine(task, agent);

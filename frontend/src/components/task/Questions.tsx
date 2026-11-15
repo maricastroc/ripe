@@ -42,11 +42,13 @@ function OpenQuestion({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
-      className={`border-l-2 py-1 pl-5 ${q.blocking ? "border-accent" : "border-line-2"}`}
+      className={`border-l-2 py-1 pl-5 ${q.kind === "essential" ? "border-accent" : "border-line-2"}`}
     >
       <p className="font-display text-[1.2rem] leading-snug tracking-tight">{q.text}</p>
       <p className="mt-1 text-[13px] text-ink-3">
-        {q.blocking ? <span className="font-mono uppercase tracking-wider text-accent-ink">essential · </span> : null}
+        {q.kind === "essential" ? (
+          <span className="font-mono uppercase tracking-wider text-accent-ink">essential · </span>
+        ) : null}
         {q.why}
       </p>
       {disabled ? (
@@ -99,9 +101,11 @@ function OpenQuestion({
 
 export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, onReopen, onRefresh }: Props) {
   const [refreshing, setRefreshing] = useState(false);
-  const open = questions.filter((q) => q.status === "open").sort((a, b) => Number(b.blocking) - Number(a.blocking));
+  const open = questions
+    .filter((q) => q.status === "open")
+    .sort((a, b) => Number(b.kind === "essential") - Number(a.kind === "essential"));
   const closed = questions.filter((q) => q.status !== "open");
-  const essential = open.some((q) => q.blocking);
+  const essential = open.some((q) => q.kind === "essential");
   if (!questions.length) return null;
 
   return (

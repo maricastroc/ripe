@@ -1,11 +1,12 @@
-import type { AgentStatus, TaskSummary } from "./types";
+import { activityLabel } from "./labels";
+import type { Activity, AgentStatus, TaskSummary } from "./types";
 
 export type PlantMood = "working" | "waiting" | "resting" | "dormant" | "stalled" | "idle" | "harvested";
 
 export type Tone = "accent" | "leaf" | "muted" | "ochre";
 
 export function moodOf(task: TaskSummary): PlantMood {
-  const running = task.activity?.status === "running";
+  const running = task.activity?.running === true;
   switch (task.status) {
     case "dormant":
       return "dormant";
@@ -26,9 +27,13 @@ function lowerFirst(text: string) {
   return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
+function doing(activity: Activity) {
+  return lowerFirst(activityLabel(activity.kind, activity.subject));
+}
+
 export function statusLine(task: TaskSummary, agent: AgentStatus): { text: string; tone: Tone } {
   if (task.isExample) return { text: "illustrative example", tone: "muted" };
-  const running = task.activity?.status === "running";
+  const running = task.activity?.running === true;
   switch (task.status) {
     case "waiting":
       return {
@@ -42,7 +47,7 @@ export function statusLine(task: TaskSummary, agent: AgentStatus): { text: strin
     case "harvested":
       return { text: "harvested", tone: "muted" };
     case "ripe":
-      if (running && task.activity) return { text: lowerFirst(task.activity.label), tone: "leaf" };
+      if (running && task.activity) return { text: doing(task.activity), tone: "leaf" };
       if (task.activity) return { text: "ripe · rewrite queued", tone: "leaf" };
       if (task.openQuestions)
         return {
@@ -51,9 +56,11 @@ export function statusLine(task: TaskSummary, agent: AgentStatus): { text: strin
         };
       return { text: "ripe · ready to review", tone: "leaf" };
     default:
-      if (running && task.activity) return { text: lowerFirst(task.activity.label), tone: "leaf" };
-      if (agent.settings.paused) return { text: "agent paused", tone: "ochre" };
-      if (agent.mode === "offline") return { text: "waiting for Ollama", tone: "ochre" };
+      if (running && task.activity) return { text: doing(task.activity), tone: "leaf" };
+      if (agent.mode === "paused") return { text: "agent paused", tone: "ochre" };
+      if (agent.mode === "halted") return { text: "the greenhouse is resting", tone: "ochre" };
+      if (agent.mode === "offline")
+        return { text: agent.driver === "ollama" ? "waiting for Ollama" : "waiting for the model", tone: "ochre" };
       if (agent.mode === "model-missing") return { text: "waiting for the model", tone: "ochre" };
       if (task.activity?.lastError) return { text: "will try again", tone: "ochre" };
       return { text: "in the queue", tone: "muted" };
@@ -74,13 +81,22 @@ export const TONE_DOT: Record<Tone, string> = {
   ochre: "bg-ochre",
 };
 
+export function awaitsAnswer(task: Pick<TaskSummary, "status" | "essentialOpen" | "growth">): boolean {
+  return (
+    task.status === "waiting" &&
+    task.essentialOpen > 0 &&
+    task.growth.stepsTotal > 0 &&
+    task.growth.stepsDone === task.growth.stepsTotal
+  );
+}
+
 export type WorkFocus =
   { kind: "step"; stepId: string } | { kind: "apex" } | { kind: "seed" } | { kind: "roots" } | null;
 
 export function focusOf(task: Pick<TaskSummary, "activity" | "leaves">): WorkFocus {
   const a = task.activity;
-  if (!a || a.status !== "running") return null;
-  switch (a.type) {
+  if (!a || !a.running) return null;
+  switch (a.kind) {
     case "interpret":
       return { kind: "seed" };
     case "plan":
