@@ -271,9 +271,9 @@ Renewal depends on the clock, not on tokens. Aborting is a matter of removing th
 | `connect_timeout` | 10 s |
 | `first_byte_timeout` | 150 s |
 | `idle_timeout` | 60 s after the first byte |
-| `call_timeout` | 240 s |
-| queue worker `--timeout` | 300 s |
-| queue `retry_after` | 360 s |
+| `call_timeout` | 240 s (Ollama), 300 s (OpenAI) |
+| queue worker `--timeout` | 360 s |
+| queue `retry_after` | 420 s |
 | `max_interruptions` | 3 |
 
 Two ordering constraints are asserted by a test:

@@ -87,9 +87,15 @@ composer setup
 composer check
 ```
 
-`composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. `composer dev` starts the backend's development processes.
+`composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. `composer dev` starts the backend's development processes: the HTTP server on port 8000, the agent's queue worker and the scheduler, which runs `ripe:reconcile` every minute.
 
-The model is chosen by configuration, in `backend/.env`:
+| Command                  | What it does                                                               |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `php artisan ripe:simulate` | Plants a task and ripens it through real queue workers with the fake model, then prints its journal |
+| `php artisan ripe:reconcile` | Recovers expired leases, re-dispatches lost runs and reconciles idle tasks |
+| `php artisan ripe:timing` | Checks that leases, model calls, the worker timeout and queue redelivery are ordered safely |
+
+The agent is configured in `backend/.env`; the model is a matter of configuration alone:
 
 | Variable                  | Meaning                                                         |
 | ------------------------- | --------------------------------------------------------------- |
@@ -98,6 +104,7 @@ The model is chosen by configuration, in `backend/.env`:
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | the OpenAI project key and model                          |
 | `OPENAI_REASONING_EFFORT` | reasoning effort for reasoning models (default `low`)            |
 | `OPENAI_SERVICE_TIER`     | optional service tier, such as `flex`                           |
+| `RIPE_PACE`               | pause between the agent's automatic runs: `calm` (30 s), `steady` (6 s, default), `brisk` (1 s) or `instant` |
 
 `php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, and OpenAI when a key and a model are set.
 
