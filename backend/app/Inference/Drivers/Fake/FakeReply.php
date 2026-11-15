@@ -13,16 +13,20 @@ use App\Inference\Contracts\StreamObserver;
 use App\Inference\ModelRequest;
 use App\Inference\ModelResponse;
 use App\Inference\Usage;
+use Closure;
 use JsonException;
 
 final readonly class FakeReply
 {
+    /** @param array<int, Closure(): void> $tickActions */
     private function __construct(
         private string $text,
         private FinishReason $finishReason = FinishReason::Stop,
         private ?InferenceException $failure = null,
         private ?Usage $usage = null,
         private int $silentTicks = 0,
+        private float $pauseSeconds = 0.0,
+        private array $tickActions = [],
     ) {}
 
     public static function text(string $text, FinishReason $finishReason = FinishReason::Stop, ?Usage $usage = null): self
@@ -52,21 +56,45 @@ final readonly class FakeReply
 
     public function afterSilence(int $ticks): self
     {
-        return new self($this->text, $this->finishReason, $this->failure, $this->usage, $ticks);
+        return new self($this->text, $this->finishReason, $this->failure, $this->usage, $ticks, $this->pauseSeconds, $this->tickActions);
+    }
+
+    public function afterPause(float $seconds): self
+    {
+        return new self($this->text, $this->finishReason, $this->failure, $this->usage, $this->silentTicks, $seconds, $this->tickActions);
+    }
+
+    /** @param Closure(): void $action */
+    public function onTick(int $tick, Closure $action): self
+    {
+        return new self($this->text, $this->finishReason, $this->failure, $this->usage, $this->silentTicks, $this->pauseSeconds, [$tick => $action] + $this->tickActions);
     }
 
     public function play(ModelRequest $request, CallSupervisor $supervisor, ?StreamObserver $observer, string $model): ModelResponse
     {
         $startedAt = hrtime(true);
         $streamed = '';
+        $ticks = 0;
+        $tick = function () use ($supervisor, &$ticks): void {
+            $ticks++;
+            ($this->tickActions[$ticks] ?? null)?->__invoke();
+            $supervisor->tick();
+        };
 
         try {
-            for ($tick = 0; $tick < $this->silentTicks; $tick++) {
-                $supervisor->tick();
+            $pauseUntil = microtime(true) + $this->pauseSeconds;
+
+            while (microtime(true) < $pauseUntil) {
+                $tick();
+                usleep(100_000);
+            }
+
+            for ($silence = 0; $silence < $this->silentTicks; $silence++) {
+                $tick();
             }
 
             foreach ($this->pieces() as $piece) {
-                $supervisor->tick();
+                $tick();
                 $streamed .= $piece;
                 $observer?->onDelta($piece);
             }

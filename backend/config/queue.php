@@ -19,6 +19,15 @@ return [
             'after_commit' => false,
         ],
 
+        'agent' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'agent',
+            'retry_after' => (int) env('RIPE_AGENT_RETRY_AFTER', 420),
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),

@@ -48,6 +48,10 @@ return [
             'models' => [],
         ],
 
+        'fake' => [
+            'pause' => (float) env('RIPE_FAKE_PAUSE', 0),
+        ],
+
         'ollama' => [
             'base_url' => env('OLLAMA_URL', 'http://127.0.0.1:11434'),
             'model' => env('OLLAMA_MODEL', 'gemma4:e4b'),

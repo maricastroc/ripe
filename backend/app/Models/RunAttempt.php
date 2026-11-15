@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\AttemptOutcome;
+use App\Orchestration\AttemptReport;
+use Carbon\CarbonImmutable;
 use Database\Factories\RunAttemptFactory;
 use Illuminate\Database\Eloquent\Attributes\DateFormat;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -33,6 +35,52 @@ class RunAttempt extends Model
     public function run(): BelongsTo
     {
         return $this->belongsTo(AgentRun::class, 'run_id');
+    }
+
+    public function finish(AttemptOutcome $outcome, CarbonImmutable $now, AttemptReport $report = new AttemptReport): bool
+    {
+        if ($this->finished_at !== null) {
+            return false;
+        }
+
+        $usage = $report->usage;
+
+        $this->outcome = $outcome;
+        $this->finished_at = $now;
+        $this->outcome_detail = $report->detail === null ? null : mb_substr($report->detail, 0, 32);
+        $this->error_class = $report->errorClass;
+        $this->error_message = $report->errorMessage;
+        $this->model = $report->model ?? $this->model;
+        $this->provider_request_id = $report->requestId === null ? null : mb_substr($report->requestId, 0, 128);
+        $this->provider_response_id = $report->responseId === null ? null : mb_substr($report->responseId, 0, 128);
+        $this->prompt_tokens = $usage?->inputTokens;
+        $this->cached_prompt_tokens = $usage?->cachedInputTokens;
+        $this->cache_write_tokens = $usage?->cacheWriteTokens;
+        $this->completion_tokens = $usage?->outputTokens;
+        $this->reasoning_tokens = $usage?->reasoningTokens;
+        $this->usage_estimated = $usage !== null && $usage->estimated;
+        $this->cost_microusd = $report->costMicrodollars;
+        $this->ttft_ms = $report->timeToFirstTokenMs;
+        $this->duration_ms = $report->durationMs ?? ($this->started_at === null ? null : max(0, (int) round($this->started_at->diffInMilliseconds($now))));
+        $this->save();
+
+        return true;
+    }
+
+    public function recordLateUsage(AttemptReport $report): void
+    {
+        if ($report->usage === null || $this->prompt_tokens !== null) {
+            return;
+        }
+
+        $this->prompt_tokens = $report->usage->inputTokens;
+        $this->cached_prompt_tokens = $report->usage->cachedInputTokens;
+        $this->cache_write_tokens = $report->usage->cacheWriteTokens;
+        $this->completion_tokens = $report->usage->outputTokens;
+        $this->reasoning_tokens = $report->usage->reasoningTokens;
+        $this->usage_estimated = $report->usage->estimated;
+        $this->cost_microusd ??= $report->costMicrodollars;
+        $this->save();
     }
 
     protected function casts(): array
