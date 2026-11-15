@@ -35,6 +35,17 @@ A bud that needs an answer from you dries out and shows a blue drop. The species
 
 New tasks are sown from a **seed packet** stuck in the soil. Harvested tasks are preserved as jars in **the pantry**. Opening a plant shows its **specimen sheet**: a field journal spread with the plant drawn as a botanical plate — numbered parts keyed to the work they hold — next to the field notes, the live writing, your open questions and the reading room.
 
+## Repository
+
+Ripe is moving to a Laravel backend and a Next.js frontend. The migration happens in stages described in [docs/migration/plan.md](docs/migration/plan.md); until the frontend cut-over, the complete application, agent included, still runs from `frontend/`.
+
+```
+frontend/   the Next.js application: the greenhouse, the agent and its SQLite database
+backend/    the Laravel 13 backend that will take over the agent, the queue and the API
+docs/       the migration plan and the screenshots
+compose.yaml  PostgreSQL 17 for backend development
+```
+
 ## Running it
 
 Requirements: Node 20.9+ and [Ollama](https://ollama.com).
@@ -45,6 +56,7 @@ ollama serve
 ```
 
 ```bash
+cd frontend
 npm install
 npm run setup
 npm run dev
@@ -56,7 +68,7 @@ To see a ripe task without waiting, click "open a ripe example" on the empty bed
 
 ### Environment variables (optional)
 
-See `.env.example`.
+See `frontend/.env.example`.
 
 | Variable       | Default                  |
 | -------------- | ------------------------ |
@@ -64,10 +76,23 @@ See `.env.example`.
 | `OLLAMA_URL`   | `http://127.0.0.1:11434` |
 | `OLLAMA_MODEL` | `gemma4:e4b`             |
 
+### Backend
+
+Requirements: PHP 8.4, Composer and Docker.
+
+```bash
+docker compose up -d --wait postgres
+cd backend
+composer setup
+composer check
+```
+
+`composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. `composer dev` starts the backend's development processes.
+
 ## Architecture
 
 ```
-src/
+frontend/src/
   agent/        the agent: Ollama client, prompts, schemas, queue, worker
   app/          Next.js routes (pages and API)
   components/
@@ -77,7 +102,7 @@ src/
     task/       field notes: live writing, questions, reading room, journal
   hooks/        polling, time-of-day sky, live text animation
   lib/          domain: types, growth, queries, operations
-prisma/         schema, migrations and the example seed
+frontend/prisma/  schema, migrations and the example seed
 ```
 
 ### The agent
@@ -105,20 +130,37 @@ The agent writes in the same language as your request.
 
 ## Scripts
 
-| Script              | What it does                                |
-| ------------------- | ------------------------------------------- |
-| `npm run dev`       | Development server + agent                  |
-| `npm run build`     | Production build                            |
-| `npm run setup`     | Generates the Prisma client, runs migrations |
-| `npm run db:seed`   | Creates the example task                    |
-| `npm run db:reset`  | Drops and recreates the database            |
-| `npm run typecheck` | Type checking                               |
-| `npm run lint`      | ESLint                                      |
-| `npm run format`    | Prettier                                    |
+Frontend, from `frontend/`:
+
+| Script                 | What it does                                 |
+| ---------------------- | -------------------------------------------- |
+| `npm run dev`          | Development server + agent                   |
+| `npm run build`        | Production build                             |
+| `npm run setup`        | Generates the Prisma client, runs migrations |
+| `npm run db:seed`      | Creates the example task                     |
+| `npm run db:reset`     | Drops and recreates the database             |
+| `npm run typecheck`    | Generates route types and type-checks        |
+| `npm run lint`         | ESLint                                       |
+| `npm run format`       | Prettier                                     |
+| `npm run format:check` | Prettier, without writing                    |
+
+Backend, from `backend/`:
+
+| Script             | What it does                                  |
+| ------------------ | --------------------------------------------- |
+| `composer setup`   | Installs dependencies, creates `.env`, migrates |
+| `composer dev`     | Development processes                         |
+| `composer lint`    | Pint, without writing                         |
+| `composer format`  | Pint                                          |
+| `composer analyse` | Larastan at the maximum level                 |
+| `composer test`    | Pest                                          |
+| `composer check`   | All of the above checks                       |
 
 ## Stack
 
-Next.js 16 (App Router, view transitions) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · Prisma 7 + SQLite · Zod · Ollama
+Frontend: Next.js 16 (App Router, view transitions) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · Prisma 7 + SQLite · Zod · Ollama
+
+Backend: Laravel 13 · PHP 8.4 · PostgreSQL 17 · Pest · Pint · Larastan
 
 ## License
 
