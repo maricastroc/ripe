@@ -89,6 +89,18 @@ composer check
 
 `composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. `composer dev` starts the backend's development processes.
 
+The model is chosen by configuration, in `backend/.env`:
+
+| Variable                  | Meaning                                                         |
+| ------------------------- | --------------------------------------------------------------- |
+| `RIPE_INFERENCE_DRIVER`   | `ollama` (default, fully local), `openai` (the hosted demo) or `fake` |
+| `OLLAMA_URL`, `OLLAMA_MODEL` | the local Ollama server and model                            |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | the OpenAI project key and model                          |
+| `OPENAI_REASONING_EFFORT` | reasoning effort for reasoning models (default `low`)            |
+| `OPENAI_SERVICE_TIER`     | optional service tier, such as `flex`                           |
+
+`php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, and OpenAI when a key and a model are set.
+
 ## Architecture
 
 ```
