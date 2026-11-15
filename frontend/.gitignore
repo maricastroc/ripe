@@ -47,3 +47,5 @@ next-env.d.ts
 /prisma/*.db-shm
 !.env.example
 .claude
+/test-results
+/playwright-report
