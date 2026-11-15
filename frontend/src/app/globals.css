@@ -398,6 +398,26 @@ body::after {
   animation: glow-breathe 2.4s ease-in-out infinite;
 }
 
+.bud-pulse {
+  animation: bud-pulse 2.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes bud-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(217, 245, 122, 0));
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 4px rgba(217, 245, 122, 0.9));
+  }
+}
+
 @keyframes glow-breathe {
   0%,
   100% {
@@ -664,6 +684,7 @@ body::after {
   .myc-pulse,
   .myc-breathe,
   .glow-breathe,
+  .bud-pulse,
   .spore,
   .shaft,
   .live-caret > :last-child::after,

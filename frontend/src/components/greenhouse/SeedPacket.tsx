@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ReturnPicker } from "@/components/greenhouse/ReturnPicker";
 import { api } from "@/lib/api";
+import type { TaskDetail } from "@/lib/types";
 import { RETURN_OPTIONS } from "@/lib/format";
 import { catalog } from "./PlantPlot";
 
@@ -68,13 +69,13 @@ export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Pro
     setError(null);
     try {
       const option = RETURN_OPTIONS.find((o) => o.id === returnId) ?? RETURN_OPTIONS[1];
-      const { id } = await api<{ id: string }>("/api/tasks", {
+      const { task } = await api<{ task: TaskDetail }>("/api/tasks", {
         method: "POST",
         body: { prompt, defer, returnAt: option.at().toISOString() },
       });
       setText("");
       setDropping((d) => d + 1);
-      setTimeout(() => onPlanted(id), 520);
+      setTimeout(() => onPlanted(task.id), 520);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't plant it right now.");
     } finally {

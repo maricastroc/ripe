@@ -3,9 +3,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { formatDayStamp } from "@/lib/format";
-import type { EventKind, EventView } from "@/lib/types";
+import type { EventView, NoteKind } from "@/lib/types";
 
-const DOT: Record<EventKind, string> = {
+const DOT: Record<NoteKind, string> = {
   user: "bg-ink",
   info: "bg-line-2",
   work: "bg-leaf-2",
@@ -14,7 +14,7 @@ const DOT: Record<EventKind, string> = {
   error: "bg-accent",
 };
 
-const WHO: Record<EventKind, string> = {
+const WHO: Record<NoteKind, string> = {
   user: "you",
   info: "ripe",
   work: "agent",

@@ -1,7 +1,8 @@
 import { BookOpen, Flag, MessageCircleQuestion, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatRelative, returnWhen } from "@/lib/format";
-import type { AgentStatus, StepStatus, TaskDetail } from "@/lib/types";
+import { activityLabel } from "@/lib/labels";
+import type { AgentStatus, StepPhase, TaskDetail } from "@/lib/types";
 
 type Tone = "ink" | "leaf" | "vermilion" | "muted";
 
@@ -12,10 +13,10 @@ const TONE: Record<Tone, string> = {
   muted: "text-ink-2",
 };
 
-const SEGMENT: Record<StepStatus, string> = {
+const SEGMENT: Record<StepPhase, string> = {
   done: "bg-leaf",
   working: "bg-leaf-2 glow-breathe",
-  pending: "bg-line-2",
+  ready: "bg-line-2",
   blocked: "bg-ochre",
 };
 
@@ -67,8 +68,12 @@ function agentWork(task: TaskDetail, agent: AgentStatus): { value: string; detai
   const written = total ? `${done} of ${plural(total, "step", "steps")} written` : "No plan yet";
   if (task.growth.stage === "ripe")
     return { value: "Finished", detail: `All ${plural(total, "step", "steps")} written and reviewed.`, tone: "leaf" };
-  if (task.activity?.status === "running")
-    return { value: "Working now", detail: `${task.activity.label}. ${written}.`, tone: "leaf" };
+  if (task.activity?.running)
+    return {
+      value: "Working now",
+      detail: `${activityLabel(task.activity.kind, task.activity.subject)}. ${written}.`,
+      tone: "leaf",
+    };
   switch (task.status) {
     case "waiting":
       return { value: "As far as it can go", detail: `${written}. The rest needs your answer.`, tone: "vermilion" };
@@ -79,12 +84,14 @@ function agentWork(task: TaskDetail, agent: AgentStatus): { value: string; detai
     case "harvested":
       return { value: "Stopped when you harvested", detail: `${written}.`, tone: "muted" };
   }
-  if (agent.settings.paused)
+  if (agent.mode === "paused")
     return { value: "Agent paused", detail: `${written}. It resumes when you turn it back on.`, tone: "muted" };
+  if (agent.mode === "halted")
+    return { value: "Resting for now", detail: `${written}. It picks up again on its own.`, tone: "muted" };
   if (agent.mode === "offline")
     return {
-      value: "Waiting for Ollama",
-      detail: `${written}. It picks up again once Ollama is running.`,
+      value: agent.driver === "ollama" ? "Waiting for Ollama" : "Waiting for the model",
+      detail: `${written}. It picks up again once the model is back.`,
       tone: "muted",
     };
   if (agent.mode === "model-missing") return { value: "Waiting for the model", detail: `${written}.`, tone: "muted" };
@@ -127,7 +134,7 @@ function Cell({
 
 export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentStatus }) {
   const open = task.questions.filter((q) => q.status === "open");
-  const essential = open.filter((q) => q.blocking).length;
+  const essential = open.filter((q) => q.kind === "essential").length;
   const optional = open.length - essential;
   const stepPieces = task.artifacts.filter((a) => a.kind === "step").length;
   const review = task.artifacts.some((a) => a.kind === "review");
@@ -159,13 +166,13 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
           {task.steps.length > 0 && (
             <span className="mt-2 flex gap-1" aria-hidden>
               {task.steps.map((step) => (
-                <span key={step.id} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.status]}`} />
+                <span key={step.id} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.phase]}`} />
               ))}
               <span
                 className={`h-1.5 flex-1 rounded-full ${
                   task.growth.stage === "ripe"
                     ? "bg-vermilion/80"
-                    : task.activity?.status === "running" && task.activity.type === "review"
+                    : task.activity?.running && task.activity.kind === "review"
                       ? "glow-breathe bg-leaf-2"
                       : "bg-line-2"
                 }`}

@@ -1,7 +1,7 @@
-import type { JobType } from "./types";
+import type { RunKind } from "./types";
 
-export function jobLabel(type: JobType | string, subject?: string | null) {
-  switch (type) {
+export function activityLabel(kind: RunKind, subject?: string | null) {
+  switch (kind) {
     case "interpret":
       return "Reading your request";
     case "plan":

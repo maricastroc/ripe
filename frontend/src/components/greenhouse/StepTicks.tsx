@@ -6,7 +6,7 @@ export function StepTicks({ leaves, className }: { leaves: LeafState[]; classNam
     <span className={`inline-flex items-center gap-1 ${className ?? ""}`} aria-hidden>
       {leaves.map((leaf) => (
         <svg key={leaf.id} viewBox="0 0 12 12" className="h-3 w-3">
-          {leaf.status === "done" && (
+          {leaf.phase === "done" && (
             <path
               d="M1.5 10.5 C 1.5 5, 5 1.5, 10.5 1.5 C 10.5 7, 7 10.5, 1.5 10.5 Z"
               fill="var(--leaf)"
@@ -14,7 +14,7 @@ export function StepTicks({ leaves, className }: { leaves: LeafState[]; classNam
               strokeWidth={0.6}
             />
           )}
-          {leaf.status === "working" && (
+          {leaf.phase === "working" && (
             <>
               <path
                 d="M1.5 10.5 C 1.5 5, 5 1.5, 10.5 1.5 C 10.5 7, 7 10.5, 1.5 10.5 Z"
@@ -25,7 +25,7 @@ export function StepTicks({ leaves, className }: { leaves: LeafState[]; classNam
               <path d="M1.5 10.5 C 1.5 5, 5 1.5, 10.5 1.5 L 1.5 10.5 Z" fill="var(--leaf-2)" className="glow-breathe" />
             </>
           )}
-          {leaf.status === "pending" && (
+          {leaf.phase === "ready" && (
             <path
               d="M6 11 C 3.5 8, 3.5 4, 6 1 C 8.5 4, 8.5 8, 6 11 Z"
               fill="none"
@@ -33,7 +33,7 @@ export function StepTicks({ leaves, className }: { leaves: LeafState[]; classNam
               strokeWidth={0.9}
             />
           )}
-          {leaf.status === "blocked" && (
+          {leaf.phase === "blocked" && (
             <path
               d="M6 11 C 3.5 8, 3.5 4, 6 1 C 8.5 4, 8.5 8, 6 11 Z"
               fill="var(--ochre)"

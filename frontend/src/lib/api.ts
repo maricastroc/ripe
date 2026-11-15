@@ -2,28 +2,47 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public body: Record<string, unknown> = {},
   ) {
     super(message);
   }
 }
 
+function messageOf(body: Record<string, unknown>, status: number): string {
+  const errors = body.errors;
+  if (errors && typeof errors === "object") {
+    const first = Object.values(errors as Record<string, unknown>)[0];
+    if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+  }
+  if (typeof body.message === "string" && body.message) return body.message;
+  if (status === 429) return "That was a lot at once. Give it a minute.";
+  return `Ripe answered with an error (${status}).`;
+}
+
 export async function api<T>(
   url: string,
-  init?: { method?: string; body?: unknown; signal?: AbortSignal },
+  init?: { method?: string; body?: unknown; signal?: AbortSignal; keepalive?: boolean },
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, {
       method: init?.method ?? "GET",
-      headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      headers: {
+        Accept: "application/json",
+        ...(init?.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
       body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
       cache: "no-store",
+      credentials: "same-origin",
       signal: init?.signal,
+      keepalive: init?.keepalive,
     });
-  } catch {
+  } catch (err) {
+    if (init?.signal?.aborted) throw err;
     throw new ApiError("Can't reach Ripe. Is the server still running?", 0);
   }
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status);
-  return data;
+  if (res.status === 204) return undefined as T;
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) throw new ApiError(messageOf(body, res.status), res.status, body);
+  return body as T;
 }

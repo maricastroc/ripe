@@ -1,31 +1,4 @@
-import type { Fruit, Growth, Stage, StepStatus } from "./types";
-
-type GrowthInput = {
-  interpretedAt: Date | string | null;
-  plannedAt: Date | string | null;
-  reviewedAt: Date | string | null;
-  steps: { status: StepStatus | string }[];
-};
-
-export function computeGrowth(task: GrowthInput): Growth {
-  const stepsTotal = task.steps.length;
-  const stepsDone = task.steps.filter((s) => s.status === "done").length;
-
-  let stage: Stage = "seed";
-  if (task.interpretedAt) stage = "sprout";
-  if (task.plannedAt && stepsTotal > 0) stage = "leafing";
-  if (stepsDone >= 1) stage = "blossom";
-  if (stepsTotal > 0 && stepsDone >= Math.max(2, Math.ceil(stepsTotal / 2))) stage = "fruit";
-  if (task.reviewedAt) stage = "ripe";
-
-  const maturity =
-    (task.interpretedAt ? 0.12 : 0) +
-    (task.plannedAt ? 0.13 : 0) +
-    (stepsTotal ? 0.6 * (stepsDone / stepsTotal) : 0) +
-    (task.reviewedAt ? 0.15 : 0);
-
-  return { stage, maturity: Math.min(1, maturity), stepsDone, stepsTotal };
-}
+import type { Fruit, Stage } from "./types";
 
 export const STAGES: { id: Stage; name: string; hint: string }[] = [
   { id: "seed", name: "Seed", hint: "Planted. The agent hasn't read it yet" },

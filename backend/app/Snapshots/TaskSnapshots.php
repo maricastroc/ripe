@@ -44,7 +44,7 @@ final class TaskSnapshots
         ])->findOrFail($task->id);
     }
 
-    public function number(Task $task): int
+    public static function numberOf(Task $task): int
     {
         return Task::query()
             ->where('is_example', $task->is_example)

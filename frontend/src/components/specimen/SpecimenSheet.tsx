@@ -21,7 +21,7 @@ import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
 import { returnWhen } from "@/lib/format";
 import { DELIVERABLE_LABEL } from "@/lib/labels";
-import { focusOf, moodOf } from "@/lib/presence";
+import { awaitsAnswer, focusOf, moodOf } from "@/lib/presence";
 import type { AgentStatus, TaskDetail } from "@/lib/types";
 import { GrowthSeries } from "./GrowthSeries";
 import { StatusBoard } from "./StatusBoard";
@@ -31,7 +31,7 @@ type Data = { task: TaskDetail; agent: AgentStatus };
 
 function interval(d: Data) {
   const a = d.task.activity;
-  if (a?.status === "running") return 1200;
+  if (a?.running) return 1200;
   if (a || d.task.status === "ripening") return 2500;
   return 7000;
 }
@@ -139,6 +139,16 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
     [data, setData],
   );
 
+  const reload = useCallback(async () => {
+    try {
+      const next = await api<Data>(`/api/tasks/${initial.task.id}`);
+      setData(next);
+      return next.task;
+    } catch {
+      return null;
+    }
+  }, [initial.task.id, setData]);
+
   async function run<T extends { task?: TaskDetail | null }>(work: () => Promise<T>) {
     setBusy(true);
     setNotice(null);
@@ -153,13 +163,18 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
     }
   }
 
-  const patchTask = (body: object) =>
-    run(() => api<{ task: TaskDetail }>(`/api/tasks/${task.id}`, { method: "PATCH", body }));
+  type TaskAction = "defer" | "resume" | "pause" | "harvest" | "replant" | "refresh";
+
+  const act = (action: TaskAction, body?: object) =>
+    run(() => api<{ task: TaskDetail }>(`/api/tasks/${task.id}/${action}`, { method: "POST", body: body ?? {} }));
+
+  const rename = (title: string) =>
+    run(() => api<{ task: TaskDetail }>(`/api/tasks/${task.id}`, { method: "PATCH", body: { title } }));
 
   async function harvest() {
     setDropping(true);
     await new Promise((r) => setTimeout(r, 950));
-    await patchTask({ action: "harvest" });
+    await act("harvest");
     router.push("/");
   }
 
@@ -188,7 +203,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
   const defaultSelected =
     task.status === "ripe"
       ? (finalId ?? stepArtifacts[stepArtifacts.length - 1]?.id)
-      : [...task.artifacts].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]?.id;
+      : [...task.artifacts].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))[0]?.id;
   const selectedId = resolve(picked) ?? defaultSelected ?? null;
 
   const organOf = (artifactId: string | null) => {
@@ -202,9 +217,10 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
       seed: task.id,
       fruit: task.fruit,
       growth: task.growth,
-      steps: task.steps.map((s) => ({ id: s.id, status: s.status, artifactId: s.artifactId, title: s.title })),
+      steps: task.steps.map((s) => ({ id: s.id, status: s.phase, artifactId: s.artifactId, title: s.title })),
+      awaiting: awaitsAnswer(task),
     }),
-    [task.id, task.fruit, task.growth, task.steps],
+    [task],
   );
 
   const scrollTo = (id: string) =>
@@ -216,6 +232,10 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
         setPicked(finalId);
         scrollTo("harvest");
       } else scrollTo("now-title");
+      return;
+    }
+    if (key === "waiting") {
+      scrollTo("questions-title");
       return;
     }
     if (key === "tag") {
@@ -230,7 +250,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
     if (step.artifactId) {
       setPicked(step.artifactId);
       scrollTo("harvest");
-    } else if (step.status === "blocked") scrollTo("questions-title");
+    } else if (step.phase === "blocked" && step.waitingFor === "answer") scrollTo("questions-title");
     else scrollTo("now-title");
   };
 
@@ -277,7 +297,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
         </div>
         <button
           type="button"
-          onClick={() => setSettings(true)}
+          onClick={() => setSettings(agent.hosting === "local")}
           className="focus-ring typewriter inline-flex min-h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-scene-ink/20 px-3 text-[11.5px] text-scene-ink-2 transition-colors hover:border-scene-ink/45 hover:text-scene-ink"
         >
           <Settings2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -290,10 +310,14 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
             {agent.mode === "working"
               ? "working"
               : agent.mode === "offline"
-                ? "Ollama off"
-                : agent.settings.paused
+                ? agent.driver === "ollama"
+                  ? "Ollama off"
+                  : "offline"
+                : agent.mode === "paused"
                   ? "paused"
-                  : "resting"}
+                  : agent.mode === "halted" || agent.mode === "stopped"
+                    ? "resting"
+                    : "ready"}
           </span>
         </button>
       </header>
@@ -328,7 +352,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
             {task.isExample && (
               <p className="mb-5 rounded-sm border border-dashed border-vermilion/50 px-3 py-2 text-[13px] text-ink-2">
                 <span className="label mr-2 text-vermilion-ink">example</span>
-                Made by hand for the demo. The agent never runs on it.
+                Grown once by a scripted model to show a ripe task. The agent never works on it again.
               </p>
             )}
             <div className="flex items-baseline justify-between gap-3">
@@ -345,7 +369,7 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
                 </button>
               ) : (
                 <p className="typewriter text-[11.5px] text-ink-3" suppressHydrationWarning>
-                  sown {dayFormat.format(new Date(task.createdAt))}
+                  {task.createdAt ? `sown ${dayFormat.format(new Date(task.createdAt))}` : null}
                 </p>
               )}
             </div>
@@ -402,43 +426,32 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
               <Actions
                 task={task}
                 busy={busy}
-                onDefer={(returnAt) => patchTask({ action: "defer", returnAt })}
-                onPause={() => patchTask({ action: "pause" })}
-                onRetry={() => patchTask({ action: "resume" })}
+                onDefer={(returnAt) => act("defer", { returnAt })}
+                onPause={() => act("pause")}
+                onRetry={() => act("resume")}
                 onHarvest={harvest}
-                onReplant={() => patchTask({ action: "replant" })}
+                onReplant={() => act("replant")}
                 onDelete={remove}
               />
             </div>
           </aside>
 
           <main className="min-w-0 space-y-14 border-t border-dashed border-line-2 px-5 pb-12 pt-10 sm:px-10 lg:border-t-0 lg:pl-14">
-            <Title task={task} onRename={(title) => patchTask({ action: "rename", title })} />
+            <Title task={task} onRename={rename} />
             <StatusBoard task={task} agent={agent} />
-            <NowPanel task={task} agent={agent} busy={busy} onAct={() => patchTask({ action: "resume" })} />
+            <NowPanel task={task} agent={agent} busy={busy} onAct={() => act("resume")} />
             <Questions
               questions={task.questions}
               disabled={readOnly}
               canRefresh={canRefresh}
               onAnswer={(id, answer) =>
                 run(() =>
-                  api<{ task: TaskDetail }>(`/api/questions/${id}`, {
-                    method: "PATCH",
-                    body: { action: "answer", answer },
-                  }),
+                  api<{ task: TaskDetail }>(`/api/questions/${id}/answer`, { method: "POST", body: { answer } }),
                 )
               }
-              onSkip={(id) =>
-                run(() =>
-                  api<{ task: TaskDetail }>(`/api/questions/${id}`, { method: "PATCH", body: { action: "skip" } }),
-                )
-              }
-              onReopen={(id) =>
-                run(() =>
-                  api<{ task: TaskDetail }>(`/api/questions/${id}`, { method: "PATCH", body: { action: "reopen" } }),
-                )
-              }
-              onRefresh={() => patchTask({ action: "refresh" })}
+              onSkip={(id) => run(() => api<{ task: TaskDetail }>(`/api/questions/${id}/skip`, { method: "POST" }))}
+              onReopen={(id) => run(() => api<{ task: TaskDetail }>(`/api/questions/${id}/reopen`, { method: "POST" }))}
+              onRefresh={() => act("refresh")}
             />
             <Harvest
               artifacts={task.artifacts}
@@ -452,17 +465,19 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
               readOnly={readOnly}
               onRevise={(id, instruction) =>
                 run(() =>
-                  api<{ task: TaskDetail }>(`/api/artifacts/${id}`, {
-                    method: "PATCH",
-                    body: { action: "revise", instruction },
+                  api<{ task: TaskDetail }>(`/api/artifacts/${id}/revise`, { method: "POST", body: { instruction } }),
+                )
+              }
+              onRestore={(id, baseVersionId) =>
+                run(() =>
+                  api<{ task: TaskDetail }>(`/api/artifacts/${id}/restore`, {
+                    method: "POST",
+                    body: { baseVersionId },
                   }),
                 )
               }
-              onRestore={(id) =>
-                run(() =>
-                  api<{ task: TaskDetail }>(`/api/artifacts/${id}`, { method: "PATCH", body: { action: "restore" } }),
-                )
-              }
+              onTaskChange={applyTask}
+              reload={reload}
             />
             <Understanding task={task} />
             <Journal events={task.events} />
@@ -470,12 +485,14 @@ export function SpecimenSheet({ initial, initialPiece }: { initial: Data; initia
         </div>
       </div>
 
-      <SettingsDialog
-        open={settings}
-        onOpenChange={setSettings}
-        agent={agent}
-        onChange={(next) => setData({ ...data, agent: next })}
-      />
+      {agent.hosting === "local" && (
+        <SettingsDialog
+          open={settings}
+          onOpenChange={setSettings}
+          agent={agent}
+          onChange={(next) => setData({ ...data, agent: next })}
+        />
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ const CAPS: Cap[] = [
 
 export function Fungus({ mode, paused }: { mode: AgentMode; paused: boolean }) {
   const down = mode === "offline" || mode === "stopped" || mode === "model-missing";
-  const active = !down && !paused && (mode === "working" || mode === "resting");
+  const active = !down && !paused && mode === "working";
   const capFill = down ? "#a8a196" : "#d8c49c";
   const capTop = down ? "#8c867b" : "#b98f5e";
   const gill = down ? "#c9c3b5" : active ? "#eaff9a" : "#f1ebd2";

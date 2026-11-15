@@ -1786,6 +1786,18 @@
                 ],
                 "title": "KeepDraftRequest"
             },
+            "NoteKind": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "info",
+                    "work",
+                    "done",
+                    "warn",
+                    "error"
+                ],
+                "title": "NoteKind"
+            },
             "OutputFormat": {
                 "type": "string",
                 "enum": [
@@ -2100,7 +2112,8 @@
                         ]
                     },
                     "number": {
-                        "type": "string"
+                        "type": "integer",
+                        "minimum": 0
                     },
                     "language": {
                         "type": [
@@ -2126,11 +2139,15 @@
                     },
                     "context": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "assumptions": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "steps": {
                         "type": "array",
@@ -2167,11 +2184,15 @@
                                 },
                                 "dependsOn": {
                                     "type": "array",
-                                    "items": {}
+                                    "items": {
+                                        "type": "string"
+                                    }
                                 },
                                 "requires": {
                                     "type": "array",
-                                    "items": {}
+                                    "items": {
+                                        "type": "string"
+                                    }
                                 },
                                 "artifactId": {
                                     "type": [
@@ -2394,14 +2415,36 @@
                     },
                     "events": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "kind": {
+                                    "$ref": "#/components/schemas/NoteKind"
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "createdAt": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "kind",
+                                "message",
+                                "createdAt"
+                            ]
+                        }
                     },
                     "runsUsed": {
                         "type": "integer",
                         "minimum": 0
                     },
                     "runBudget": {
-                        "type": "string"
+                        "type": "integer"
                     }
                 },
                 "required": [

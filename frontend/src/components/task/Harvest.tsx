@@ -4,10 +4,10 @@ import { Check, Copy, Download, PanelLeftClose, PanelLeftOpen, PenLine, Tag, Und
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/Markdown";
-import { api } from "@/lib/api";
+import { type DraftConflict, type DraftState, useDraft } from "@/hooks/useDraft";
 import { formatRelative } from "@/lib/format";
 import { countWords } from "@/lib/markers";
-import type { Activity, ArtifactView, StepView } from "@/lib/types";
+import type { Activity, ArtifactView, StepView, TaskDetail } from "@/lib/types";
 
 type Props = {
   artifacts: ArtifactView[];
@@ -20,7 +20,9 @@ type Props = {
   onToggleWide?: () => void;
   readOnly: boolean;
   onRevise: (id: string, instruction: string) => Promise<void>;
-  onRestore: (id: string) => Promise<void>;
+  onRestore: (id: string, baseVersionId: string) => Promise<void>;
+  onTaskChange: (task: TaskDetail) => void;
+  reload: () => Promise<TaskDetail | null>;
 };
 
 const tool =
@@ -28,12 +30,10 @@ const tool =
 
 const QUICK = ["shorter and more direct", "more formal tone", "more detailed", "as bullet points", "warmer"];
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-
 function slug(text: string) {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
@@ -42,18 +42,14 @@ function slug(text: string) {
 
 function Editor({
   artifact,
-  initial,
+  value,
   onChange,
 }: {
   artifact: ArtifactView;
-  initial: string;
-  onChange: (content: string) => void;
+  value: string;
+  onChange: (next: string) => void;
 }) {
-  const [value, setValue] = useState(initial);
-  const [state, setState] = useState<SaveState>("idle");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
-  const latest = useRef(value);
 
   useEffect(() => {
     const el = area.current;
@@ -61,35 +57,6 @@ function Editor({
     el.style.height = "auto";
     el.style.height = `${Math.max(320, el.scrollHeight)}px`;
   }, [value]);
-
-  useEffect(() => {
-    return () => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        void api(`/api/artifacts/${artifact.id}`, {
-          method: "PATCH",
-          body: { action: "edit", content: latest.current },
-        });
-      }
-    };
-  }, [artifact.id]);
-
-  function change(next: string) {
-    setValue(next);
-    latest.current = next;
-    onChange(next);
-    setState("saving");
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      timer.current = null;
-      try {
-        await api(`/api/artifacts/${artifact.id}`, { method: "PATCH", body: { action: "edit", content: next } });
-        setState("saved");
-      } catch {
-        setState("error");
-      }
-    }, 800);
-  }
 
   return (
     <div>
@@ -100,19 +67,56 @@ function Editor({
         id={`edit-${artifact.id}`}
         ref={area}
         value={value}
-        onChange={(e) => change(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         spellCheck
         className="block w-full resize-none bg-transparent font-mono text-[14px] leading-[1.75] text-ink outline-none"
       />
-      <p className="label mt-3 text-right" aria-live="polite">
-        {state === "saving"
-          ? "saving…"
-          : state === "saved"
-            ? "saved"
-            : state === "error"
-              ? "not saved yet · it tries again as you type"
-              : "markdown · saves as you type"}
+    </div>
+  );
+}
+
+const SAVE_LABEL: Record<DraftState, string> = {
+  idle: "markdown · saves as you type",
+  saving: "saving…",
+  saved: "draft saved · kept as a version when you stop",
+  kept: "kept as a new version",
+  error: "not saved yet · it tries again as you type",
+};
+
+function ConflictNotice({
+  conflict,
+  onKeepMine,
+  onTakeTheirs,
+}: {
+  conflict: NonNullable<DraftConflict>;
+  onKeepMine: () => void;
+  onTakeTheirs: () => void;
+}) {
+  const overtaken = conflict.kind === "overtaken";
+  return (
+    <div role="alert" className="border-b border-line bg-accent-soft px-5 py-4 text-[14px] text-ink sm:px-8">
+      <p className="font-medium">
+        {overtaken
+          ? "Ripe wrote a new version of this piece while you were editing."
+          : "This piece was edited in another tab or window."}
       </p>
+      <p className="mt-1 text-ink-2">Your edits are safe as a draft. Choose which one to go on with.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onKeepMine}
+          className="focus-ring rounded-full bg-ink px-4 py-1.5 text-[13px] font-medium text-paper"
+        >
+          keep my edits
+        </button>
+        <button
+          type="button"
+          onClick={onTakeTheirs}
+          className="focus-ring rounded-full border border-line px-4 py-1.5 text-[13px] text-ink-2 hover:text-ink"
+        >
+          {overtaken ? "use the new version" : "load the other edits"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -129,24 +133,36 @@ export function Harvest({
   readOnly,
   onRevise,
   onRestore,
+  onTaskChange,
+  reload,
 }: Props) {
   const [chosenMode, setMode] = useState<"read" | "edit">("read");
   const [revising, setRevising] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [local, setLocal] = useState<Record<string, { content: string; version: number }>>({});
-
   const current = artifacts.find((a) => a.id === selected) ?? artifacts[artifacts.length - 1] ?? null;
   const stepNumber = useMemo(() => new Map(steps.map((s) => [s.id, s.position + 1])), [steps]);
-  const busyHere = activity?.type === "revise" && activity.artifactId === current?.id;
-  const draft = current ? local[current.id] : undefined;
-  const content = current ? (draft && draft.version === current.version ? draft.content : current.content) : "";
+  const busyHere = activity?.kind === "revise" && activity.artifactId === current?.id;
+  const draft = useDraft(current, onTaskChange, reload);
+  const keepRef = useRef(draft.keep);
+
+  useEffect(() => {
+    keepRef.current = draft.keep;
+  }, [draft.keep]);
+
+  useEffect(() => () => void keepRef.current(), []);
 
   const mode = busyHere ? "read" : chosenMode;
+  const content = current ? (mode === "edit" ? draft.value : current.content) : "";
+
+  async function leaveEditing() {
+    setMode("read");
+    await draft.keep();
+  }
 
   if (!artifacts.length) {
-    const next = steps.find((s) => s.status === "working") ?? steps.find((s) => s.status === "pending");
+    const next = steps.find((s) => s.phase === "working") ?? steps.find((s) => s.phase === "ready");
     return (
       <section id="harvest" aria-labelledby="harvest-title">
         <h2 id="harvest-title" className="label mb-3">
@@ -186,6 +202,7 @@ export function Harvest({
     if (!current || !text.trim()) return;
     setSending(true);
     try {
+      await draft.keep();
       await onRevise(current.id, text.trim());
       setInstruction("");
       setRevising(false);
@@ -220,8 +237,7 @@ export function Harvest({
               onMouseEnter={() => onHover?.(a.id)}
               onMouseLeave={() => onHover?.(null)}
               onClick={() => {
-                onSelect(a.id);
-                setMode("read");
+                void leaveEditing().then(() => onSelect(a.id));
                 setRevising(false);
               }}
               className={`focus-ring relative shrink-0 rounded-full px-3.5 py-1.5 text-[13.5px] transition-colors ${
@@ -261,7 +277,7 @@ export function Harvest({
                   key={m}
                   type="button"
                   disabled={readOnly || busyHere}
-                  onClick={() => setMode(m)}
+                  onClick={() => (m === "read" ? void leaveEditing() : setMode("edit"))}
                   aria-pressed={mode === m}
                   className={`focus-ring flex-1 rounded-full px-3 py-1 text-[13px] transition-colors disabled:opacity-40 sm:flex-none ${
                     mode === m ? "bg-surface text-ink shadow-sm" : "text-ink-3 hover:text-ink"
@@ -296,8 +312,12 @@ export function Harvest({
                   rewrite…
                 </button>
               )}
-              {!readOnly && current.hasPrevious && !busyHere && (
-                <button type="button" onClick={() => void onRestore(current.id)} className={tool}>
+              {!readOnly && current.versions.length > 1 && current.version && !draft.hasDraft && !busyHere && (
+                <button
+                  type="button"
+                  onClick={() => current.version && void onRestore(current.id, current.version.id)}
+                  className={tool}
+                >
                   <Undo2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                   previous version
                 </button>
@@ -320,6 +340,28 @@ export function Harvest({
               )}
             </div>
           </div>
+
+          {draft.conflict && (
+            <ConflictNotice
+              conflict={draft.conflict}
+              onKeepMine={() => void draft.keepMine()}
+              onTakeTheirs={() => void draft.takeTheirs()}
+            />
+          )}
+
+          {!draft.conflict && draft.hasDraft && mode === "read" && !readOnly && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/60 px-5 py-3 text-[13.5px] text-ink-2 sm:px-8">
+              <span>You have edits to this piece that are not kept as a version yet.</span>
+              <span className="flex gap-2">
+                <button type="button" onClick={() => setMode("edit")} className={tool}>
+                  go on editing
+                </button>
+                <button type="button" onClick={() => void draft.keep()} className={tool}>
+                  keep them
+                </button>
+              </span>
+            </div>
+          )}
 
           <AnimatePresence initial={false}>
             {revising && !busyHere && (
@@ -376,20 +418,19 @@ export function Harvest({
           <div className="notebook relative py-7 pl-12 pr-5 sm:pl-14 sm:pr-10">
             <AnimatePresence mode="wait">
               <motion.div
-                key={`${current.id}-${mode}-${current.version}`}
+                key={`${current.id}-${mode}-${current.version?.id ?? "none"}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: busyHere ? 0.35 : 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
                 {mode === "edit" && !readOnly ? (
-                  <Editor
-                    artifact={current}
-                    initial={content}
-                    onChange={(next) =>
-                      setLocal((l) => ({ ...l, [current.id]: { content: next, version: current.version } }))
-                    }
-                  />
+                  <>
+                    <Editor artifact={current} value={draft.value} onChange={draft.edit} />
+                    <p className="label mt-3 text-right" aria-live="polite">
+                      {draft.conflict ? "edits paused until you choose" : SAVE_LABEL[draft.state]}
+                    </p>
+                  </>
                 ) : (
                   <Markdown content={content} className="max-w-[72ch]" />
                 )}
@@ -407,10 +448,10 @@ export function Harvest({
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-5 py-3 font-mono text-[11.5px] text-ink-3 sm:px-8">
             <span>{countWords(content)} words</span>
-            <span>v{current.version}</span>
+            {current.version && <span>v{current.version.number}</span>}
             {current.editedByUser && <span className="text-leaf-dark">edited by you</span>}
             {current.model && current.model !== "example" && <span>{current.model}</span>}
-            <span suppressHydrationWarning>updated {formatRelative(current.updatedAt)}</span>
+            {current.updatedAt && <span suppressHydrationWarning>updated {formatRelative(current.updatedAt)}</span>}
             {current.gaps.length > 0 && (
               <span className="text-accent-ink">
                 {current.gaps.length} open {current.gaps.length === 1 ? "gap" : "gaps"}

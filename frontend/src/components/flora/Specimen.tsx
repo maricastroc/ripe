@@ -98,7 +98,7 @@ function Bud({
   pos: Pt;
   angle: number;
   size: number;
-  tone: "pending" | "blocked" | "working";
+  tone: "ready" | "blocked" | "working";
   from: From;
 }) {
   const full = budPaths(pos, angle, size);
@@ -106,7 +106,7 @@ function Bud({
   const fill = tone === "blocked" ? "#c9a24a" : tone === "working" ? "#a8c77c" : "#9fbd7a";
   const scale = tone === "blocked" ? "#8f6f2a" : "#4f7a3c";
   return (
-    <g>
+    <g className={tone === "working" ? "bud-pulse" : undefined}>
       <motion.path
         initial={from({ d: tiny.body })}
         animate={{ d: full.body }}
@@ -383,7 +383,7 @@ function branchLabel(b: BranchSpec) {
         ? "being written"
         : b.status === "blocked"
           ? "waiting on you"
-          : "not started";
+          : "ready to start";
   return `Step ${b.index}${b.title ? `: ${b.title}` : ""}, ${what}`;
 }
 
@@ -750,7 +750,7 @@ export function Specimen({
                     pos={branch.bud.pos}
                     angle={branch.bud.angle}
                     size={branch.bud.size}
-                    tone={branch.status === "blocked" ? "blocked" : branch.status === "working" ? "working" : "pending"}
+                    tone={branch.status === "blocked" ? "blocked" : branch.status === "working" ? "working" : "ready"}
                     from={from}
                   />
                 )}
@@ -848,7 +848,7 @@ export function Specimen({
                     pos={anatomy.apex.pos}
                     angle={anatomy.apex.angle}
                     size={anatomy.apex.size}
-                    tone="pending"
+                    tone="ready"
                     from={from}
                   />
                 )}
@@ -928,6 +928,45 @@ export function Specimen({
                   style={{ fill: "#5a4630", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
                 >
                   review
+                </text>
+              </g>
+            </motion.g>
+          </Hit>
+        )}
+
+        {anatomy.waiting && (
+          <Hit
+            id="waiting"
+            label="Waiting for your answer before the review"
+            at={anatomy.waiting.card}
+            r={18}
+            onHover={onHover}
+            onSelect={onSelect}
+          >
+            <motion.g initial={from({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+              <path
+                d={`M ${r1(anatomy.waiting.knot.x)} ${r1(anatomy.waiting.knot.y)} Q ${r1((anatomy.waiting.knot.x + anatomy.waiting.card.x) / 2)} ${r1(anatomy.waiting.card.y + 4)} ${r1(anatomy.waiting.card.x)} ${r1(anatomy.waiting.card.y - 8)}`}
+                style={{ fill: "none", stroke: "#8a6a45", strokeWidth: 0.7 }}
+              />
+              <g
+                transform={`translate(${r1(anatomy.waiting.card.x)} ${r1(anatomy.waiting.card.y)}) rotate(${anatomy.waiting.card.x > anatomy.waiting.knot.x ? 6 : -6})`}
+              >
+                <path
+                  d="M -15 -9 L 11 -9 L 16 0 L 11 9 L -15 9 Z"
+                  style={{
+                    fill: "#f4ead2",
+                    stroke: highlight === "waiting" ? "var(--cobalt)" : "#8a6a45",
+                    strokeWidth: highlight === "waiting" ? 1.2 : 0.6,
+                  }}
+                />
+                <circle cx={11} cy={0} r={1.6} style={{ fill: "none", stroke: "#8a6a45", strokeWidth: 0.6 }} />
+                <text
+                  x={-2}
+                  y={2.6}
+                  textAnchor="middle"
+                  style={{ fill: "var(--cobalt)", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
+                >
+                  needs you
                 </text>
               </g>
             </motion.g>

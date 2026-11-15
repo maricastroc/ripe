@@ -8,7 +8,7 @@ import { SettingsDialog } from "@/components/agent/SettingsDialog";
 import { usePolling } from "@/hooks/usePolling";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
-import type { AgentStatus, Garden as GardenData, TaskSummary } from "@/lib/types";
+import type { AgentStatus, Garden as GardenData, TaskDetail, TaskSummary } from "@/lib/types";
 import { Fungus } from "./Fungus";
 import { Glasshouse } from "./Glasshouse";
 import { layoutBed, naturalSize } from "./layout";
@@ -18,39 +18,54 @@ import { type PacketHandle, SeedPacket } from "./SeedPacket";
 import { SoilBand, type Thread } from "./SoilBand";
 
 function interval(data: GardenData) {
-  if (data.agent.mode === "working" || data.tasks.some((t) => t.activity?.status === "running")) return 2000;
+  if (data.agent.mode === "working" || data.tasks.some((t) => t.activity?.running)) return 2000;
   if (data.tasks.some((t) => t.status === "ripening")) return 3500;
   return 8000;
 }
 
 function threadState(task: TaskSummary): Thread["state"] {
-  if (task.activity?.status === "running") return "working";
+  if (task.activity?.running) return "working";
   if (task.activity && task.status === "ripening") return "queued";
   if (task.status === "dormant" || task.status === "stalled") return "dormant";
   return "idle";
 }
 
 function agentLine(agent: AgentStatus) {
-  if (agent.settings.paused) return { text: "paused in settings", tone: "text-ochre" };
   switch (agent.mode) {
+    case "paused":
+      return { text: "paused in settings", tone: "text-ochre" };
+    case "halted":
+      return { text: "resting for now", tone: "text-ochre" };
     case "working":
       return { text: agent.current ? `feeding “${agent.current.taskTitle}”` : "working", tone: "text-[#d9f27a]" };
-    case "resting":
-      return { text: "resting between steps", tone: "text-[#d9f27a]" };
     case "offline":
-      return { text: "Ollama is off. Run ollama serve", tone: "text-[#ff9b7a]" };
-    case "model-missing":
-      return { text: `model not installed. Run ollama pull ${agent.settings.model}`, tone: "text-[#ff9b7a]" };
-    case "stopped":
-      return { text: "not responding", tone: "text-[#ff9b7a]" };
-    case "starting":
-      return { text: "waking up", tone: "text-[#efe3c7]" };
-    default:
       return {
-        text: agent.queued ? `${agent.queued} step${agent.queued > 1 ? "s" : ""} queued` : "idle, nothing to feed",
-        tone: "text-[#efe3c7]",
+        text: agent.driver === "ollama" ? "Ollama is off. Run ollama serve" : "the model can't be reached",
+        tone: "text-[#ff9b7a]",
       };
+    case "model-missing":
+      return { text: `model not installed. Run ollama pull ${agent.model}`, tone: "text-[#ff9b7a]" };
+    case "stopped":
+      return { text: "not running", tone: "text-[#ff9b7a]" };
+    default:
+      if (agent.queued)
+        return { text: `${agent.queued} step${agent.queued > 1 ? "s" : ""} queued`, tone: "text-[#efe3c7]" };
+      if (agent.elsewhere) return { text: "feeding other greenhouses", tone: "text-[#d9f27a]" };
+      return { text: "idle, nothing to feed", tone: "text-[#efe3c7]" };
   }
+}
+
+function myceliumOf(agent: AgentStatus) {
+  if (agent.driver === "fake") return "a simulated model for development";
+  if (agent.hosting === "local" && agent.driver === "ollama") return "an open model running on this machine";
+  return `${agent.model}, a hosted model`;
+}
+
+function agentNote(agent: AgentStatus) {
+  if (agent.driver === "fake") return "Written by a simulated model, for development.";
+  if (agent.hosting === "local" && agent.driver === "ollama")
+    return `Everything runs locally with ${agent.model} via Ollama. Nothing leaves this machine.`;
+  return `Written by ${agent.model}${agent.driver === "openai" ? ", hosted by OpenAI" : ""}.`;
 }
 
 const SUGGESTIONS = [
@@ -91,7 +106,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   const plants = useMemo(() => data.tasks.filter((t) => t.status !== "harvested").reverse(), [data.tasks]);
   const harvested = data.tasks.filter((t) => t.status === "harvested");
   const numbers = useMemo(() => {
-    const ordered = [...data.tasks].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const ordered = [...data.tasks].sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
     return new Map(ordered.map((t, i) => [t.id, i + 1]));
   }, [data.tasks]);
   const layout = layoutBed(
@@ -101,8 +116,9 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   );
   const agent = data.agent;
   const line = agentLine(agent);
+  const configurable = agent.hosting === "local";
   const counts = {
-    growing: plants.filter((t) => t.activity?.status === "running").length,
+    growing: plants.filter((t) => t.activity?.running).length,
     waiting: plants.filter((t) => t.status === "waiting" || t.status === "stalled").length,
     ripe: plants.filter((t) => t.status === "ripe").length,
   };
@@ -115,8 +131,8 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
   async function example() {
     setOpeningExample(true);
     try {
-      const { id } = await api<{ id: string }>("/api/examples", { method: "POST" });
-      router.push(`/t/${id}`);
+      const { task } = await api<{ task: TaskDetail }>("/api/examples", { method: "POST" });
+      router.push(`/t/${task.id}`);
     } catch {
       setOpeningExample(false);
     }
@@ -143,11 +159,11 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
           <div className="flex flex-col items-end gap-1.5 text-right">
             <button
               type="button"
-              onClick={() => setSettings(true)}
+              onClick={() => setSettings(configurable)}
               className="focus-ring typewriter rounded-full border border-current/20 px-3 py-1 text-[11.5px] text-scene-ink-2 transition-colors hover:text-scene-ink"
-              aria-label="Open agent settings"
+              aria-label={configurable ? "Open agent settings" : `The agent: ${line.text}`}
             >
-              mycelium<span className="hidden sm:inline"> · {agent.settings.model}</span>
+              mycelium<span className="hidden sm:inline"> · {agent.model}</span>
             </button>
             <p className="typewriter whitespace-nowrap text-[11px] text-scene-ink-2" suppressHydrationWarning>
               {sky}
@@ -171,8 +187,8 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
               Leave it for later. <span className="font-display-wonk italic">It ripens here.</span>
             </motion.h1>
             <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-scene-ink sm:text-[15.5px]">
-              Sow what you keep putting off. The mycelium under the soil is an open model running on this machine. It
-              works on each task in small steps and saves as it goes, so a plant only grows when real work gets done.
+              Sow what you keep putting off. The mycelium under the soil is {myceliumOf(agent)}. It works on each task
+              in small steps and saves as it goes, so a plant only grows when real work gets done.
             </p>
             {plants.length > 0 && (
               <p className="typewriter mt-3 text-[12px] text-scene-ink-2">
@@ -218,7 +234,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                     continues={r < layout.rows.length - 1}
                     threads={threads}
                     agentMode={agent.mode}
-                    paused={agent.settings.paused}
+                    paused={agent.mode === "paused" || agent.mode === "halted"}
                     salt={r * 97 + 11}
                   />
                 </div>
@@ -230,17 +246,21 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                       <div key="fungus">
                         <button
                           type="button"
-                          onClick={() => setSettings(true)}
+                          onClick={() => setSettings(configurable)}
                           className="focus-ring absolute z-10 block"
                           style={{ left: plot.x, width: plot.w, top: row.plantH - (h * 150) / 158, height: h }}
-                          aria-label={`The mycelium, the local agent: ${line.text}. Open settings`}
+                          aria-label={
+                            configurable
+                              ? `The mycelium, the local agent: ${line.text}. Open settings`
+                              : `The mycelium, the agent: ${line.text}`
+                          }
                         >
-                          <Fungus mode={agent.mode} paused={agent.settings.paused} />
+                          <Fungus mode={agent.mode} paused={agent.mode === "paused" || agent.mode === "halted"} />
                         </button>
                         {!layout.mobile && (
                           <button
                             type="button"
-                            onClick={() => setSettings(true)}
+                            onClick={() => setSettings(configurable)}
                             className="focus-ring absolute z-20 rounded-[2px] border border-[#6f5a3c] bg-[#1d140e]/85 px-2 py-1.5 text-left"
                             style={{ left: plot.x + 8, width: plot.w - 4, top: row.plantH + 30 }}
                           >
@@ -248,7 +268,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                               mycelium
                             </span>
                             <span className="typewriter block truncate text-[10.5px] text-[#efe3c7]">
-                              {agent.settings.model}
+                              {agent.model}
                             </span>
                             <span className={`mt-0.5 block text-[11px] leading-tight ${line.tone}`}>{line.text}</span>
                           </button>
@@ -326,7 +346,7 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
                           )}
                           {openingExample
                             ? "opening the example…"
-                            : "or open a ripe example, written by hand for the demo"}
+                            : "or open a ripe example, grown once by a scripted model"}
                         </button>
                       </div>
                     );
@@ -342,13 +362,13 @@ export function Greenhouse({ initial }: { initial: GardenData }) {
       <Pantry tasks={harvested} numbers={numbers} />
 
       <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 px-4 pb-6 pt-10 text-[12px] text-[#b9a888] sm:px-10">
-        <p className="typewriter">
-          Everything runs locally with {agent.settings.model} via Ollama. Nothing leaves this machine.
-        </p>
+        <p className="typewriter">{agentNote(agent)}</p>
         <p className="font-display italic">slow and steady.</p>
       </footer>
 
-      <SettingsDialog open={settings} onOpenChange={setSettings} agent={agent} onChange={onAgentChange} />
+      {configurable && (
+        <SettingsDialog open={settings} onOpenChange={setSettings} agent={agent} onChange={onAgentChange} />
+      )}
     </div>
   );
 }
