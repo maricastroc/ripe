@@ -36,6 +36,12 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'backup' => [
+        'disk' => env('RIPE_BACKUP_DISK'),
+        'keep' => (int) env('RIPE_BACKUP_KEEP', 14),
+        'folder' => 'postgres',
+    ],
+
     'examples' => [
         'directory' => env('RIPE_EXAMPLES_DIRECTORY', database_path('examples')),
     ],
