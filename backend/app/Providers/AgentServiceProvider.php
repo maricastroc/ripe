@@ -7,9 +7,11 @@ namespace App\Providers;
 use App\Agent\Simulation\SimulatedModel;
 use App\Inference\Drivers\Fake\FakeDriver;
 use App\Inference\InferenceManager;
+use App\Observability\AgentLog;
 use App\Orchestration\AgentSettings;
 use App\Orchestration\WorkerHeartbeat;
 use Illuminate\Foundation\DevCommands;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -34,6 +36,12 @@ final class AgentServiceProvider extends ServiceProvider
         Event::listen(Looping::class, function (Looping $event) use ($settings): void {
             if ($event->connectionName === $settings->queueConnection()) {
                 $this->app->make(WorkerHeartbeat::class)->beat();
+            }
+        });
+
+        Event::listen(JobFailed::class, function (JobFailed $event) use ($settings): void {
+            if ($event->connectionName === $settings->queueConnection() && $event->job->getQueue() === $settings->queue()) {
+                $this->app->make(AgentLog::class)->jobFailed($event->job->resolveName(), $event->job->attempts(), $event->exception);
             }
         });
 

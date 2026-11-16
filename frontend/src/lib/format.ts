@@ -72,3 +72,11 @@ export const RETURN_OPTIONS: ReturnOption[] = [
     },
   },
 ];
+
+export function formatDuration(ms: number | null) {
+  if (ms === null) return "—";
+  if (ms < 1000) return `${ms} ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(2)} s`;
+  return `${Math.floor(seconds / 60)} min ${(seconds % 60).toFixed(1)} s`;
+}

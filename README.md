@@ -34,7 +34,7 @@ Every change in a plant comes from **persisted work**, never from the passage of
 
 A bud that needs an answer from you dries out and shows a blue drop. When everything is written but the review waits for an essential answer, the young fruit carries a paper tag that says so. The species (persimmon, plum, lemon, fig — each with its own leaves, flowers and fruit) only appears once the agent understands what kind of result you want. The number of plants shapes the bed: a single task takes the whole stage; many tasks spread into terraces. The light through the glass follows your local time, from dawn to a night where the mycelium glows.
 
-New tasks are sown from a **seed packet** stuck in the soil. Harvested tasks are preserved as jars in **the pantry**. Opening a plant shows its **specimen sheet**: a field journal spread with the plant drawn as a botanical plate — numbered parts keyed to the work they hold — next to the field notes, the live writing, your open questions and the reading room.
+New tasks are sown from a **seed packet** stuck in the soil. Harvested tasks are preserved as jars in **the pantry**. Opening a plant shows its **specimen sheet**: a field journal spread with the plant drawn as a botanical plate — numbered parts keyed to the work they hold — next to the field notes, the live writing, your open questions and the reading room. The journal's **growth rings** show every attempt the agent made, as a trunk in cross-section: only an attempt that saved its work lays down a ring, and the ones that saved nothing are cracks, breaks or knots on the growth line.
 
 ## Repository
 
@@ -132,6 +132,8 @@ The public demo runs on Groq's free plan, so it costs nothing to run, and it is 
 | `php artisan ripe:simulate` | Plants a task and ripens it through real queue workers with the fake model, then prints its journal |
 | `php artisan ripe:reconcile` | Recovers expired leases, re-dispatches lost runs and reconciles idle tasks |
 | `php artisan ripe:timing` | Checks that leases, model calls, the worker timeout and queue redelivery are ordered safely |
+| `php artisan ripe:audit {task?}` | Checks that every task's journal agrees with its persisted state; exits with an error when one does not |
+| `php artisan ripe:inspect {task?}` | Without a task: the agent, its quota and the last day of attempts. With one: its steps, runs, attempts, latest journal events and the audit |
 | `php artisan ripe:prune` | Deletes tasks past their retention date and idle visitors without tasks; the scheduler runs it every hour |
 | `php artisan ripe:examples:install` | Installs the recorded examples from `database/examples/`; unchanged ones are left alone |
 | `php artisan ripe:examples:record` | Grows the examples again through the real agent with the configured model, saves them as fixtures and installs them |
@@ -163,6 +165,8 @@ The agent is configured in `backend/.env`; the model is a matter of configuratio
 
 `php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, Groq when `GROQ_API_KEY` is set, and OpenAI when a key and a model are set (`--filter=groq` runs one only).
 
+**Logs.** Lines written while a run executes carry its task, run and attempt, and API requests carry a request id, also returned as `X-Request-Id`. They record operation (attempts, deferrals, recoveries, halts) and never prompts, answers, cookies or credentials. In production, set `LOG_CHANNEL=stderr`, `LOG_STDERR_FORMATTER=Monolog\Formatter\JsonFormatter` and `LOG_LEVEL=info` for one JSON object per line.
+
 The OpenAPI document is [`docs/api/openapi.json`](docs/api/openapi.json). After changing the API, run `composer openapi` in `backend/` (against a migrated database) and `npm run api:types` in `frontend/`. The test suite and CI fail when either is out of date.
 
 ## Architecture
@@ -189,6 +193,7 @@ backend/app/
   Broadcasting/   who may join each private channel
   Actions/        what visitors can do to tasks, questions and pieces
   Journal/        the audit of the task journal against the state
+  Observability/  operational logs and the fixed sentences visitors see for errors
   Retention/      when a task is forgotten
   Examples/       recording, exporting and installing the examples
 ```
@@ -228,7 +233,7 @@ Frontend, from `frontend/`:
 | `npm run build`        | Production build                             |
 | `npm run typecheck`    | Generates route types and type-checks        |
 | `npm run api:types`    | Generates the API types from the OpenAPI document |
-| `npm run test:e2e`     | Plants, ripens, opens and edits a task, and follows the greenhouse through a Reverb outage, through the whole stack (Playwright) |
+| `npm run test:e2e`     | Plants, ripens, opens and edits a task, reads its growth rings, and follows the greenhouse through a Reverb outage, through the whole stack (Playwright) |
 | `npm run lint`         | ESLint                                       |
 | `npm run format`       | Prettier                                     |
 | `npm run format:check` | Prettier, without writing                    |

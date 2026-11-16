@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Enums\RunStatus;
 use App\Models\AgentRun;
+use App\Observability\PublicError;
 use App\Orchestration\Output\LiveText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,7 +33,8 @@ final class ActivityResource extends JsonResource
             'startedAt' => $run->started_at?->toIso8601ZuluString('microsecond'),
             'availableAt' => $run->available_at?->toIso8601ZuluString('microsecond'),
             'deferredReason' => $run->deferred_reason,
-            'lastError' => $latest !== null && $latest->finished_at !== null ? $latest->error_message : null,
+            /** @var string|null */
+            'lastError' => $latest !== null && $latest->finished_at !== null ? PublicError::of($latest->outcome, $latest->error_class) : null,
             'live' => $live === null ? null : [
                 'attemptId' => $live->attemptId,
                 'attempt' => $live->attemptNumber,

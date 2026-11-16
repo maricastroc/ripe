@@ -524,7 +524,7 @@ export function SpecimenSheet({
               reload={reload}
             />
             <Understanding task={task} />
-            <Journal events={task.events} />
+            <Journal events={task.events} taskId={task.id} version={task.version} />
           </main>
         </div>
       </div>

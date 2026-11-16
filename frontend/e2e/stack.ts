@@ -10,6 +10,7 @@ export const REALTIME_KEY = "ripe-e2e";
 export const backendEnv: NodeJS.ProcessEnv = {
   ...process.env,
   APP_ENV: "local",
+  LOG_CHANNEL: "stderr",
   DB_DATABASE: process.env.RIPE_E2E_DATABASE ?? "ripe_testing",
   CACHE_STORE: "database",
   RIPE_MODE: "local",

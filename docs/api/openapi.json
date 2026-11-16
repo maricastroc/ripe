@@ -1602,6 +1602,71 @@
                     }
                 }
             }
+        },
+        "/tasks/{task}/timeline": {
+            "get": {
+                "operationId": "tasks.timeline",
+                "tags": [
+                    "TaskTimeline"
+                ],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "timeline": {
+                                            "$ref": "#/components/schemas/TimelineResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "timeline"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1881,6 +1946,21 @@
                 ],
                 "title": "ArtifactVersionSource"
             },
+            "AttemptOutcome": {
+                "type": "string",
+                "enum": [
+                    "succeeded",
+                    "failed",
+                    "timed_out",
+                    "invalid_output",
+                    "driver_unavailable",
+                    "rate_limited",
+                    "cancelled",
+                    "lease_lost",
+                    "interrupted"
+                ],
+                "title": "AttemptOutcome"
+            },
             "AuthorizeChannelRequest": {
                 "type": "object",
                 "properties": {
@@ -2115,6 +2195,17 @@
                     "review"
                 ],
                 "title": "RunKind"
+            },
+            "RunStatus": {
+                "type": "string",
+                "enum": [
+                    "queued",
+                    "running",
+                    "succeeded",
+                    "failed",
+                    "cancelled"
+                ],
+                "title": "RunStatus"
             },
             "SaveDraftRequest": {
                 "type": "object",
@@ -2887,6 +2978,238 @@
                     "activity"
                 ],
                 "title": "TaskSummaryResource"
+            },
+            "TimelineAttemptResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "outcome": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/AttemptOutcome"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "savedWork": {
+                        "type": "boolean"
+                    },
+                    "startedAt": {
+                        "type": "string"
+                    },
+                    "finishedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "waitedMs": {
+                        "type": "integer"
+                    },
+                    "durationMs": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "firstTokenMs": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "promptTokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "completionTokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "usageEstimated": {
+                        "type": "boolean"
+                    },
+                    "driver": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "model": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "costMicrousd": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "error": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "number",
+                    "outcome",
+                    "savedWork",
+                    "startedAt",
+                    "finishedAt",
+                    "waitedMs",
+                    "durationMs",
+                    "firstTokenMs",
+                    "promptTokens",
+                    "completionTokens",
+                    "usageEstimated",
+                    "driver",
+                    "model",
+                    "costMicrousd",
+                    "error"
+                ],
+                "title": "TimelineAttemptResource"
+            },
+            "TimelineResource": {
+                "type": "object",
+                "properties": {
+                    "taskId": {
+                        "type": "string"
+                    },
+                    "runs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TimelineRunResource"
+                        }
+                    },
+                    "totals": {
+                        "type": "object",
+                        "properties": {
+                            "attempts": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "savedWork": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "workingMs": {
+                                "type": "integer"
+                            },
+                            "waitingMs": {
+                                "type": "integer"
+                            },
+                            "promptTokens": {
+                                "type": "integer"
+                            },
+                            "completionTokens": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "attempts",
+                            "savedWork",
+                            "workingMs",
+                            "waitingMs",
+                            "promptTokens",
+                            "completionTokens"
+                        ]
+                    }
+                },
+                "required": [
+                    "taskId",
+                    "runs",
+                    "totals"
+                ],
+                "title": "TimelineResource"
+            },
+            "TimelineRunResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/RunKind"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/RunStatus"
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "stepId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "artifactId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "scheduledAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "finishedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "deferredReason": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/RunDeferral"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "attempts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TimelineAttemptResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "subject",
+                    "stepId",
+                    "artifactId",
+                    "scheduledAt",
+                    "finishedAt",
+                    "deferredReason",
+                    "attempts"
+                ],
+                "title": "TimelineRunResource"
             },
             "UpdateAgentRequest": {
                 "type": "object",

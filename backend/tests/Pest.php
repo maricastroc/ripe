@@ -16,7 +16,6 @@ use App\Inference\Drivers\Fake\FakeDriver;
 use App\Inference\Drivers\Fake\FakeReply;
 use App\Inference\ModelRequest;
 use App\Jobs\PublishSignal;
-use App\Journal\JournalAudit;
 use App\Models\AgentRun;
 use App\Models\Artifact;
 use App\Models\Task;
@@ -26,6 +25,7 @@ use App\Realtime\Signal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -128,7 +128,9 @@ function apiTask(string $token, string $prompt = 'Write a short thank-you note t
 
 function expectJournalConsistent(Task $task): void
 {
-    expect(app(JournalAudit::class)->problems($task))->toBe([]);
+    $exit = Artisan::call('ripe:audit', ['task' => $task->id]);
+
+    expect($exit)->toBe(0, Artisan::output());
 }
 
 function plantTask(string $prompt = 'Write a short thank-you note to the neighbour who watered my plants.', bool $defer = true): Task

@@ -28,6 +28,8 @@ use App\Models\AgentRun;
 use App\Models\RunAttempt;
 use App\Models\Task;
 use App\Models\TaskEvent;
+use App\Observability\AgentLog;
+use App\Observability\PublicError;
 use App\Orchestration\AgentHalt;
 use App\Orchestration\AgentSettings;
 use App\Orchestration\AttemptReport;
@@ -44,6 +46,7 @@ use App\Orchestration\RunDispatcher;
 use App\Orchestration\TaskOrchestrator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -64,6 +67,7 @@ final class RunExecutor
         private readonly PartialOutput $output,
         private readonly InferenceBudget $budget,
         private readonly QuotaGate $quota,
+        private readonly AgentLog $log,
     ) {}
 
     public function execute(string $runId, ?string $queueJobId = null): void
@@ -74,10 +78,13 @@ final class RunExecutor
             return;
         }
 
+        Context::add(['task_id' => $claim->run->task_id, 'run_id' => $claim->run->id, 'attempt_id' => $claim->attempt->id]);
+
         try {
             $this->attempt($claim);
         } finally {
             $this->output->forget($claim->attempt->id);
+            Context::forget(['task_id', 'attempt_id']);
         }
     }
 
@@ -96,6 +103,7 @@ final class RunExecutor
 
             return;
         } catch (Throwable $unexpected) {
+            report($unexpected);
             $this->recordFailure($claim, (new InvalidModelOutput("The run failed unexpectedly: {$unexpected->getMessage()}", 0, $unexpected)), $unexpected);
 
             return;
@@ -151,7 +159,7 @@ final class RunExecutor
             $driver = $this->inference->current();
 
             if ($driver->isMetered() && $this->settings->isPublic() && ! Config::boolean('ripe.inference.allow_paid')) {
-                $this->holdForDriver($run, 'The public greenhouse only runs on a free model.', $now);
+                $this->holdForDriver($run, 'The public greenhouse only runs on a free model.', $now, 'paid_driver_refused');
 
                 return null;
             }
@@ -161,7 +169,7 @@ final class RunExecutor
             try {
                 [$ticket, $reservation] = $call === null ? [null, null] : $this->admit($driver, $task, $call, $now);
             } catch (DriverMisconfigured $misconfigured) {
-                $this->holdForDriver($run, $misconfigured->getMessage(), $now);
+                $this->holdForDriver($run, $misconfigured->getMessage(), $now, class_basename($misconfigured));
 
                 return null;
             } catch (AdmissionRefused $refused) {
@@ -170,6 +178,7 @@ final class RunExecutor
                 return null;
             }
 
+            $due = $run->available_at ?? $run->created_at ?? $now;
             $token = (string) Str::uuid();
             $expiresAt = $now->addMilliseconds((int) round($this->settings->leaseTtl() * 1000));
             $run->startLease($token, $now, $expiresAt);
@@ -193,6 +202,7 @@ final class RunExecutor
             }
 
             TaskEvent::record($task, TaskEventType::RunStarted, ['run_id' => $run->id, 'attempt' => $attempt->number], EventActor::Agent, $run, $attempt);
+            $this->log->attemptStarted($run, $attempt, $due, $now);
 
             return new Claim($run, $attempt, $token, $expiresAt, $call);
         });
@@ -265,7 +275,7 @@ final class RunExecutor
             }
 
             if (! $decision->retry) {
-                $reason = $this->stallReason($run, $failure);
+                $reason = $this->stallReason($run, $failure, $cause);
                 $run->fail($reason, $now, $decision->consumesAttempt);
                 TaskEvent::record($task, TaskEventType::RunFailed, ['run_id' => $run->id, 'scope' => $failure->scope()->value, 'reason' => $reason], EventActor::Agent, $run, $attempt);
                 $task->transitionTo(TaskStatus::Stalled, EventActor::Agent, $reason);
@@ -274,7 +284,7 @@ final class RunExecutor
             }
 
             if ($decision->halt) {
-                $this->halt->halt($failure->getMessage(), $now);
+                $this->halt->halt($failure->getMessage(), $now, class_basename($failure));
             }
 
             $at = $decision->at ?? $now;
@@ -409,13 +419,19 @@ final class RunExecutor
             TaskEvent::record($task, TaskEventType::QuotaDeferred, ['run_id' => $run->id, 'wait' => $refusal->wait->value], EventActor::System, $run);
         }
 
-        $run->defer($refusal->retryAt, $refusal instanceof Shortfall ? RunDeferral::Budget : RunDeferral::Quota);
+        $reason = $refusal instanceof Shortfall ? RunDeferral::Budget : RunDeferral::Quota;
+
+        if ($run->deferred_reason !== $reason) {
+            $this->log->runDeferred($run, $reason, $refusal->retryAt, $refusal instanceof QuotaShortfall ? $refusal->wait : null);
+        }
+
+        $run->defer($refusal->retryAt, $reason);
         $this->dispatcher->dispatch($run, $now);
     }
 
-    private function holdForDriver(AgentRun $run, string $reason, CarbonImmutable $now): void
+    private function holdForDriver(AgentRun $run, string $reason, CarbonImmutable $now, string $cause): void
     {
-        $this->halt->halt($reason, $now);
+        $this->halt->halt($reason, $now, $cause);
         $run->defer($now->addSeconds($this->settings->haltRetrySeconds()), RunDeferral::DriverUnavailable);
         $this->dispatcher->dispatch($run, $now);
     }
@@ -430,8 +446,12 @@ final class RunExecutor
 
         $seconds = $limited->retryAfter() ?? ($limited->daily ? 60.0 * Config::integer('ripe.quota.daily_recheck_minutes') : (float) Config::integer('ripe.quota.busy_recheck_seconds'));
 
+        $until = $now->addMilliseconds((int) round($seconds * 1000));
+        $wait = $limited->daily ? QuotaWait::Daily : QuotaWait::Capacity;
+
         try {
-            $this->quota->block($driver->quotaScope(), $now->addMilliseconds((int) round($seconds * 1000)), $limited->daily ? QuotaWait::Daily : QuotaWait::Capacity, $now);
+            $this->quota->block($driver->quotaScope(), $until, $wait, $now);
+            $this->log->quotaBlocked($driver->quotaScope(), $until, $wait, $limited->retryAfter());
         } catch (DriverMisconfigured) {
             return;
         }
@@ -464,12 +484,13 @@ final class RunExecutor
         };
     }
 
-    private function stallReason(AgentRun $run, InferenceException $failure): string
+    private function stallReason(AgentRun $run, InferenceException $failure, ?Throwable $cause): string
     {
         $label = ucfirst($run->kind->value);
+        $public = PublicError::of($this->outcomeOf($failure), class_basename($cause ?? $failure)) ?? 'it failed.';
 
         return $failure->scope() === ErrorScope::Run
-            ? "{$label}: {$failure->getMessage()}"
-            : "{$label} failed after {$run->max_attempts} attempts: {$failure->getMessage()}";
+            ? "{$label}: {$public}"
+            : "{$label} failed after {$run->max_attempts} attempts. {$public}";
     }
 }

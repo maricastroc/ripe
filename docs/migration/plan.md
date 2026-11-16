@@ -278,11 +278,37 @@ Dedicated tests:
 
 ### 3.10 Observability
 
-- Attempts as the metric source.
-- JSON logs with task, run and attempt context, plus queue event listeners.
-- `php artisan ripe:inspect {task}`.
-- A `/tasks/{id}/timeline` endpoint.
-- A discreet "Growth rings" tab in the specimen sheet. It is not an admin dashboard.
+- **Attempts are the metric source.** There is no separate metrics store.
+  - `ripe:inspect` without a task reads the last 24 hours of attempts: outcomes, and the median and 95th percentile of time to first token and duration per kind of run.
+  - It also shows the agent's mode, the quota used against its limits, the queue and stalled tasks.
+- **Structured logs.**
+  - Laravel's `Context` attaches the task, run and attempt to every line written while a run executes, and a request id and route to every API request. The request id also goes back in `X-Request-Id`.
+  - Operational lines are written only after their transaction commits:
+    - each attempt that starts or finishes, with its outcome, duration, time to first token, tokens and error class;
+    - quota and budget deferrals, once per episode;
+    - a 429 that blocks the quota;
+    - halts and their lifting;
+    - what the reconciler recovered;
+    - stalled tasks;
+    - agent jobs that failed for good.
+  - The journal is not mirrored into the log.
+  - Production writes JSON to stderr (`LOG_CHANNEL=stderr`, `LOG_STDERR_FORMATTER=Monolog\Formatter\JsonFormatter`). Development keeps the text file, tests write no log, and the end-to-end backend logs to stderr.
+- **What logs never hold:** prompts, answers, cookies, credentials and provider messages.
+  - Error lines carry the class, never the text.
+  - A failed query is logged with its SQL and SQLSTATE but without its values.
+  - Expected refusals (409, 403, 422) are logged at `info` with no stack trace.
+- **Errors visitors see** are fixed sentences chosen by outcome and error class (`PublicError`): the timeline, `lastError` and the stall reason. The raw message stays on the attempt for operators.
+- **`php artisan ripe:audit {task?}`** runs the consistency checks of section 6.5 against a read-only, repeatable-read snapshot. It exits with an error when any task disagrees; every orchestration scenario in the test suite goes through it.
+- **`php artisan ripe:inspect {task}`** shows a task's steps, runs, attempts with their raw errors, latest journal events and the audit result.
+- **`GET /api/tasks/{task}/timeline`**, under the same policy as the task:
+  - every run with every attempt, built from `agent_runs` and `run_attempts`, never by replaying the journal;
+  - for each attempt: whether it saved work, its waiting time, duration, time to first token, tokens, model, cost and a fixed error sentence;
+  - internal fields (lease token, worker, queue job, provider ids, reservations) stay out.
+- **Growth rings**, a tab in the journal section of the specimen sheet, loaded only when opened:
+  - a trunk in cross-section where only an attempt that saved its work lays down a ring, so the drawing never suggests a failed attempt made the plant grow;
+  - attempts that saved nothing are marks on the growth line: a crack (failed), a break (interrupted), a knot (stopped) or a bud (running);
+  - ring width follows duration on a capped logarithmic scale, and the list beside it gives exact durations;
+  - every outcome is named in words, not only by colour.
 
 ## 4. Lease renewal during long model calls
 
@@ -466,7 +492,7 @@ None of that buys anything Ripe needs. Artifact history is already preserved by 
 - **Order:** `sequence` is gap-free per task, allocated from `tasks.version` under the task lock, so `tasks.version = max(sequence)`.
 - **Immutability:** rows are never updated; they are deleted only together with their task.
 - **Attribution:** `actor` (`visitor`, `agent` or `system`) plus `run_id` and `attempt_id` where relevant.
-- **Usefulness:** it backs the field notes, the Growth rings timeline, audit, and the version used for realtime invalidation.
+- **Usefulness:** it backs the field notes, the audit and the version used for realtime invalidation. The timeline and the Growth rings read runs and attempts instead.
 
 ### 6.3 What the log does not promise
 
@@ -589,6 +615,16 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 - **Limits.** 8, 30 and 400 tasks per day (visitor, network, overall); 6 unharvested plants; 20 rewrites per visitor per day.
 - **Retention.** 30 days after the later of the last visit and the planned return, capped at 90 days; automatic pruning; examples kept; "delete my greenhouse".
 - **Examples.** Two, recorded with Groq through the real executor, kept as immutable fixtures installed idempotently and labelled with model and date.
+
+**Approved for stage 8 (2026-11-15):**
+- JSON logs on stderr in production, text in development.
+- Logs record operation (attempts, deferrals, recoveries) and do not mirror the journal.
+- The timeline is open to the task's owner and, for examples, to every visitor.
+- Growth rings live in the journal section, loaded on demand.
+- **Refinements:**
+  - **Attempts versus growth.** Growth rings record every attempt but only saved work lays down a ring. The rule that the plant grows only from persisted work is unchanged.
+  - **The drawing.** Ring width uses a capped scale, exact durations stay in the list, and outcomes are distinguishable without colour. The style is organic, not a dashboard.
+  - **Operational data.** The timeline exposes only fixed error sentences and authorized fields, and logs never hold prompts, answers, cookies, credentials or provider details.
 
 **Pending:**
 - Invisible Turnstile on task creation (stage 9, with the production site key). The network and global limits already hold without the cookie.
