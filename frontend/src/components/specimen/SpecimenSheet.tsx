@@ -403,7 +403,9 @@ export function SpecimenSheet({
               </p>
             )}
             <div className="flex items-baseline justify-between gap-3">
-              <p className="typewriter text-[13px] tracking-[0.06em] text-ink-2">{sh.specimen(catalog(task.number))}</p>
+              <p className="typewriter shrink-0 whitespace-nowrap text-[13px] tracking-[0.06em] text-ink-2">
+                {sh.specimen(catalog(task.number))}
+              </p>
               {wide ? (
                 <button
                   type="button"
@@ -415,9 +417,19 @@ export function SpecimenSheet({
                   <PanelLeftOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 </button>
               ) : (
-                <p className="typewriter text-[11.5px] text-ink-3" suppressHydrationWarning>
-                  {task.createdAt ? sh.sown(formatDay(i18n, task.createdAt)) : null}
-                  {task.expiresAt ? ` · ${sh.keptUntil(formatDay(i18n, task.expiresAt))}` : null}
+                <p
+                  className="typewriter flex flex-wrap justify-end gap-x-1.5 text-right text-[11.5px] text-ink-3"
+                  suppressHydrationWarning
+                >
+                  {task.createdAt && (
+                    <span className="whitespace-nowrap">{sh.sown(formatDay(i18n, task.createdAt))}</span>
+                  )}
+                  {task.expiresAt && (
+                    <span className="whitespace-nowrap">
+                      {task.createdAt ? "· " : ""}
+                      {sh.keptUntil(formatDay(i18n, task.expiresAt))}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
