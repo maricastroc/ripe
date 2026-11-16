@@ -34,3 +34,5 @@ export type EventView = TaskDetail["events"][number];
 
 export type Garden = Ok<"garden.show">;
 export type TaskPage = Ok<"tasks.show">;
+export type Timeline = Ok<"tasks.timeline">["timeline"];
+export type TimelineAttempt = Timeline["runs"][number]["attempts"][number];

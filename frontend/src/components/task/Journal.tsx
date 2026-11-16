@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { GrowthRings } from "@/components/task/GrowthRings";
 import { formatDayStamp } from "@/lib/format";
 import type { EventView, NoteKind } from "@/lib/types";
 
@@ -23,18 +24,53 @@ const WHO: Record<NoteKind, string> = {
   error: "agent",
 };
 
-export function Journal({ events }: { events: EventView[] }) {
-  const [all, setAll] = useState(false);
-  const shown = all ? events : events.slice(0, 7);
+type View = "notes" | "rings";
+
+const VIEWS: { id: View; label: string }[] = [
+  { id: "notes", label: "field notes" },
+  { id: "rings", label: "growth rings" },
+];
+
+export function Journal({ events, taskId, version }: { events: EventView[]; taskId: string; version: number }) {
+  const [view, setView] = useState<View>("notes");
   if (!events.length) return null;
   return (
     <section aria-labelledby="journal-title">
-      <div className="mb-3 flex items-baseline justify-between">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h2 id="journal-title" className="label">
           agent journal
         </h2>
-        <span className="text-[13px] text-ink-3">what actually happened</span>
+        <div role="tablist" aria-label="Journal views" className="flex gap-3 text-[13px]">
+          {VIEWS.map(({ id, label }) => (
+            <button
+              key={id}
+              id={`journal-tab-${id}`}
+              role="tab"
+              type="button"
+              aria-selected={view === id}
+              aria-controls={`journal-panel-${id}`}
+              onClick={() => setView(id)}
+              className={`focus-ring rounded px-0.5 underline-offset-4 ${
+                view === id ? "text-ink underline decoration-dotted" : "text-ink-3 hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+      <div role="tabpanel" id={`journal-panel-${view}`} aria-labelledby={`journal-tab-${view}`}>
+        {view === "notes" ? <Notes events={events} /> : <GrowthRings taskId={taskId} version={version} />}
+      </div>
+    </section>
+  );
+}
+
+function Notes({ events }: { events: EventView[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? events : events.slice(0, 7);
+  return (
+    <>
       <ol className="font-mono text-[12.5px] leading-relaxed">
         <AnimatePresence initial={false}>
           {shown.map((e) => (
@@ -69,6 +105,6 @@ export function Journal({ events }: { events: EventView[] }) {
           {all ? "show less" : `show the whole journal (${events.length})`}
         </button>
       )}
-    </section>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("plants a task, watches it ripen, opens it and keeps a draft of a piece", async ({ page }) => {
+test("plants a task, watches it ripen, opens it, keeps a draft of a piece and reads its growth rings", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.getByText("Nothing is growing yet.")).toBeVisible();
 
@@ -35,4 +37,8 @@ test("plants a task, watches it ripen, opens it and keeps a draft of a piece", a
   await page.reload();
   await expect(page.getByText("My own closing line.")).toBeVisible();
   await expect(page.getByText("edited by you")).toBeVisible();
+
+  await page.getByRole("tab", { name: "growth rings" }).click();
+  await expect(page.getByText(/\d+ rings of saved work/)).toBeVisible();
+  await expect(page.getByText("saved its work").first()).toBeVisible();
 });
