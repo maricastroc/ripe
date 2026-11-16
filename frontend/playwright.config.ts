@@ -16,7 +16,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      command: `php artisan serve --no-reload --host=127.0.0.1 --port=${API_PORT}`,
+      command: `php artisan migrate:fresh --force && php artisan serve --no-reload --host=127.0.0.1 --port=${API_PORT}`,
       cwd: BACKEND,
       env: backendEnv as Record<string, string>,
       url: `http://127.0.0.1:${API_PORT}/up`,
