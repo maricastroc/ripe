@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Models\Step;
 use App\Models\Task;
+use App\Retention\Retention;
 use App\Snapshots\TaskState;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -34,6 +35,7 @@ class TaskSummaryResource extends JsonResource
             'version' => $task->version,
             'returnAt' => $task->return_at?->toIso8601ZuluString('microsecond'),
             'createdAt' => $task->created_at?->toIso8601ZuluString('microsecond'),
+            'expiresAt' => Retention::expiresAt($task)?->toIso8601ZuluString('microsecond'),
             'example' => $task->exampleRecord === null ? null : [
                 'driver' => $task->exampleRecord->driver,
                 'model' => $task->exampleRecord->model,

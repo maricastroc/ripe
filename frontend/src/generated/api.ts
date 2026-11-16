@@ -100,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/greenhouse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["greenhouse.forget"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/garden": {
         parameters: {
             query?: never;
@@ -498,6 +514,7 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            expiresAt: string | null;
             example: {
                 driver: string;
                 model: string;
@@ -605,6 +622,7 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            expiresAt: string | null;
             example: {
                 driver: string;
                 model: string;
@@ -1016,6 +1034,36 @@ export interface operations {
             };
         };
     };
+    "greenhouse.forget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     "garden.show": {
         parameters: {
             query?: never;
@@ -1034,6 +1082,10 @@ export interface operations {
                         tasks: components["schemas"]["TaskSummaryResource"][];
                         agent: components["schemas"]["AgentStatusResource"];
                         channel: string | null;
+                        retention: {
+                            daysAfterVisit: number;
+                            maximumDays: number;
+                        };
                     };
                 };
             };

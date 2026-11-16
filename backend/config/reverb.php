@@ -47,11 +47,11 @@ return [
                 ))),
                 'ping_interval' => 30,
                 'activity_timeout' => 30,
-                'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),
+                'max_connections' => (int) env('REVERB_APP_MAX_CONNECTIONS', 500),
                 'max_message_size' => 10_000,
                 'accept_client_events_from' => 'none',
                 'rate_limiting' => [
-                    'enabled' => false,
+                    'enabled' => (bool) env('REVERB_APP_RATE_LIMITING_ENABLED', true),
                     'max_attempts' => 60,
                     'decay_seconds' => 60,
                     'terminate_on_limit' => false,

@@ -68,6 +68,7 @@ final class TaskSnapshots
     private function summaryRelations(): array
     {
         return [
+            'visitor' => static fn (Builder $query): Builder => $query->select(['id', 'last_seen_at']),
             'exampleRecord' => static fn (Builder $query): Builder => $query,
             'steps' => static fn (Builder $query): Builder => $query->orderBy('position'),
             'steps.artifact' => static fn (Builder $query): Builder => $query->select(['id', 'step_id']),

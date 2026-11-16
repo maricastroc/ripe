@@ -40,6 +40,12 @@ return [
         'directory' => env('RIPE_EXAMPLES_DIRECTORY', database_path('examples')),
     ],
 
+    'retention' => [
+        'days_after_visit' => (int) env('RIPE_RETENTION_DAYS', 30),
+        'maximum_days' => (int) env('RIPE_RETENTION_MAXIMUM_DAYS', 90),
+        'idle_visitor_days' => 30,
+    ],
+
     'inference' => [
         'allow_paid' => (bool) env('RIPE_ALLOW_PAID_INFERENCE', false),
     ],
@@ -81,6 +87,12 @@ return [
         'plant_per_hour_per_ip' => (int) env('RIPE_LIMIT_PLANT_PER_IP', 30),
         'mutations_per_minute' => (int) env('RIPE_LIMIT_MUTATIONS', 60),
         'reads_per_minute' => (int) env('RIPE_LIMIT_READS', 120),
+        'plant_per_day_per_visitor' => (int) env('RIPE_LIMIT_PLANT_PER_DAY_PER_VISITOR', 8),
+        'plant_per_day_per_network' => (int) env('RIPE_LIMIT_PLANT_PER_DAY_PER_NETWORK', 30),
+        'plant_per_day_global' => (int) env('RIPE_LIMIT_PLANT_PER_DAY', 400),
+        'revisions_per_day_per_visitor' => (int) env('RIPE_LIMIT_REVISIONS_PER_DAY_PER_VISITOR', 20),
+        'revisions_per_day_per_network' => (int) env('RIPE_LIMIT_REVISIONS_PER_DAY_PER_NETWORK', 60),
+        'plants_in_bed' => (int) env('RIPE_LIMIT_PLANTS_IN_BED', 6),
     ],
 
     'lease' => [

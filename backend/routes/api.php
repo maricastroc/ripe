@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Artifacts\RestoreVersionController;
 use App\Http\Controllers\Api\Artifacts\ReviseArtifactController;
 use App\Http\Controllers\Api\AuthorizeChannelController;
 use App\Http\Controllers\Api\ExampleController;
+use App\Http\Controllers\Api\ForgetGreenhouseController;
 use App\Http\Controllers\Api\GardenController;
 use App\Http\Controllers\Api\Questions\AnswerQuestionController;
 use App\Http\Controllers\Api\Questions\ReopenQuestionController;
@@ -50,7 +51,8 @@ Route::middleware('throttle:mutations')->group(static function (): void {
     Route::post('artifacts/{artifact}/draft/keep', KeepDraftController::class)->can('update', 'artifact')->name('artifacts.draft.keep');
     Route::delete('artifacts/{artifact}/draft', [DraftController::class, 'destroy'])->can('update', 'artifact')->name('artifacts.draft.discard');
     Route::post('artifacts/{artifact}/restore', RestoreVersionController::class)->can('update', 'artifact')->name('artifacts.restore');
-    Route::post('artifacts/{artifact}/revise', ReviseArtifactController::class)->can('update', 'artifact')->name('artifacts.revise');
+    Route::post('artifacts/{artifact}/revise', ReviseArtifactController::class)->middleware('throttle:revisions')->can('update', 'artifact')->name('artifacts.revise');
 
+    Route::delete('greenhouse', ForgetGreenhouseController::class)->name('greenhouse.forget');
     Route::put('agent', [AgentController::class, 'update'])->name('agent.update');
 });
