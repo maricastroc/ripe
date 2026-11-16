@@ -535,6 +535,7 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 | 7 | Public demo | The public demo runs on Groq's free plan with zero inference cost: a Groq driver that keeps the inference contract (strict structured output, streaming, errors, usage), checked against real responses; quota admission (requests and tokens per minute and per day, concurrency) that concurrent workers cannot exceed; exhaustion rests the greenhouse without consuming attempts and resumes on its own, distinct from night, offline and a configuration failure; the money budget kept for paid drivers and never used by the demo, with no automatic fallback to a paid provider; per-visitor, per-network and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded with Groq through the real executor, installed idempotently, read-only and labelled with model and date | L |
 | 8 | Observability | Structured logs with context; timeline endpoint and `ripe:inspect`; the Growth rings tab; `ripe:audit` passes for every task produced by the resilience suite and for the recorded examples; every attempt appears in the timeline; nothing claims or requires replaying state from events | M |
 | 9 | Deploy | `ripe.marianacastro.dev` on Vercel, with the API, the agent worker, the scheduler, Reverb and PostgreSQL on Railway; the gateway secret and client address in place; Turnstile on planting; daily PostgreSQL backups with a tested restore; a smoke test run after each deploy; a runbook | M |
+| 10 | Languages | The interface, the API's messages, the field notes and the examples in English and Brazilian Portuguese; the visitor's choice decided once by the site and forwarded to Laravel; a missing Portuguese key fails the typecheck or a test; one end-to-end scenario in Portuguese | M |
 
 ## 8. Risks
 
@@ -636,6 +637,14 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 - **Backups.** `ripe:backup` dumps the database to a private Railway bucket every day and before every deploy, and keeps 14 dumps. One real restore into an isolated database was tested. This replaces the earlier plan of a GitHub workflow with encryption and daily automatic restores.
 - **Turnstile** on planting, checked by the backend. The daily planting limits count only plantings that succeeded, and start at 3 per visitor and 12 overall.
 - **A smoke test,** `scripts/smoke.mjs`, run after deploys. There are no scheduled workflows or external monitoring.
+
+**Approved for stage 10 (2026-11-16):**
+- **Languages.** English and Brazilian Portuguese; more can be added to the same structure.
+- **One decision point.** The site resolves the locale from the `ripe_locale` cookie, then `Accept-Language`, then English, and the gateway overwrites the `Accept-Language` it forwards with that result. There is no locale prefix in URLs, so `/t/[id]` links stay the same.
+- **The interface** uses typed dictionaries, not a library; Portuguese must match the English shape.
+- **The API** uses Laravel's localization. During implementation the planned `lang/en` and `lang/pt_BR` groups became a single `lang/pt_BR.json` keyed by the English sentence, since English is the source and needs no file. The contract is unchanged.
+- **Content follows the request, not the interface.** The prompts stay in English. The agent review's headings now follow the task's language.
+- **Examples** are recorded in both languages with Groq, and the endpoint answers with the visitor's.
 
 **Pending:** nothing.
 
