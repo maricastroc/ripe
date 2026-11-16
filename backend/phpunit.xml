@@ -44,6 +44,7 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="TURNSTILE_SECRET_KEY" value="" force="true"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="RIPE_MODE" value="public"/>
         <env name="RIPE_GATEWAY_REQUIRED" value="false"/>
