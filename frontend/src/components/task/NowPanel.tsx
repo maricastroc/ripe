@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { LoaderCircle } from "lucide-react";
+import { Apple, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Markdown } from "@/components/Markdown";
 import { useNow, useTypewriter } from "@/hooks/useTicker";
@@ -18,6 +18,7 @@ type Props = {
   agent: AgentStatus;
   liveText?: string | null;
   onAct: (action: "resume" | "retry") => void;
+  onHarvest?: () => void;
   busy: boolean;
 };
 
@@ -128,7 +129,7 @@ function Shell({
   );
 }
 
-export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
+export function NowPanel({ task, agent, liveText = null, onAct, onHarvest, busy }: Props) {
   const activity = task.activity;
   const running = activity?.running === true;
   const now = useNow(Boolean(activity));
@@ -312,6 +313,20 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     content = (
       <Shell tone="text-leaf" title={n.ripe.title}>
         {n.ripe.text(materials, optional, Boolean(early))}
+        {onHarvest && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onHarvest}
+              className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper transition-colors hover:bg-leaf-dark disabled:opacity-50"
+            >
+              <Apple className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              {t.actions.harvest}
+            </button>
+            <span className="max-w-sm text-[12.5px] leading-snug text-ink-3">{t.actions.harvestHint}</span>
+          </div>
+        )}
       </Shell>
     );
   } else {

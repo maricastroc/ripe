@@ -66,14 +66,11 @@ export function Actions({ task, busy, onDefer, onPause, onRetry, onHarvest, onRe
           </button>
         </>
       )}
-      {s === "ripe" && (
+      {s === "ripe" && task.isExample && (
         <button type="button" disabled={busy} className={primary} onClick={onHarvest}>
           <Apple className="h-4 w-4" strokeWidth={1.75} aria-hidden />
           {a.harvest}
         </button>
-      )}
-      {s === "ripe" && !task.isExample && (
-        <p className="w-full text-[12.5px] leading-snug text-ink-3">{a.harvestHint}</p>
       )}
       {s === "harvested" && (
         <button type="button" disabled={busy} className={secondary} onClick={onReplant}>

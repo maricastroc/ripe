@@ -319,7 +319,7 @@ export const en = {
         (optional
           ? ` If you want the gaps it marked filled in, answer the ${optional === 1 ? "optional question" : `${optional} optional questions`} below.`
           : "") +
-        " When you're happy with it, use Harvest under the plate." +
+        " When you're happy with it, harvest it." +
         (early ? " It ripened before you said you'd be back." : ""),
     },
     lining: "Lining up the next step",
@@ -495,23 +495,7 @@ export const en = {
   },
   board: {
     label: "Where this task stands",
-    cells: { task: "this task", work: "agent's work", you: "from you", read: "ready to read" },
-    task: {
-      done: "Done",
-      harvested: (since: string | null) =>
-        `You harvested it${since ? ` ${since}` : ""}. It stays readable in the pantry.`,
-      ripe: "Ripe",
-      ripeDetail: "The agent has finished. The task only counts as done once you harvest it.",
-      onHold: "Growing, on hold",
-      onHoldDetail: "It stopped at the step that needs your answer.",
-      dormant: "Dormant",
-      dormantDetail: "Planted, but nothing is running.",
-      stalled: "Needs care",
-      stalledDetail: "The agent stopped after several failed attempts.",
-      growing: "Growing",
-      away: (when: string) => `It keeps ripening while you're away. You said you'd be back ${when}.`,
-      growingDetail: "It keeps ripening, one step at a time.",
-    },
+    cells: { work: "agent's work", you: "from you", read: "ready to read" },
     work: {
       written: (done: number, total: number) => `${done} of ${total} ${plural(total, "step", "steps")} written`,
       noPlan: "No plan yet",

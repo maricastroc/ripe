@@ -138,6 +138,27 @@
 html {
   background: var(--soil-3);
   -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #b3925a var(--soil-3);
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: var(--soil-3);
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #b3925a;
+  border: 3px solid var(--soil-3);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #d2b47c;
 }
 
 body {
@@ -676,6 +697,34 @@ body::after {
 
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--line-2) 70%, transparent) transparent;
+}
+
+.scroll-quiet:hover {
+  scrollbar-color: var(--line-2) transparent;
+}
+
+.scroll-quiet::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-quiet::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-quiet::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--line-2) 70%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.scroll-quiet::-webkit-scrollbar-thumb:hover {
+  background-color: var(--line-2);
 }
 
 ::view-transition-group(.specimen) {

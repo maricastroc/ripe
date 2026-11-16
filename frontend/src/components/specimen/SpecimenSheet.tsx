@@ -310,6 +310,29 @@ export function SpecimenSheet({
   const collect = task.status !== "ripe" && task.status !== "harvested" ? returnWhen(i18n, task.returnAt) : null;
   const species = speciesOf(task.fruit);
   const highlight = hover ?? organOf(selectedId);
+  const legend = (compact: boolean) => (
+    <Legend
+      task={task}
+      finalId={finalId}
+      review={review}
+      highlight={highlight}
+      onHover={setHover}
+      onOpen={openOrgan}
+      compact={compact}
+    />
+  );
+  const actions = (
+    <Actions
+      task={task}
+      busy={busy}
+      onDefer={(returnAt) => act("defer", { returnAt })}
+      onPause={() => act("pause")}
+      onRetry={() => act("resume")}
+      onHarvest={harvest}
+      onReplant={() => act("replant")}
+      onDelete={remove}
+    />
+  );
 
   return (
     <div
@@ -400,8 +423,11 @@ export function SpecimenSheet({
           />
 
           <aside
-            className={`relative self-start px-5 pb-8 pt-8 sm:px-10 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:overflow-y-auto scrollbar-none ${wide ? "lg:px-6" : "lg:pr-12"}`}
+            className={`scroll-quiet relative self-start px-5 pb-8 pt-8 sm:px-10 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:overflow-y-auto ${wide ? "lg:px-6" : "lg:pr-12"}`}
           >
+            <div className="mb-8 lg:hidden">
+              <Title task={task} onRename={rename} />
+            </div>
             {task.isExample && (
               <p className="mb-5 rounded-sm border border-dashed border-vermilion/50 px-3 py-2 text-[13px] text-ink-2">
                 <span className="label mr-2 text-vermilion-ink">{sh.example}</span>
@@ -445,7 +471,7 @@ export function SpecimenSheet({
             </p>
 
             <div
-              className={`relative mx-auto mt-4 w-full transition-[max-width] motion-reduce:transition-none duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${wide ? "max-w-[260px]" : "max-w-[420px]"}`}
+              className={`relative mx-auto mt-4 w-full transition-[max-width] motion-reduce:transition-none duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${wide ? "max-w-[260px]" : "max-w-[320px] sm:max-w-[420px] lg:max-w-[max(240px,min(420px,calc((100dvh_-_380px)*0.75)))]"}`}
             >
               <ViewTransition name={`specimen-${task.id}`} share="specimen" default="none">
                 <div>
@@ -476,36 +502,28 @@ export function SpecimenSheet({
               </p>
             )}
 
-            <div className="mt-6">
-              <Legend
-                task={task}
-                finalId={finalId}
-                review={review}
-                highlight={highlight}
-                onHover={setHover}
-                onOpen={openOrgan}
-                compact={wide}
-              />
-            </div>
-
-            <div className="mt-6">
-              <Actions
-                task={task}
-                busy={busy}
-                onDefer={(returnAt) => act("defer", { returnAt })}
-                onPause={() => act("pause")}
-                onRetry={() => act("resume")}
-                onHarvest={harvest}
-                onReplant={() => act("replant")}
-                onDelete={remove}
-              />
-            </div>
+            <div className="mt-6 hidden lg:block">{legend(wide)}</div>
+            <div className="mt-6 hidden lg:block">{actions}</div>
+            <div
+              aria-hidden
+              className="pointer-events-none sticky bottom-0 -mb-8 hidden h-14 bg-gradient-to-t from-[var(--paper)] to-transparent lg:block"
+            />
           </aside>
 
           <main className="min-w-0 space-y-14 border-t border-dashed border-line-2 px-5 pb-12 pt-10 sm:px-10 lg:border-t-0 lg:pl-14">
-            <Title task={task} onRename={rename} />
+            <div className="hidden lg:block">
+              <Title task={task} onRename={rename} />
+            </div>
+            <NowPanel
+              task={task}
+              agent={agent}
+              liveText={liveText}
+              busy={busy}
+              onAct={() => act("resume")}
+              onHarvest={harvest}
+            />
+            <div className="lg:hidden">{actions}</div>
             <StatusBoard task={task} agent={agent} />
-            <NowPanel task={task} agent={agent} liveText={liveText} busy={busy} onAct={() => act("resume")} />
             <Questions
               questions={task.questions}
               disabled={readOnly}
@@ -519,6 +537,7 @@ export function SpecimenSheet({
               onReopen={(id) => run(() => api<{ task: TaskDetail }>(`/api/questions/${id}/reopen`, { method: "POST" }))}
               onRefresh={() => act("refresh")}
             />
+            <div className="lg:hidden">{legend(false)}</div>
             <Harvest
               artifacts={task.artifacts}
               steps={task.steps}
