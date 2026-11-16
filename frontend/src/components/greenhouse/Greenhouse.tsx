@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronDown, LoaderCircle } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { usePolling } from "@/hooks/usePolling";
@@ -16,14 +16,61 @@ import type { Messages } from "@/lib/i18n/messages/en";
 import { restText } from "@/lib/presence";
 import type { RealtimeConfig } from "@/lib/realtime";
 import type { AgentStatus, Garden as GardenData, TaskSummary } from "@/lib/types";
+import { Bed } from "./Bed";
 import { ForgetGreenhouse } from "./ForgetGreenhouse";
-import { Fungus } from "./Fungus";
-import { type GlassFrame, Glasshouse } from "./Glasshouse";
-import { layoutBed, naturalSize } from "./layout";
+import { layoutStrip } from "./layout";
 import { Pantry } from "./Pantry";
-import { PlantPlot } from "./PlantPlot";
+import { CensusKey, DormantSeeds, ExampleLink, MyceliumNote, PlateSheet } from "./Plate";
+import { FIGURE_VIEW, FigureUnderground, PlateFigure } from "./PlateFigure";
+import { PlateSoil } from "./PlateSoil";
+import { catalog } from "./PlantPlot";
 import { type PacketHandle, SeedPacket } from "./SeedPacket";
-import { SoilBand, type Thread } from "./SoilBand";
+import { HOLE, SowingMarks, packetFoot } from "./SowingMarks";
+
+const SOIL_FALLBACK = "linear-gradient(var(--plate-soil-0), var(--plate-soil-1) 45%, var(--soil-3))";
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+type Frame = {
+  width: number;
+  viewport: number;
+  ground: number;
+  soil: number;
+  bedX: number;
+  visible: number;
+  band: number;
+  packetX: number;
+  packetW: number;
+  fig: { x: number; w: number; h: number };
+  textBottom: number;
+  stacked: boolean;
+  roots: number;
+};
+
+function guessFrame(growing: boolean): Frame {
+  const width = 1372;
+  const bedX = 24 + (growing ? 274 : 412);
+  const packetW = 317;
+  const packetX = width - 22 - packetW;
+  return {
+    width,
+    viewport: 900,
+    ground: 529,
+    soil: 299,
+    bedX,
+    visible: packetX - bedX,
+    band: 466,
+    packetX,
+    packetW,
+    fig: { x: bedX, w: packetX - bedX, h: 466 },
+    textBottom: 200,
+    stacked: false,
+    roots: 0,
+  };
+}
+
+function stackedPlantH(viewport: number) {
+  return Math.round(Math.max(190, Math.min(300, viewport * 0.3)));
+}
 
 function interval(data: GardenData) {
   if (data.agent.mode === "working" || data.tasks.some((t) => t.activity?.running)) return 2000;
@@ -31,53 +78,28 @@ function interval(data: GardenData) {
   return 8000;
 }
 
-function threadState(task: TaskSummary): Thread["state"] {
-  if (task.activity?.running) return "working";
-  if (task.activity && task.status === "ripening") return "queued";
-  if (task.status === "dormant" || task.status === "stalled") return "dormant";
-  return "idle";
-}
-
 function agentLine(i18n: I18n, agent: AgentStatus) {
   const a = i18n.t.greenhouse.agent;
   switch (agent.mode) {
     case "paused":
-      return { text: a.paused, tone: "text-ochre" };
+      return { text: a.paused, dot: "var(--ochre)" };
     case "resting":
-      return { text: restText(i18n, agent).short, tone: "text-cobalt" };
+      return { text: restText(i18n, agent).short, dot: "var(--cobalt-soft)" };
     case "halted":
-      return { text: a.halted, tone: "text-vermilion-ink" };
+      return { text: a.halted, dot: "var(--vermilion)" };
     case "working":
-      return { text: agent.current ? a.feeding(agent.current.taskTitle) : a.working, tone: "text-leaf-dark" };
+      return { text: agent.current ? a.feeding(agent.current.taskTitle) : a.working, dot: "var(--myc)" };
     case "offline":
-      return { text: agent.driver === "ollama" ? a.ollamaOff : a.unreachable, tone: "text-vermilion-ink" };
+      return { text: agent.driver === "ollama" ? a.ollamaOff : a.unreachable, dot: "var(--vermilion)" };
     case "model-missing":
-      return { text: a.modelMissing(agent.model), tone: "text-vermilion-ink" };
+      return { text: a.modelMissing(agent.model), dot: "var(--vermilion)" };
     case "stopped":
-      return { text: a.stopped, tone: "text-vermilion-ink" };
+      return { text: a.stopped, dot: "var(--vermilion)" };
     default:
-      if (agent.queued) return { text: a.queued(agent.queued), tone: "text-ink-2" };
-      if (agent.elsewhere) return { text: a.elsewhere, tone: "text-leaf-dark" };
-      return { text: a.idle, tone: "text-ink-2" };
+      if (agent.queued) return { text: a.queued(agent.queued), dot: "var(--line)" };
+      if (agent.elsewhere) return { text: a.elsewhere, dot: "var(--leaf-2)" };
+      return { text: a.idle, dot: "var(--line)" };
   }
-}
-
-function myceliumOf(t: Messages, agent: AgentStatus) {
-  if (agent.driver === "fake") return t.greenhouse.mycelium.fake;
-  if (agent.hosting === "local" && agent.driver === "ollama") return t.greenhouse.mycelium.local;
-  return t.greenhouse.mycelium.hosted(agent.model);
-}
-
-function unbroken(text: string, name: string) {
-  const at = name ? text.indexOf(name) : -1;
-  if (at < 0) return text;
-  return (
-    <>
-      {text.slice(0, at)}
-      <span className="whitespace-nowrap">{name}</span>
-      {text.slice(at + name.length)}
-    </>
-  );
 }
 
 function agentNote(t: Messages, agent: AgentStatus) {
@@ -106,69 +128,92 @@ export function Greenhouse({
   const i18n = useI18n();
   const { t } = i18n;
   const g = t.greenhouse;
-  const bed = useRef<HTMLDivElement>(null);
-  const scene = useRef<HTMLElement>(null);
-  const intro = useRef<HTMLDivElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  const figure = useRef<HTMLDivElement>(null);
+  const packetCol = useRef<HTMLDivElement>(null);
+  const notes = useRef<HTMLDivElement>(null);
+  const band = useRef<HTMLDivElement>(null);
   const packet = useRef<PacketHandle>(null);
-  const [size, setSize] = useState({ w: 1200, h: 860, top: 360 });
-  const [frame, setFrame] = useState<GlassFrame | null>(null);
+  const [measured, setMeasured] = useState<Frame | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const [sowing, setSowing] = useState(false);
   const [openingExample, setOpeningExample] = useState(false);
 
+  const plants = useMemo(() => data.tasks.filter((t) => t.status !== "harvested").reverse(), [data.tasks]);
+  const harvested = data.tasks.filter((t) => t.status === "harvested");
+  const growing = plants.length > 0;
+
   useEffect(() => {
-    const el = bed.current;
-    const section = scene.current;
-    if (!el || !section) return;
+    const root = grid.current;
+    if (!root) return;
     const measure = () => {
-      const next = {
-        w: el.clientWidth,
-        h: window.innerHeight,
-        top: Math.round(el.getBoundingClientRect().top + window.scrollY),
+      const fig = figure.current;
+      const pk = packetCol.current;
+      if (!fig || !pk) return;
+      const ground = fig.offsetTop + fig.offsetHeight;
+      const text = notes.current;
+      const stacked = window.matchMedia("(max-width: 1023.98px)").matches;
+      const next: Frame = {
+        width: root.clientWidth,
+        viewport: window.innerHeight,
+        ground,
+        soil: root.clientHeight - ground,
+        bedX: stacked ? 4 : fig.offsetLeft,
+        visible: stacked ? root.clientWidth - 8 : fig.offsetWidth,
+        band: stacked ? stackedPlantH(window.innerHeight) : fig.offsetHeight,
+        packetX: pk.offsetLeft,
+        packetW: pk.offsetWidth,
+        fig: { x: fig.offsetLeft, w: fig.offsetWidth, h: fig.offsetHeight },
+        textBottom: text ? text.offsetTop + text.offsetHeight - ground : 0,
+        stacked,
+        roots: band.current?.offsetHeight ?? 0,
       };
-      setSize((s) => (s.w === next.w && s.h === next.h && s.top === next.top ? s : next));
-      const glass = { width: section.clientWidth, height: section.clientHeight, viewport: window.innerHeight };
-      setFrame((f) =>
-        f && f.width === glass.width && f.height === glass.height && f.viewport === glass.viewport ? f : glass,
-      );
+      setMeasured((f) => (f && JSON.stringify(f) === JSON.stringify(next) ? f : next));
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    observer.observe(section);
-    if (intro.current) observer.observe(intro.current);
+    for (const el of [root, figure.current, packetCol.current, notes.current, band.current])
+      if (el) observer.observe(el);
     window.addEventListener("resize", measure);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [growing]);
 
   useEffect(() => setRealtime(live), [live, setRealtime]);
 
   const onAgentChange = useCallback((agent: AgentStatus) => setData({ ...data, agent }), [data, setData]);
 
-  const plants = useMemo(() => data.tasks.filter((t) => t.status !== "harvested").reverse(), [data.tasks]);
-  const harvested = data.tasks.filter((t) => t.status === "harvested");
+  const frame = measured ?? guessFrame(growing);
   const numbers = useMemo(() => {
     const ordered = [...data.tasks].sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
     return new Map(ordered.map((t, i) => [t.id, i + 1]));
   }, [data.tasks]);
-  const layout = layoutBed(
-    size.w,
-    size.h,
-    plants.map((p) => naturalSize(p.growth.stage, p.growth.stepsTotal)),
-    plants.length ? size.h - size.top - 215 : undefined,
-  );
+  const strip = layoutStrip(frame.visible, plants.length, frame.band);
   const agent = data.agent;
   const line = agentLine(i18n, agent);
   const configurable = agent.hosting === "local";
-  const counts = {
+  const census = {
+    total: plants.length,
     growing: plants.filter((t) => t.activity?.running).length,
     waiting: plants.filter((t) => t.status === "waiting" || t.status === "stalled").length,
     ripe: plants.filter((t) => t.status === "ripe").length,
   };
+  const skyLabel = `${t.sky[sky]}${time ? ` · ${time}` : ""}`;
+  const marks: [string, string, string] = [
+    t.stages.sprout.name.toLocaleLowerCase(i18n.locale),
+    t.stages.leafing.name.toLocaleLowerCase(i18n.locale),
+    t.stages.ripe.name.toLocaleLowerCase(i18n.locale),
+  ];
+  const hole = frame.stacked
+    ? { x: frame.width - 52, y: Math.round(frame.roots * 0.42) }
+    : { x: frame.packetX + packetFoot(frame.packetW) + HOLE.x, y: HOLE.y };
+  const scale = Math.min(frame.fig.w / FIGURE_VIEW.width, frame.fig.h / FIGURE_VIEW.height);
+  const figureOx = frame.fig.x + (frame.fig.w - FIGURE_VIEW.width * scale) / 2 - FIGURE_VIEW.x * scale;
+  const collapsed = frame.stacked && frame.width < 600 && growing && !sowing;
+  const p = t.packet;
 
   async function planted(id: string) {
     setFreshId(id);
@@ -187,18 +232,6 @@ export function Greenhouse({
     }
   }
 
-  const growing = plants.length > 0;
-  const packetEl = (
-    <SeedPacket
-      ref={packet}
-      onPlanted={planted}
-      nextNumber={data.tasks.length + 1}
-      turnstile={turnstile}
-      stake={!layout.mobile}
-    />
-  );
-  const p = t.packet;
-
   return (
     <div
       data-sky={sky}
@@ -206,270 +239,196 @@ export function Greenhouse({
       className="relative flex flex-1 flex-col overflow-x-clip"
       style={{ background: "var(--soil-3)" }}
     >
-      <section ref={scene} className="relative overflow-hidden" aria-label={g.label}>
-        <Glasshouse sky={sky} frame={frame} />
-
-        <header className="relative z-30 flex items-start justify-between gap-4 px-4 pt-5 sm:px-10 sm:pt-7">
-          <div>
-            <p className="font-display font-display-wonk text-[2rem] italic leading-none text-scene-ink">ripe</p>
-            <p className="typewriter mt-1 text-[10px] uppercase tracking-[0.12em] text-scene-ink-2 sm:text-[11px] sm:tracking-[0.16em]">
-              {g.tagline}
+      <PlateSheet label={g.label}>
+        <div
+          ref={grid}
+          className="plate-grid relative border-[0.5px] border-ink/60"
+          data-growing={growing ? "" : undefined}
+        >
+          <header className="plate-head relative z-30 grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 border-b-[0.6px] border-ink/60 py-3 lg:grid-cols-[1fr_minmax(0,max-content)_1fr] lg:py-0">
+            <p className="font-display font-display-wonk -mt-1 justify-self-start text-[38px] italic leading-none tracking-[-0.01em] text-ink">
+              ripe
             </p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 text-right">
-            <button
-              type="button"
-              onClick={() => setSettings(configurable)}
-              className="focus-ring typewriter rounded-full border border-current/20 px-3 py-1 text-[11.5px] text-scene-ink-2 transition-colors hover:text-scene-ink"
-              aria-label={configurable ? g.openSettings : g.agentIs(line.text)}
-            >
-              {g.myceliumName}
-              <span className="hidden sm:inline"> · {agent.model}</span>
-            </button>
-            <p className="typewriter whitespace-nowrap text-[11px] text-scene-ink-2" suppressHydrationWarning>
-              {t.sky[sky]}
-              {time ? ` · ${time}` : ""}
+            <p className="typewriter order-last col-span-2 hidden text-center text-[10.5px] uppercase leading-[1.6] tracking-[0.2em] text-ink-2 min-[480px]:block lg:order-none lg:col-span-1">
+              {t.plate.title}
             </p>
-            <LanguageSwitch className="-mr-1 text-scene-ink-2 hover:text-scene-ink" />
-          </div>
-        </header>
+            <div className="col-start-2 flex items-center gap-3 justify-self-end sm:gap-[18px] lg:col-start-3">
+              <button
+                type="button"
+                onClick={() => setSettings(configurable)}
+                title={agent.model}
+                className="focus-ring typewriter inline-flex min-h-11 items-center gap-2 whitespace-nowrap text-[11.5px] tracking-[0.08em] text-ink-2 transition-colors hover:text-ink sm:min-h-0"
+                aria-label={configurable ? g.openSettings : g.agentIs(line.text)}
+              >
+                <span
+                  aria-hidden
+                  className={`h-1.5 w-1.5 rounded-full ${agent.mode === "working" ? "live-dot text-myc" : ""}`}
+                  style={{ background: agent.mode === "idle" ? "var(--line-2)" : line.dot }}
+                />
+                {g.myceliumName}
+              </button>
+              <LanguageSwitch className="text-ink-2 max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11" />
+            </div>
+          </header>
 
-        <div ref={intro} className="relative z-20 px-4 pt-4 sm:px-10 sm:pt-2">
-          <div className="relative isolate max-w-[46rem]">
-            <div
-              aria-hidden
-              className="condensation pointer-events-none absolute -inset-x-16 -bottom-10 -top-28 -z-10 sm:-inset-x-24 sm:-inset-y-12"
-            />
-            <motion.h1
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                role="status"
+                className="plate-alert paper paper-shadow relative z-40 mt-3 self-start justify-self-center rounded-sm px-3 py-1.5 text-[13px] text-vermilion-ink"
+              >
+                {error} {g.retrying}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {growing && <CensusKey census={census} />}
+
+          <h1 className="plate-title plate-h1 relative z-20 grid pl-0.5 font-display">
+            <motion.span
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className={`font-display leading-[1] tracking-[-0.02em] text-scene-ink transition-[font-size] duration-500 motion-reduce:transition-none ${growing ? "text-[1.85rem] sm:text-[2.5rem]" : "text-[2.3rem] sm:text-[3.4rem]"}`}
+              transition={{ duration: 0.9, ease: EASE }}
+              className="block self-end pt-4 text-ink [text-wrap:balance]"
+              style={{ paddingBottom: "calc(15px - 0.115em)" }}
             >
-              {g.headline} <span className="font-display-wonk italic">{g.headlineTail}</span>
-            </motion.h1>
-            <AnimatePresence initial={false}>
-              {!growing && (
-                <motion.p
-                  key="intro"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="max-w-xl overflow-hidden text-[14.5px] leading-relaxed text-scene-ink sm:text-[15.5px]"
-                >
-                  <span className="block pt-3">{unbroken(g.intro(myceliumOf(t, agent)), agent.model)}</span>
-                </motion.p>
-              )}
-            </AnimatePresence>
-            {growing && (
-              <p className="typewriter mt-3 text-[12px] text-scene-ink-2">
-                {g.counts.plants(plants.length)}
-                {counts.growing ? ` · ${g.counts.growing(counts.growing)}` : ""}
-                {counts.waiting ? ` · ${g.counts.waiting(counts.waiting)}` : ""}
-                {counts.ripe ? ` · ${g.counts.ripe(counts.ripe)}` : ""}
-              </p>
+              {g.headline}
+            </motion.span>{" "}
+            <motion.span
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.15, ease: EASE }}
+              className={`font-display-wonk block w-max self-start justify-self-start pt-3 italic text-paper [text-wrap:balance] ${growing ? "max-w-[3.9em]" : "max-w-full lg:max-w-[calc(100%+7.5rem)]"}`}
+            >
+              {g.headlineTail}
+            </motion.span>
+          </h1>
+
+          <div
+            ref={figure}
+            className="plate-figure relative z-10"
+            style={
+              (growing && frame.stacked ? { "--plate-band": `${frame.band}px` } : undefined) as
+                React.CSSProperties | undefined
+            }
+          >
+            {!growing && <PlateFigure sky={sky} label={skyLabel} marks={marks} scale={scale} />}
+          </div>
+
+          <div ref={packetCol} className="plate-packet relative z-30">
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSowing(true);
+                  requestAnimationFrame(() => packet.current?.fill(""));
+                }}
+                aria-expanded={false}
+                className="kraft packet-shadow focus-ring relative flex w-full -rotate-[0.8deg] items-center justify-between gap-3 rounded-[3px] px-5 py-3 text-left"
+              >
+                <span>
+                  <span className="typewriter block text-[10px] uppercase tracking-[0.18em] text-[#4a3522]">
+                    {p.brand}
+                  </span>
+                  <span className="font-display-wonk mt-0.5 block font-display text-[1.12rem] leading-tight italic text-[#35281b]">
+                    {p.question}
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-[#4a3522]" strokeWidth={1.75} aria-hidden />
+              </button>
+            ) : (
+              <SeedPacket ref={packet} onPlanted={planted} nextNumber={data.tasks.length + 1} turnstile={turnstile} />
             )}
           </div>
-        </div>
 
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              role="status"
-              className="paper relative z-30 mx-4 mt-3 rounded-sm px-3 py-1.5 text-[13px] text-vermilion-ink sm:mx-10"
-            >
-              {error} {g.retrying}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        {layout.packetAbove &&
-          (growing && !sowing ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSowing(true);
-                requestAnimationFrame(() => packet.current?.fill(""));
-              }}
-              aria-expanded={false}
-              className="kraft packet-shadow focus-ring relative z-20 mx-4 mt-5 flex w-[calc(100%-2rem)] max-w-sm -rotate-[0.8deg] items-center justify-between gap-3 rounded-[3px] px-5 py-3 text-left"
-            >
-              <span>
-                <span className="typewriter block text-[10px] uppercase tracking-[0.18em] text-[#4a3522]">
-                  {p.brand}
-                </span>
-                <span className="font-display-wonk mt-0.5 block font-display text-[1.12rem] leading-tight italic text-[#35281b]">
-                  {p.question}
-                </span>
-              </span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-[#4a3522]" strokeWidth={1.75} aria-hidden />
-            </button>
-          ) : (
-            <div className="relative z-20 mx-4 mt-6 max-w-sm">{packetEl}</div>
-          ))}
-
-        <div ref={bed} className="relative z-10 mx-2 mt-6 sm:mx-6 sm:mt-4">
-          {layout.rows.map((row, r) => {
-            const fungus = row.plots[0];
-            const threads: Thread[] = row.plots
-              .filter((p) => p.kind === "plant")
-              .map((p) => ({ id: plants[p.index].id, x: p.x + p.w / 2, state: threadState(plants[p.index]) }));
-            return (
-              <div key={r} className="relative grid" style={{ minHeight: row.plantH + row.soilH }}>
-                <div className="relative self-end [grid-area:1/1]" style={{ height: row.soilH }}>
-                  <SoilBand
-                    width={size.w}
-                    height={row.soilH}
-                    sourceX={fungus.w / 2}
-                    fromAbove={r > 0}
-                    continues={r < layout.rows.length - 1}
-                    threads={threads}
-                    agentMode={agent.mode}
-                    paused={agent.mode === "paused"}
-                    salt={r * 97 + 11}
-                  />
-                </div>
-
-                {row.plots.map((plot) => {
-                  if (plot.kind === "fungus") {
-                    const h = (plot.w * 158) / 112;
-                    return (
-                      <Fragment key="fungus">
-                        <button
-                          type="button"
-                          onClick={() => setSettings(configurable)}
-                          className="focus-ring absolute z-10 block"
-                          style={{ left: plot.x, width: plot.w, bottom: row.soilH - (h * 8) / 158, height: h }}
-                          aria-label={configurable ? g.fungusLocal(line.text) : g.fungus(line.text)}
-                        >
-                          <Fungus mode={agent.mode} paused={agent.mode === "paused"} />
-                        </button>
-                        {!layout.mobile && (
-                          <button
-                            type="button"
-                            onClick={() => setSettings(configurable)}
-                            className="paper paper-shadow focus-ring absolute z-20 -rotate-[1.5deg] rounded-[2px] px-2.5 pb-2 pt-2.5 text-left transition-[translate] duration-300 hover:-translate-y-0.5"
-                            style={{
-                              left: plot.x + 14,
-                              width: plot.w - 12,
-                              bottom: row.soilH - 30,
-                              transform: "translateY(100%)",
-                            }}
-                          >
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute inset-[3px] rounded-[1px] border border-line"
-                            />
-                            <span
-                              aria-hidden
-                              className="absolute -top-[4px] left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-[#b3925a] shadow-[0_1px_1px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.45)]"
-                            />
-                            <span className="typewriter relative block text-[9.5px] uppercase tracking-[0.14em] text-ink-3">
-                              {g.myceliumName}
-                            </span>
-                            <span className="typewriter relative block truncate text-[10.5px] text-ink-2">
-                              {agent.model}
-                            </span>
-                            <span className={`relative mt-0.5 line-clamp-3 text-[11px] leading-tight ${line.tone}`}>
-                              {line.text}
-                            </span>
-                          </button>
-                        )}
-                      </Fragment>
-                    );
-                  }
-                  if (plot.kind === "plant") {
-                    const task = plants[plot.index];
-                    return (
-                      <PlantPlot
-                        key={task.id}
-                        task={task}
-                        agent={agent}
-                        x={plot.x}
-                        w={plot.w}
-                        plantH={row.plantH}
-                        scaleH={row.scaleH}
-                        number={numbers.get(task.id) ?? 0}
-                        fresh={task.id === freshId}
-                        compact={layout.mobile}
-                      />
-                    );
-                  }
-                  if (plot.kind === "packet") {
-                    return (
-                      <div
-                        key="packet"
-                        className="absolute z-20"
-                        style={{ left: plot.x + 10, width: plot.w - 26, bottom: row.soilH - 16 }}
-                      >
-                        {packetEl}
-                      </div>
-                    );
-                  }
-                  if (plot.kind === "empty") {
-                    return (
-                      <div
-                        key="empty"
-                        className="relative z-10 flex flex-col justify-end self-start justify-self-start pl-2 pr-4 [grid-area:1/1] sm:pl-4 sm:pr-10"
-                        style={{
-                          width: plot.x + plot.w,
-                          minHeight: row.plantH,
-                          marginBottom: row.soilH,
-                          paddingBottom: (fungus.w * 158) / 112 + 20,
-                        }}
-                      >
-                        <div className="relative isolate">
-                          <div
-                            aria-hidden
-                            className="condensation pointer-events-none absolute -inset-x-12 -inset-y-8 -z-10"
-                          />
-                          <p className="font-display text-[1.55rem] leading-tight text-scene-ink">
-                            {g.empty.title} <span className="italic">{g.empty.titleTail}</span>
-                          </p>
-                          <p className="mt-2 max-w-md text-[14px] leading-relaxed text-scene-ink-2">{g.empty.text}</p>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {g.suggestions.map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => packet.current?.fill(`${s} `)}
-                                className="focus-ring paper rounded-full px-3 py-1 text-[13px] text-ink-2 shadow-sm hover:text-ink"
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={example}
-                            disabled={openingExample}
-                            aria-busy={openingExample}
-                            className="focus-ring mt-4 inline-flex items-center gap-2 self-start text-left text-[13px] text-pretty text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink disabled:no-underline"
-                          >
-                            {openingExample && (
-                              <LoaderCircle
-                                className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            )}
-                            {openingExample ? g.empty.openingExample : g.empty.openExample}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
+          {!growing && (
+            <>
+              <div className="plate-ground relative" style={{ background: measured ? undefined : SOIL_FALLBACK }}>
+                {measured && (
+                  <PlateSoil width={frame.width} height={frame.soil} salt={7}>
+                    <FigureUnderground
+                      ox={figureOx}
+                      scale={scale}
+                      height={frame.stacked ? frame.roots : frame.soil}
+                      hole={hole}
+                      textBottom={frame.stacked ? -1000 : frame.textBottom}
+                      drawHole={frame.stacked}
+                      flat={frame.stacked}
+                      mode={agent.mode}
+                      paused={agent.mode === "paused"}
+                    />
+                  </PlateSoil>
+                )}
               </div>
-            );
-          })}
+              <div ref={band} className="plate-band" aria-hidden />
+            </>
+          )}
+
+          {growing && (
+            <>
+              <div className="plate-undersoil" aria-hidden />
+              <Bed
+                strip={strip}
+                bedX={frame.bedX}
+                visible={frame.visible}
+                width={frame.width}
+                plants={plants}
+                agent={agent}
+                numbers={numbers}
+                freshId={freshId}
+                sky={sky}
+                skyLabel={skyLabel}
+                toward={frame.stacked ? undefined : hole}
+                soilMin={frame.stacked ? 156 : 96}
+                fungusLabel={configurable ? g.fungusLocal(line.text) : g.fungus(line.text)}
+                onFungus={() => setSettings(configurable)}
+              />
+            </>
+          )}
+
+          <SowingMarks empty={!growing} next={catalog(data.tasks.length + 1)} note={t.plate.sowHere} />
+          {!growing && <DormantSeeds onPick={(s) => packet.current?.fill(`${s} `)} />}
+
+          <div ref={notes} className="plate-notes relative z-20 self-start pb-3 pl-1.5">
+            <AnimatePresence initial={false} mode="popLayout">
+              {growing ? (
+                <motion.div
+                  key="agent"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <MyceliumNote
+                    text={line.text}
+                    dot={line.dot}
+                    working={agent.mode === "working"}
+                    className="plate-agent mt-5"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="lede"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <p className="plate-lede mt-4 w-full max-w-[400px] text-[15px] leading-[22px] text-root">
+                    {t.plate.lede}
+                  </p>
+                  <div className="mt-1">
+                    <ExampleLink onOpen={example} opening={openingExample} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      </section>
+      </PlateSheet>
 
       <Pantry tasks={harvested} numbers={numbers} />
 

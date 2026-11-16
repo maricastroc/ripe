@@ -117,7 +117,6 @@ export const ptBR: Messages = {
   sky: { dawn: "amanhecer", day: "dia", dusk: "entardecer", night: "noite" },
   greenhouse: {
     label: "A estufa",
-    tagline: "estufa para coisas adiadas",
     openSettings: "Abrir as configurações do agente",
     agentIs: (line: string) => `O agente: ${line}`,
     myceliumName: "micélio",
@@ -125,10 +124,7 @@ export const ptBR: Messages = {
     fungus: (line: string) => `O micélio, o agente: ${line}`,
     headline: "Deixe para depois.",
     headlineTail: "Aqui, amadurece.",
-    intro: (mycelium: string) =>
-      `Semeie o que você vive adiando. O micélio sob a terra é ${mycelium}. Ele trabalha em cada tarefa em pequenos passos e salva conforme avança, então uma planta só cresce quando um trabalho de verdade fica pronto.`,
     counts: {
-      plants: (n: number) => `${n} ${plural(n, "planta", "plantas")}`,
       growing: (n: number) => `${n} crescendo agora`,
       waiting: (n: number) => `${n} ${plural(n, "precisa", "precisam")} de você`,
       ripe: (n: number) => `${n} ${plural(n, "madura", "maduras")}`,
@@ -147,11 +143,6 @@ export const ptBR: Messages = {
       elsewhere: "alimentando outras estufas",
       idle: "ocioso, nada para alimentar",
     },
-    mycelium: {
-      fake: "um modelo simulado, para desenvolvimento",
-      local: "um modelo aberto rodando nesta máquina",
-      hosted: (model: string) => `${model}, um modelo hospedado`,
-    },
     note: {
       fake: "Escrito por um modelo simulado, para desenvolvimento.",
       local: (model: string) => `Tudo roda localmente com ${model} via Ollama. Nada sai desta máquina.`,
@@ -167,15 +158,23 @@ export const ptBR: Messages = {
     empty: {
       title: "Nada está crescendo ainda.",
       titleTail: "A terra está pronta.",
-      text: "Escreva algo no pacote de sementes e deixe para depois. O micélio começa a alimentá-lo na hora, e a planta brota, se ramifica e dá frutos conforme cada parte do trabalho fica pronta.",
       openingExample: "abrindo o exemplo…",
-      openExample: "ou abra um exemplo maduro, gravado de uma execução real",
     },
     retention: (days: number, maximum: number) =>
       `As plantas ficam guardadas por ${days} dias depois da sua última visita, ${maximum} no máximo.`,
     motto: "devagar e sempre.",
   },
   opening: "Abrindo…",
+  plate: {
+    title: "Prancha I. Uma estufa para coisas adiadas, vista em corte",
+    inHouse: (n: number) => `${n} ${plural(n, "planta", "plantas")} na estufa`,
+    lede: "O micélio trabalha nela debaixo da terra, e a planta só cresce quando um trabalho de verdade fica pronto.",
+    example: "abrir um exemplo maduro",
+    sowHere: "semeie aqui",
+    dormant: "Sementes dormentes, escolha uma",
+    credit: "Ripe Seed Co. del.",
+    number: "Pr. I",
+  },
   packet: {
     hints: [
       "Escrever a proposta do projeto para o edital…",

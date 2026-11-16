@@ -18,12 +18,11 @@ type Props = {
   nextNumber: number;
   ref?: Ref<PacketHandle>;
   turnstile?: string | null;
-  stake?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
 
-export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, stake = true, className, style }: Props) {
+export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, className, style }: Props) {
   const { t } = useI18n();
   const p = t.packet;
   const [text, setText] = useState("");
@@ -84,7 +83,18 @@ export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, stake
   }
 
   return (
-    <div className={`relative origin-bottom -rotate-[1.2deg] ${className ?? ""}`} style={style}>
+    <div
+      className={`relative origin-top rotate-[1.6deg] drop-shadow-[0_8px_12px_rgb(40_30_18/0.3)] ${className ?? ""}`}
+      style={style}
+    >
+      <svg
+        viewBox="0 0 20 20"
+        className="pointer-events-none absolute left-1/2 top-[6px] z-10 h-[18px] w-[18px] -translate-x-1/2"
+        aria-hidden
+      >
+        <circle cx={10} cy={10} r={6.5} fill="var(--ochre)" stroke="var(--ink)" strokeWidth={1} />
+        <circle cx={8} cy={8} r={2} fill="var(--butter)" />
+      </svg>
       <AnimatePresence>
         {dropping > 0 && (
           <motion.svg
@@ -213,12 +223,6 @@ export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, stake
           )}
         </AnimatePresence>
       </form>
-      {stake && (
-        <div
-          className="mx-auto h-6 w-3 rounded-b-sm bg-[#8a6040] shadow-[inset_-2px_0_0_rgba(0,0,0,0.2)]"
-          aria-hidden
-        />
-      )}
     </div>
   );
 }

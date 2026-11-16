@@ -66,6 +66,21 @@
   --accent-ink: var(--vermilion-ink);
   --accent-soft: var(--vermilion-soft);
   --shadow-rgb: 40 30 18;
+  --plate-vignette: rgb(176 141 87 / 0.32);
+  --plate-foxing: rgb(185 140 93 / 0.16);
+  --plate-soil-0: #553a27;
+  --plate-soil-1: #3d2a1c;
+  --plate-topsoil: #6a4a33;
+  --plate-hollow: #1f140e;
+  --plate-stem: #3b6136;
+  --plate-leaf: #5f8c4c;
+  --plate-leaf-2: #6c9a52;
+  --plate-fruit-line: #6b1f10;
+  --plate-pot: #b5673f;
+  --plate-pot-rim: #c4764b;
+  --plate-steel: #a9aca4;
+  --plate-cap: #c9a27a;
+  --plate-cap-2: #d6b48c;
   color-scheme: light;
 }
 
@@ -128,6 +143,8 @@
   --color-kraft: var(--kraft);
   --color-soil: var(--soil-1);
   --color-myc: var(--myc);
+  --color-root: var(--root);
+  --color-wood-3: var(--wood-3);
   --color-scene-ink: var(--scene-ink);
   --color-scene-ink-2: var(--scene-ink-2);
   --font-display: var(--font-fraunces);
@@ -303,12 +320,266 @@ body::after {
   );
 }
 
-[data-sky="night"] .specimen-bed {
-  filter: brightness(0.84) saturate(0.82);
+.plate {
+  --pad: clamp(16px, 3.8dvh, 34px);
+  padding: var(--pad) var(--pad) calc(var(--pad) + 4px);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle 9px at 14.7% 35.3%, var(--plate-foxing) 94%, transparent),
+    radial-gradient(circle 4px at 15.7% 37.1%, var(--plate-foxing) 90%, transparent),
+    radial-gradient(circle 6px at 73.1% 14.2%, var(--plate-foxing) 92%, transparent),
+    radial-gradient(circle 3.5px at 31.4% 23.1%, var(--plate-foxing) 88%, transparent),
+    radial-gradient(circle 7px at 92.4% 58.2%, var(--plate-foxing) 92%, transparent),
+    radial-gradient(circle 4.5px at 41.9% 16.2%, var(--plate-foxing) 90%, transparent),
+    radial-gradient(circle farthest-corner at 50% 48%, transparent 50%, var(--plate-vignette) 100%);
+  box-shadow: 0 18px 30px -18px rgb(0 0 0 / 0.55);
 }
 
-[data-sky="dusk"] .specimen-bed {
-  filter: saturate(0.94) sepia(0.06);
+.plate-frame {
+  inset: calc(var(--pad) - 6px) calc(var(--pad) - 6px) calc(var(--pad) - 2px);
+}
+
+.plate-credit {
+  left: var(--pad);
+  right: var(--pad);
+  bottom: max(1px, calc((var(--pad) - 17px) / 2));
+}
+
+.plate-grid {
+  --plate-c1: minmax(320px, 30%);
+  --plate-c3: clamp(316px, 22vw, 322px);
+  --plate-title: clamp(48px, min(6.6vw, 11dvh), 96px);
+  --plate-gutter: 24px;
+  --head: clamp(46px, 7dvh, 64px);
+  --lift: clamp(12px, calc(17dvh - 100px), 52px);
+  --reach: clamp(44px, calc(14dvh - 50px), 76px);
+  display: grid;
+  grid-template-columns:
+    [full-start] var(--plate-gutter) [key-start] var(--plate-c1) [key-end bed-start] minmax(0, 1fr)
+    [bed-end packet-start] var(--plate-c3) [packet-end] calc(var(--plate-gutter) - 2px) [full-end];
+  grid-template-rows:
+    [head-start] var(--head) [head-end key-start] auto [key-end above-start] auto [above-end tail-start] auto
+    [tail-end soil-start] 1fr [soil-end];
+  min-height: max(520px, calc(100dvh - 2 * var(--pad) - 4px));
+}
+
+.plate-grid[data-growing] {
+  --plate-c1: clamp(240px, 20%, 300px);
+  --plate-title: clamp(34px, min(3.6vw, 6.2dvh), 52px);
+}
+
+.plate-head {
+  grid-column: key-start / packet-end;
+  grid-row: head;
+}
+
+.plate-key {
+  grid-column: key;
+  grid-row: key;
+}
+
+.plate-alert {
+  grid-column: bed;
+  grid-row: key;
+}
+
+.plate-h1 {
+  grid-column: key;
+  grid-row: above-start / tail-end;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: subgrid;
+}
+
+.plate-h1 > :first-child {
+  grid-row: 1;
+}
+
+.plate-h1 > :last-child {
+  grid-row: -2 / -1;
+}
+
+.plate-figure {
+  grid-column: bed;
+  grid-row: key-start / above-end;
+  min-height: calc(62dvh - var(--pad) - var(--head));
+}
+
+.plate-packet {
+  grid-column: packet;
+  grid-row: key-start / above-end;
+  padding: var(--lift) 0 var(--reach) 26px;
+}
+
+.plate-ground,
+.plate-bed0 {
+  grid-column: full;
+  grid-row: tail-start / soil-end;
+}
+
+.plate-band,
+.plate-undersoil {
+  display: none;
+}
+
+.plate-marks {
+  grid-column: packet;
+  grid-row: tail;
+}
+
+.plate-seeds {
+  grid-column: packet;
+  grid-row: tail-start / soil-end;
+}
+
+.plate-notes {
+  grid-column: key;
+  grid-row: soil;
+}
+
+.plate-strip {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(217 202 173 / 0.35) transparent;
+  overscroll-behavior-x: contain;
+}
+
+@media (min-width: 1024px) and (max-height: 800px) {
+  .plate-seed {
+    min-height: 24px;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 740px) {
+  .plate-seed-list > :nth-child(n + 3) {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 700px) {
+  .plate-agent-label {
+    display: none;
+  }
+
+  .plate-agent {
+    margin-top: 12px;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 660px) {
+  .plate-lede,
+  .plate-seed-list {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 620px) {
+  .plate-agent {
+    display: none;
+  }
+}
+
+@media (max-height: 560px) {
+  .plate-credit {
+    display: none;
+  }
+}
+
+@media (max-width: 1023.98px) {
+  .plate-grid,
+  .plate-grid[data-growing] {
+    grid-template-columns:
+      [full-start] var(--plate-gutter) [key-start bed-start packet-start] minmax(0, 1fr)
+      [key-end bed-end packet-end] var(--plate-gutter) [full-end];
+    grid-template-rows:
+      [head-start] auto [head-end key-start] auto [key-end title-start] auto [title-end above-start] auto
+      [above-end band-start] auto [band-end tail-start] auto [tail-end packet-start] auto [packet-end soil-start] auto
+      [soil-end seeds-start] 1fr [seeds-end];
+  }
+
+  .plate-grid {
+    --plate-title: clamp(44px, 11vw, 80px);
+  }
+
+  .plate-grid[data-growing] {
+    --plate-title: clamp(34px, 8vw, 52px);
+  }
+
+  .plate-h1 {
+    grid-row: title-start / tail-end;
+  }
+
+  .plate-figure {
+    grid-row: above;
+    min-height: var(--plate-band, 0px);
+  }
+
+  .plate-grid:not([data-growing]) .plate-figure {
+    overflow: hidden;
+    min-height: 0;
+    max-height: 460px;
+    aspect-ratio: 600 / 450;
+  }
+
+  .plate-packet {
+    grid-row: packet;
+    justify-self: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 0 24px;
+  }
+
+  .plate-ground {
+    grid-row: band-start / seeds-end;
+  }
+
+  .plate-bed0 {
+    grid-row: band;
+  }
+
+  .plate-band {
+    display: block;
+    grid-column: full;
+    grid-row: band;
+    max-height: 200px;
+    aspect-ratio: 600 / 200;
+  }
+
+  .plate-undersoil {
+    display: block;
+    grid-column: full;
+    grid-row: tail-start / seeds-end;
+    background: var(--soil-3);
+  }
+
+  .plate-marks {
+    display: none;
+  }
+
+  .plate-seeds {
+    grid-column: key;
+    grid-row: seeds;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .plate {
+    --pad: 12px;
+  }
+
+  .plate-grid {
+    --plate-gutter: 10px;
+  }
+}
+
+.plate-title {
+  font-size: var(--plate-title);
+  line-height: 0.958;
+  letter-spacing: -0.025em;
+  transition: font-size 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.plate-grid[data-growing] .plate-title {
+  line-height: 0.962;
+  letter-spacing: -0.02em;
 }
 
 .back-link:focus-visible {
@@ -345,19 +616,6 @@ body::after {
   .spread-wide {
     grid-template-columns: minmax(0, 0.42fr) minmax(0, 1.58fr);
   }
-}
-
-.condensation {
-  background: radial-gradient(
-    ellipse 62% 64% at 38% 50%,
-    color-mix(in oklab, var(--glass-bottom) 86%, transparent) 0%,
-    color-mix(in oklab, var(--glass-bottom) 62%, transparent) 46%,
-    transparent 78%
-  );
-  -webkit-backdrop-filter: blur(2.5px) saturate(0.9);
-  backdrop-filter: blur(2.5px) saturate(0.9);
-  -webkit-mask-image: radial-gradient(ellipse 62% 64% at 38% 50%, #000 34%, transparent 76%);
-  mask-image: radial-gradient(ellipse 62% 64% at 38% 50%, #000 34%, transparent 76%);
 }
 
 .tape {
@@ -764,7 +1022,8 @@ body::after {
   .spore {
     opacity: 0 !important;
   }
-  .spread {
+  .spread,
+  .plate-title {
     transition: none !important;
   }
   ::view-transition-group(*),
