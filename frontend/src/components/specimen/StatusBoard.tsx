@@ -1,7 +1,11 @@
+"use client";
+
 import { BookOpen, Flag, MessageCircleQuestion, Sprout } from "lucide-react";
 import { restText } from "@/lib/presence";
 import type { LucideIcon } from "lucide-react";
 import { formatRelative, returnWhen } from "@/lib/format";
+import type { I18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/context";
 import { activityLabel } from "@/lib/labels";
 import type { AgentStatus, StepPhase, TaskDetail } from "@/lib/types";
 
@@ -21,88 +25,69 @@ const SEGMENT: Record<StepPhase, string> = {
   blocked: "bg-ochre",
 };
 
-function plural(n: number, one: string, many: string) {
-  return `${n} ${n === 1 ? one : many}`;
+function since(i18n: I18n, iso: string) {
+  const text = formatRelative(i18n, iso);
+  return Date.now() - new Date(iso).getTime() < 86_400_000 ? text : i18n.t.when.date(text);
 }
 
-function since(iso: string) {
-  const text = formatRelative(iso);
-  return text.endsWith("ago") || text === "just now" ? text : `on ${text}`;
-}
-
-function overall(task: TaskDetail): { value: string; detail: string; tone: Tone } {
+function overall(i18n: I18n, task: TaskDetail): { value: string; detail: string; tone: Tone } {
+  const o = i18n.t.board.task;
   switch (task.status) {
     case "harvested":
       return {
-        value: "Done",
-        detail: `You harvested it${task.harvestedAt ? ` ${since(task.harvestedAt)}` : ""}. It stays readable in the pantry.`,
+        value: o.done,
+        detail: o.harvested(task.harvestedAt ? since(i18n, task.harvestedAt) : null),
         tone: "ink",
       };
     case "ripe":
-      return {
-        value: "Ripe",
-        detail: "The agent has finished. The task only counts as done once you harvest it.",
-        tone: "leaf",
-      };
+      return { value: o.ripe, detail: o.ripeDetail, tone: "leaf" };
     case "waiting":
-      return { value: "Growing, on hold", detail: "It stopped at the step that needs your answer.", tone: "vermilion" };
+      return { value: o.onHold, detail: o.onHoldDetail, tone: "vermilion" };
     case "dormant":
-      return { value: "Dormant", detail: "Planted, but nothing is running.", tone: "muted" };
+      return { value: o.dormant, detail: o.dormantDetail, tone: "muted" };
     case "stalled":
-      return { value: "Needs care", detail: "The agent stopped after several failed attempts.", tone: "vermilion" };
+      return { value: o.stalled, detail: o.stalledDetail, tone: "vermilion" };
     default: {
-      const when = returnWhen(task.returnAt);
-      return {
-        value: "Growing",
-        detail: when
-          ? `It keeps ripening while you're away. You said you'd be back ${when}.`
-          : "It keeps ripening, one step at a time.",
-        tone: "ink",
-      };
+      const when = returnWhen(i18n, task.returnAt);
+      return { value: o.growing, detail: when ? o.away(when) : o.growingDetail, tone: "ink" };
     }
   }
 }
 
-function agentWork(task: TaskDetail, agent: AgentStatus): { value: string; detail: string; tone: Tone } {
+function agentWork(i18n: I18n, task: TaskDetail, agent: AgentStatus): { value: string; detail: string; tone: Tone } {
+  const w = i18n.t.board.work;
   const done = task.growth.stepsDone;
   const total = task.growth.stepsTotal;
-  const written = total ? `${done} of ${plural(total, "step", "steps")} written` : "No plan yet";
-  if (task.growth.stage === "ripe")
-    return { value: "Finished", detail: `All ${plural(total, "step", "steps")} written and reviewed.`, tone: "leaf" };
+  const written = total ? w.written(done, total) : w.noPlan;
+  if (task.growth.stage === "ripe") return { value: w.finished, detail: w.all(total), tone: "leaf" };
   if (task.activity?.running)
     return {
-      value: "Working now",
-      detail: `${activityLabel(task.activity.kind, task.activity.subject)}. ${written}.`,
+      value: w.workingNow,
+      detail: `${activityLabel(i18n.t, task.activity.kind, task.activity.subject)}. ${written}.`,
       tone: "leaf",
     };
   switch (task.status) {
     case "waiting":
-      return { value: "As far as it can go", detail: `${written}. The rest needs your answer.`, tone: "vermilion" };
+      return { value: w.asFar, detail: `${written}. ${w.restNeedsYou}`, tone: "vermilion" };
     case "dormant":
-      return { value: "Not running", detail: `${written}.`, tone: "muted" };
+      return { value: w.notRunning, detail: `${written}.`, tone: "muted" };
     case "stalled":
-      return { value: "Stopped", detail: `${written}.`, tone: "vermilion" };
+      return { value: w.stopped, detail: `${written}.`, tone: "vermilion" };
     case "harvested":
-      return { value: "Stopped when you harvested", detail: `${written}.`, tone: "muted" };
+      return { value: w.stoppedHarvest, detail: `${written}.`, tone: "muted" };
   }
-  if (agent.mode === "paused")
-    return { value: "Agent paused", detail: `${written}. It resumes when you turn it back on.`, tone: "muted" };
+  if (agent.mode === "paused") return { value: w.paused, detail: `${written}. ${w.pausedDetail}`, tone: "muted" };
   if (agent.mode === "resting")
-    return { value: "Resting", detail: `${written}. ${restText(agent).long}`, tone: "muted" };
-  if (agent.mode === "halted")
-    return {
-      value: "Waiting for the model",
-      detail: `${written}. The greenhouse can’t reach its model right now. It picks up again on its own.`,
-      tone: "muted",
-    };
+    return { value: w.resting, detail: `${written}. ${restText(i18n, agent).long}`, tone: "muted" };
+  if (agent.mode === "halted") return { value: w.waitingModel, detail: `${written}. ${w.haltedDetail}`, tone: "muted" };
   if (agent.mode === "offline")
     return {
-      value: agent.driver === "ollama" ? "Waiting for Ollama" : "Waiting for the model",
-      detail: `${written}. It picks up again once the model is back.`,
+      value: agent.driver === "ollama" ? w.waitingOllama : w.waitingModel,
+      detail: `${written}. ${w.offlineDetail}`,
       tone: "muted",
     };
-  if (agent.mode === "model-missing") return { value: "Waiting for the model", detail: `${written}.`, tone: "muted" };
-  return { value: "In the queue", detail: total ? `${written}.` : "First it reads your request.", tone: "ink" };
+  if (agent.mode === "model-missing") return { value: w.waitingModel, detail: `${written}.`, tone: "muted" };
+  return { value: w.queued, detail: total ? `${written}.` : w.firstReads, tone: "ink" };
 }
 
 function Cell({
@@ -140,36 +125,28 @@ function Cell({
 }
 
 export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentStatus }) {
+  const i18n = useI18n();
+  const b = i18n.t.board;
   const open = task.questions.filter((q) => q.status === "open");
   const essential = open.filter((q) => q.kind === "essential").length;
   const optional = open.length - essential;
   const stepPieces = task.artifacts.filter((a) => a.kind === "step").length;
   const review = task.artifacts.some((a) => a.kind === "review");
   const pieces = task.artifacts.length;
-  const state = overall(task);
-  const work = agentWork(task, agent);
+  const state = overall(i18n, task);
+  const work = agentWork(i18n, task, agent);
 
   const you: { value: string; detail: string; tone: Tone } = essential
-    ? {
-        value: `${plural(essential, "answer", "answers")} needed`,
-        detail: `The final version depends on ${essential === 1 ? "it" : "them"}.${
-          optional ? ` ${optional} more ${optional === 1 ? "is" : "are"} optional.` : ""
-        }`,
-        tone: "vermilion",
-      }
+    ? { value: b.you.needed(essential), detail: b.you.depends(essential, optional), tone: "vermilion" }
     : optional
-      ? {
-          value: `${plural(optional, "optional answer", "optional answers")}`,
-          detail: "The agent marked these gaps rather than guess. Your answers fill them in.",
-          tone: "ink",
-        }
-      : { value: "Nothing open", detail: "No questions for you right now.", tone: "muted" };
+      ? { value: b.you.optional(optional), detail: b.you.optionalDetail, tone: "ink" }
+      : { value: b.you.none, detail: b.you.noneDetail, tone: "muted" };
 
   return (
-    <section aria-label="Where this task stands">
+    <section aria-label={b.label}>
       <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-[2px] border border-line-2 bg-line-2 sm:grid-cols-3">
-        <Cell icon={Flag} label="this task" value={state.value} detail={state.detail} tone={state.tone} wide />
-        <Cell icon={Sprout} label="agent's work" value={work.value} detail={work.detail} tone={work.tone}>
+        <Cell icon={Flag} label={b.cells.task} value={state.value} detail={state.detail} tone={state.tone} wide />
+        <Cell icon={Sprout} label={b.cells.work} value={work.value} detail={work.detail} tone={work.tone}>
           {task.steps.length > 0 && (
             <span className="mt-2 flex gap-1" aria-hidden>
               {task.steps.map((step) => (
@@ -187,17 +164,15 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
             </span>
           )}
         </Cell>
-        <Cell icon={MessageCircleQuestion} label="from you" value={you.value} detail={you.detail} tone={you.tone} />
+        <Cell icon={MessageCircleQuestion} label={b.cells.you} value={you.value} detail={you.detail} tone={you.tone} />
         <Cell
           icon={BookOpen}
-          label="ready to read"
-          value={pieces ? plural(pieces, "piece", "pieces") : "Nothing yet"}
+          label={b.cells.read}
+          value={pieces ? b.read.pieces(pieces) : b.read.none}
           detail={
             pieces
-              ? `${plural(stepPieces, "finished step", "finished steps")}${
-                  review ? " and the agent's review" : ""
-                }.${task.isExample || task.status === "harvested" ? "" : " All editable."}`
-              : "Each finished step adds a piece here."
+              ? b.read.detail(stepPieces, review, !(task.isExample || task.status === "harvested"))
+              : b.read.noneDetail
           }
           tone={pieces ? "ink" : "muted"}
         />

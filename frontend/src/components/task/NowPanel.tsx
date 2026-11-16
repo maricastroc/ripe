@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Markdown } from "@/components/Markdown";
 import { useNow, useTypewriter } from "@/hooks/useTicker";
 import { returnWhen } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
+import type { Messages } from "@/lib/i18n/messages/en";
 import { activityLabel } from "@/lib/labels";
 import { countWords } from "@/lib/markers";
 import { restText } from "@/lib/presence";
@@ -25,10 +27,12 @@ function seconds(ms: number) {
   return `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
 }
 
-const PEEK_KEYS: Record<string, Record<string, string>> = {
-  interpret: { title: "name", outcome: "expected outcome", question: "question" },
+type PeekLabel = keyof Messages["now"]["peek"];
+
+const PEEK_KEYS: Record<string, Record<string, PeekLabel>> = {
+  interpret: { title: "name", outcome: "outcome", question: "question" },
   plan: { title: "step" },
-  review: { summary: "summary", problem: "fix", nextActions: "next step" },
+  review: { summary: "summary", problem: "fix", nextActions: "next" },
 };
 
 function peek(type: string, raw: string) {
@@ -36,7 +40,7 @@ function peek(type: string, raw: string) {
   if (!labels) return [];
   const keys = Object.keys(labels).join("|");
   const pattern = new RegExp(`"(${keys})"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`, "g");
-  const lines: { label: string; text: string }[] = [];
+  const lines: { label: PeekLabel; text: string }[] = [];
   for (const match of raw.matchAll(pattern)) {
     const text = match[2].replace(/\\n/g, " ").replace(/\\"/g, '"').trim();
     if (text) lines.push({ label: labels[match[1]], text });
@@ -45,6 +49,7 @@ function peek(type: string, raw: string) {
 }
 
 function LiveText({ text, kind }: { text: string; kind: RunKind }) {
+  const { t } = useI18n();
   const shown = useTypewriter(text);
   const [raw, setRaw] = useState(false);
   if (kind === "generate" || kind === "revise") {
@@ -57,7 +62,10 @@ function LiveText({ text, kind }: { text: string; kind: RunKind }) {
   }
   const lines = peek(kind, shown).map((line, i, all) => ({
     ...line,
-    tag: line.label === "step" ? `step ${all.slice(0, i + 1).filter((l) => l.label === "step").length}` : line.label,
+    tag:
+      line.label === "step"
+        ? t.now.peek.step(all.slice(0, i + 1).filter((l) => l.label === "step").length)
+        : t.now.peek[line.label],
   }));
   return (
     <div>
@@ -87,7 +95,7 @@ function LiveText({ text, kind }: { text: string; kind: RunKind }) {
         onClick={() => setRaw((r) => !r)}
         className="focus-ring mt-3 rounded px-1 font-mono text-[11px] uppercase tracking-wider text-ink-3 hover:text-ink"
       >
-        {raw ? "show readable version" : "show raw model output"}
+        {raw ? t.now.readable : t.now.raw}
       </button>
     </div>
   );
@@ -124,6 +132,9 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
   const activity = task.activity;
   const running = activity?.running === true;
   const now = useNow(Boolean(activity));
+  const i18n = useI18n();
+  const { t } = i18n;
+  const n = t.now;
 
   let key: string = task.status;
   let content: React.ReactNode;
@@ -131,11 +142,20 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
   if (task.isExample) {
     key = "example";
     content = (
-      <Shell tone="text-ink-3" title="Illustrative example">
-        Nothing is running here.{" "}
+      <Shell tone="text-ink-3" title={n.example.title}>
+        {n.example.idle}{" "}
         {task.example
-          ? `Recorded from a real run by ${task.example.model}${task.example.generatedAt ? ` on ${new Date(task.example.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}, to show what you find once a task is ripe.`
-          : "It shows what you find once a task is ripe."}
+          ? n.example.recorded(
+              task.example.model,
+              task.example.generatedAt
+                ? new Date(task.example.generatedAt).toLocaleDateString(i18n.locale, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : null,
+            )
+          : n.example.shows}
       </Shell>
     );
   } else if (running && activity) {
@@ -143,11 +163,13 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     const prose = activity.kind === "generate" || activity.kind === "revise";
     const partial = liveText ?? activity.live?.text ?? "";
     content = (
-      <Shell tone="text-leaf" title={activityLabel(activity.kind, activity.subject)} live>
+      <Shell tone="text-leaf" title={activityLabel(t, activity.kind, activity.subject)} live>
         <p className="font-mono text-[12px] text-ink-3" suppressHydrationWarning>
-          {activity.startedAt ? `for ${seconds(now - new Date(activity.startedAt).getTime())}` : "starting"}
-          {activity.attempts > 1 ? ` · attempt ${activity.attempts} of ${activity.maxAttempts}` : ""}
-          {prose && partial ? ` · ${countWords(partial)} words so far` : ""}
+          {activity.startedAt
+            ? n.running.for(seconds(now - new Date(activity.startedAt).getTime()))
+            : n.running.starting}
+          {activity.attempts > 1 ? ` · ${n.running.attempt(activity.attempts, activity.maxAttempts)}` : ""}
+          {prose && partial ? ` · ${n.running.words(countWords(partial))}` : ""}
           {` · ${agent.model}`}
         </p>
         <div className="sheet relative mt-4 overflow-hidden rounded-2xl px-5 pb-4 pt-5 sm:px-6">
@@ -162,7 +184,7 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
                   strokeWidth={2}
                   aria-hidden
                 />
-                Loading the model. The first words can take a moment…
+                {n.running.loading}
               </p>
               <div aria-hidden className="mt-4 space-y-2.5">
                 <span className="ink-skeleton block h-2.5 w-[92%] rounded-full" />
@@ -176,8 +198,8 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     );
   } else if (task.status === "dormant") {
     content = (
-      <Shell tone="text-ink-3" title="Dormant">
-        Nothing runs until you let it ripen. Everything done so far stays saved.
+      <Shell tone="text-ink-3" title={n.dormant.title}>
+        {n.dormant.text}
         <div className="mt-4">
           <button
             type="button"
@@ -185,16 +207,16 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
             onClick={() => onAct("resume")}
             className="focus-ring rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper hover:bg-leaf-dark"
           >
-            Let it ripen now
+            {n.dormant.resume}
           </button>
         </div>
       </Shell>
     );
   } else if (task.status === "stalled") {
     content = (
-      <Shell tone="text-accent" title="The agent got stuck">
-        <p>{task.stallReason ?? "It stopped after several failed attempts."}</p>
-        <p className="mt-1 text-[14px] text-ink-3">Nothing already done is lost.</p>
+      <Shell tone="text-accent" title={n.stalled.title}>
+        <p>{task.stallReason ?? n.stalled.reason}</p>
+        <p className="mt-1 text-[14px] text-ink-3">{n.stalled.safe}</p>
         <div className="mt-4">
           <button
             type="button"
@@ -202,25 +224,22 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
             onClick={() => onAct("retry")}
             className="focus-ring rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper hover:bg-leaf-dark"
           >
-            Try again
+            {n.stalled.retry}
           </button>
         </div>
       </Shell>
     );
   } else if (task.status === "harvested") {
     content = (
-      <Shell tone="text-ink-3" title="Harvested">
-        The agent won&apos;t work on it again unless you replant it. Every piece is still here to read and copy.
+      <Shell tone="text-ink-3" title={n.harvested.title}>
+        {n.harvested.text}
       </Shell>
     );
   } else if (task.status === "waiting") {
     const essentials = task.questions.filter((q) => q.status === "open" && q.kind === "essential");
     content = (
-      <Shell tone="text-accent" title="Answer below to keep it growing">
-        Everything that didn&apos;t depend on you is done. The rest needs{" "}
-        {essentials.length === 1 ? "one answer" : `${essentials.length || "a few"} answers`}. You can also tell the
-        agent to go on without {essentials.length === 1 ? "it" : "them"}, and it will leave{" "}
-        {essentials.length === 1 ? "a gap" : "the gaps"} marked.
+      <Shell tone="text-accent" title={n.waiting.title}>
+        {n.waiting.text(essentials.length)}
       </Shell>
     );
   } else if (activity && !activity.running) {
@@ -228,63 +247,61 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     const retryIn = activity.availableAt ? new Date(activity.availableAt).getTime() - now : 0;
     if (agent.mode === "paused") {
       content = (
-        <Shell tone="text-ochre" title="Agent paused">
-          The work stays in the queue until you turn the agent back on.
+        <Shell tone="text-ochre" title={n.paused.title}>
+          {n.paused.text}
         </Shell>
       );
     } else if (agent.mode === "resting") {
       content = (
-        <Shell tone="text-ochre" title="Resting">
-          <span suppressHydrationWarning>{restText(agent).long}</span> The step is saved and nothing done so far is
-          lost.
+        <Shell tone="text-ochre" title={n.resting.title}>
+          <span suppressHydrationWarning>{restText(i18n, agent).long}</span> {n.resting.safe}
         </Shell>
       );
     } else if (agent.mode === "halted") {
       content = (
-        <Shell tone="text-ochre" title="Waiting for the model">
-          The greenhouse can’t reach its model right now. The step is saved and will continue on its own.
+        <Shell tone="text-ochre" title={n.waitingModel}>
+          {n.halted}
         </Shell>
       );
     } else if (agent.mode === "offline") {
       content =
         agent.driver === "ollama" ? (
-          <Shell tone="text-ochre" title="Waiting for Ollama">
-            The agent can’t reach Ollama. The step is saved and will continue on its own once Ollama is back. To start
-            it, run <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama serve</code>
+          <Shell tone="text-ochre" title={n.ollama.title}>
+            {n.ollama.text} <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama serve</code>
           </Shell>
         ) : (
-          <Shell tone="text-ochre" title="Waiting for the model">
-            The model can’t be reached right now. The step is saved and will continue on its own.
+          <Shell tone="text-ochre" title={n.waitingModel}>
+            {n.offline}
           </Shell>
         );
     } else if (agent.mode === "model-missing") {
       content = (
-        <Shell tone="text-ochre" title="Waiting for the model">
-          Model <span className="font-mono text-[13px]">{agent.model}</span> is not installed. Run{" "}
-          <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama pull {agent.model}</code> or
-          pick another one in the agent settings.
+        <Shell tone="text-ochre" title={n.waitingModel}>
+          {n.missing.model} <span className="font-mono text-[13px]">{agent.model}</span> {n.missing.run}{" "}
+          <code className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[13px]">ollama pull {agent.model}</code>{" "}
+          {n.missing.other}
         </Shell>
       );
     } else if (retryIn > 1500 && activity.lastError) {
       content = (
-        <Shell tone="text-ochre" title={`Trying again in ${seconds(retryIn)}`}>
-          {activityLabel(activity.kind, activity.subject)}. What went wrong last time:{" "}
+        <Shell tone="text-ochre" title={n.retryIn(seconds(retryIn))}>
+          {activityLabel(t, activity.kind, activity.subject)}. {n.lastError}{" "}
           <span className="italic">{activity.lastError}</span>
         </Shell>
       );
     } else if ((agent.current && agent.current.taskId !== task.id) || agent.elsewhere) {
       content = (
-        <Shell tone="text-ink-3" title="In the queue">
-          The agent works on one thing at a time.{" "}
+        <Shell tone="text-ink-3" title={n.queue.title}>
+          {n.queue.oneAtATime}{" "}
           {agent.current && agent.current.taskId !== task.id
-            ? `It’s busy with “${agent.current.taskTitle}”, and this task is next.`
-            : "It’s feeding another greenhouse, and this task is next."}
+            ? n.queue.busyWith(agent.current.taskTitle)
+            : n.queue.elsewhere}
         </Shell>
       );
     } else {
       content = (
-        <Shell tone="text-leaf" title="Getting the next step ready" live>
-          {activityLabel(activity.kind, activity.subject)}.
+        <Shell tone="text-leaf" title={n.preparing} live>
+          {activityLabel(t, activity.kind, activity.subject)}.
         </Shell>
       );
     }
@@ -293,19 +310,14 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     const optional = task.questions.filter((q) => q.status === "open").length;
     const early = task.returnAt && task.ripeAt && new Date(task.ripeAt) < new Date(task.returnAt);
     content = (
-      <Shell tone="text-leaf" title="Your turn">
-        Read the {materials === 1 ? "piece" : `${materials} pieces`} and the agent&apos;s review.
-        {optional
-          ? ` If you want the gaps it marked filled in, answer the ${optional === 1 ? "optional question" : `${optional} optional questions`} below.`
-          : ""}{" "}
-        When you&apos;re happy with it, use Harvest under the plate.
-        {early ? " It ripened before you said you'd be back." : ""}
+      <Shell tone="text-leaf" title={n.ripe.title}>
+        {n.ripe.text(materials, optional, Boolean(early))}
       </Shell>
     );
   } else {
     content = (
-      <Shell tone="text-leaf" title="Lining up the next step" live>
-        {returnWhen(task.returnAt) ? `You said you'd be back ${returnWhen(task.returnAt)}.` : null}
+      <Shell tone="text-leaf" title={n.lining} live>
+        {returnWhen(i18n, task.returnAt) ? n.saidBack(returnWhen(i18n, task.returnAt) ?? "") : null}
       </Shell>
     );
   }
@@ -313,7 +325,7 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
   return (
     <section aria-labelledby="now-title" aria-live="polite">
       <h2 id="now-title" className="label mb-3">
-        now
+        {n.heading}
       </h2>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={key}>{content}</motion.div>

@@ -10,6 +10,9 @@ import { usePolling } from "@/hooks/usePolling";
 import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
+import type { I18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/context";
+import type { Messages } from "@/lib/i18n/messages/en";
 import { restText } from "@/lib/presence";
 import type { RealtimeConfig } from "@/lib/realtime";
 import type { AgentStatus, Garden as GardenData, TaskSummary } from "@/lib/types";
@@ -35,53 +38,41 @@ function threadState(task: TaskSummary): Thread["state"] {
   return "idle";
 }
 
-function agentLine(agent: AgentStatus) {
+function agentLine(i18n: I18n, agent: AgentStatus) {
+  const a = i18n.t.greenhouse.agent;
   switch (agent.mode) {
     case "paused":
-      return { text: "paused in settings", tone: "text-ochre" };
+      return { text: a.paused, tone: "text-ochre" };
     case "resting":
-      return { text: restText(agent).short, tone: "text-[#b9d3e0]" };
+      return { text: restText(i18n, agent).short, tone: "text-[#b9d3e0]" };
     case "halted":
-      return { text: "can’t reach its model", tone: "text-[#ff9b7a]" };
+      return { text: a.halted, tone: "text-[#ff9b7a]" };
     case "working":
-      return { text: agent.current ? `feeding “${agent.current.taskTitle}”` : "working", tone: "text-[#d9f27a]" };
+      return { text: agent.current ? a.feeding(agent.current.taskTitle) : a.working, tone: "text-[#d9f27a]" };
     case "offline":
-      return {
-        text: agent.driver === "ollama" ? "Ollama is off. Run ollama serve" : "the model can't be reached",
-        tone: "text-[#ff9b7a]",
-      };
+      return { text: agent.driver === "ollama" ? a.ollamaOff : a.unreachable, tone: "text-[#ff9b7a]" };
     case "model-missing":
-      return { text: `model not installed. Run ollama pull ${agent.model}`, tone: "text-[#ff9b7a]" };
+      return { text: a.modelMissing(agent.model), tone: "text-[#ff9b7a]" };
     case "stopped":
-      return { text: "not running", tone: "text-[#ff9b7a]" };
+      return { text: a.stopped, tone: "text-[#ff9b7a]" };
     default:
-      if (agent.queued)
-        return { text: `${agent.queued} step${agent.queued > 1 ? "s" : ""} queued`, tone: "text-[#efe3c7]" };
-      if (agent.elsewhere) return { text: "feeding other greenhouses", tone: "text-[#d9f27a]" };
-      return { text: "idle, nothing to feed", tone: "text-[#efe3c7]" };
+      if (agent.queued) return { text: a.queued(agent.queued), tone: "text-[#efe3c7]" };
+      if (agent.elsewhere) return { text: a.elsewhere, tone: "text-[#d9f27a]" };
+      return { text: a.idle, tone: "text-[#efe3c7]" };
   }
 }
 
-function myceliumOf(agent: AgentStatus) {
-  if (agent.driver === "fake") return "a simulated model for development";
-  if (agent.hosting === "local" && agent.driver === "ollama") return "an open model running on this machine";
-  return `${agent.model}, a hosted model`;
+function myceliumOf(t: Messages, agent: AgentStatus) {
+  if (agent.driver === "fake") return t.greenhouse.mycelium.fake;
+  if (agent.hosting === "local" && agent.driver === "ollama") return t.greenhouse.mycelium.local;
+  return t.greenhouse.mycelium.hosted(agent.model);
 }
 
-function agentNote(agent: AgentStatus) {
-  if (agent.driver === "fake") return "Written by a simulated model, for development.";
-  if (agent.hosting === "local" && agent.driver === "ollama")
-    return `Everything runs locally with ${agent.model} via Ollama. Nothing leaves this machine.`;
-  return `Written by ${agent.model}${agent.driver === "openai" ? ", hosted by OpenAI" : ""}.`;
+function agentNote(t: Messages, agent: AgentStatus) {
+  if (agent.driver === "fake") return t.greenhouse.note.fake;
+  if (agent.hosting === "local" && agent.driver === "ollama") return t.greenhouse.note.local(agent.model);
+  return t.greenhouse.note.hosted(agent.model, agent.driver === "openai");
 }
-
-const SUGGESTIONS = [
-  "Write a project proposal",
-  "Prepare a presentation",
-  "Plan a trip",
-  "Reply to a difficult email",
-  "Sort out ideas for an article",
-];
 
 export function Greenhouse({
   initial,
@@ -100,6 +91,9 @@ export function Greenhouse({
   const live = useChannel(realtime, data.channel, { "task.changed": request }, request);
   const { sky, time } = useSky();
   const router = useRouter();
+  const i18n = useI18n();
+  const { t } = i18n;
+  const g = t.greenhouse;
   const bed = useRef<HTMLDivElement>(null);
   const packet = useRef<PacketHandle>(null);
   const [size, setSize] = useState({ w: 1200, h: 860 });
@@ -137,7 +131,7 @@ export function Greenhouse({
     plants.map((p) => naturalSize(p.growth.stage, p.growth.stepsTotal)),
   );
   const agent = data.agent;
-  const line = agentLine(agent);
+  const line = agentLine(i18n, agent);
   const configurable = agent.hosting === "local";
   const counts = {
     growing: plants.filter((t) => t.activity?.running).length,
@@ -173,27 +167,26 @@ export function Greenhouse({
       className="relative flex flex-1 flex-col overflow-x-clip"
       style={{ background: "var(--soil-3)" }}
     >
-      <section className="relative overflow-hidden" aria-label="The greenhouse">
+      <section className="relative overflow-hidden" aria-label={g.label}>
         <Glasshouse sky={sky} />
 
         <header className="relative z-30 flex items-start justify-between gap-4 px-4 pt-5 sm:px-10 sm:pt-7">
           <div>
             <p className="font-display font-display-wonk text-[2rem] italic leading-none text-scene-ink">ripe</p>
-            <p className="typewriter mt-1 text-[11px] uppercase tracking-[0.16em] text-scene-ink-2">
-              greenhouse for put-off things
-            </p>
+            <p className="typewriter mt-1 text-[11px] uppercase tracking-[0.16em] text-scene-ink-2">{g.tagline}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5 text-right">
             <button
               type="button"
               onClick={() => setSettings(configurable)}
               className="focus-ring typewriter rounded-full border border-current/20 px-3 py-1 text-[11.5px] text-scene-ink-2 transition-colors hover:text-scene-ink"
-              aria-label={configurable ? "Open agent settings" : `The agent: ${line.text}`}
+              aria-label={configurable ? g.openSettings : g.agentIs(line.text)}
             >
-              mycelium<span className="hidden sm:inline"> · {agent.model}</span>
+              {g.myceliumName}
+              <span className="hidden sm:inline"> · {agent.model}</span>
             </button>
             <p className="typewriter whitespace-nowrap text-[11px] text-scene-ink-2" suppressHydrationWarning>
-              {sky}
+              {t.sky[sky]}
               {time ? ` · ${time}` : ""}
             </p>
             <LanguageSwitch className="-mr-1 text-scene-ink-2 hover:text-scene-ink" />
@@ -212,18 +205,17 @@ export function Greenhouse({
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
               className="font-display text-[2.3rem] leading-[1] tracking-[-0.02em] text-scene-ink sm:text-[3.4rem]"
             >
-              Leave it for later. <span className="font-display-wonk italic">It ripens here.</span>
+              {g.headline} <span className="font-display-wonk italic">{g.headlineTail}</span>
             </motion.h1>
             <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-scene-ink sm:text-[15.5px]">
-              Sow what you keep putting off. The mycelium under the soil is {myceliumOf(agent)}. It works on each task
-              in small steps and saves as it goes, so a plant only grows when real work gets done.
+              {g.intro(myceliumOf(t, agent))}
             </p>
             {plants.length > 0 && (
               <p className="typewriter mt-3 text-[12px] text-scene-ink-2">
-                {plants.length} {plants.length === 1 ? "plant" : "plants"}
-                {counts.growing ? ` · ${counts.growing} growing now` : ""}
-                {counts.waiting ? ` · ${counts.waiting} ${counts.waiting === 1 ? "needs" : "need"} you` : ""}
-                {counts.ripe ? ` · ${counts.ripe} ripe` : ""}
+                {g.counts.plants(plants.length)}
+                {counts.growing ? ` · ${g.counts.growing(counts.growing)}` : ""}
+                {counts.waiting ? ` · ${g.counts.waiting(counts.waiting)}` : ""}
+                {counts.ripe ? ` · ${g.counts.ripe(counts.ripe)}` : ""}
               </p>
             )}
           </div>
@@ -238,7 +230,7 @@ export function Greenhouse({
               role="status"
               className="paper relative z-30 mx-4 mt-3 rounded-sm px-3 py-1.5 text-[13px] text-vermilion-ink sm:mx-10"
             >
-              {error} Trying again…
+              {error} {g.retrying}
             </motion.p>
           )}
         </AnimatePresence>
@@ -277,11 +269,7 @@ export function Greenhouse({
                           onClick={() => setSettings(configurable)}
                           className="focus-ring absolute z-10 block"
                           style={{ left: plot.x, width: plot.w, top: row.plantH - (h * 150) / 158, height: h }}
-                          aria-label={
-                            configurable
-                              ? `The mycelium, the local agent: ${line.text}. Open settings`
-                              : `The mycelium, the agent: ${line.text}`
-                          }
+                          aria-label={configurable ? g.fungusLocal(line.text) : g.fungus(line.text)}
                         >
                           <Fungus mode={agent.mode} paused={agent.mode === "paused"} />
                         </button>
@@ -293,7 +281,7 @@ export function Greenhouse({
                             style={{ left: plot.x + 8, width: plot.w - 4, top: row.plantH + 30 }}
                           >
                             <span className="typewriter block text-[9.5px] uppercase tracking-[0.14em] text-[#c9b48f]">
-                              mycelium
+                              {g.myceliumName}
                             </span>
                             <span className="typewriter block truncate text-[10.5px] text-[#efe3c7]">
                               {agent.model}
@@ -340,14 +328,11 @@ export function Greenhouse({
                         style={{ left: plot.x, width: plot.w, top: 0, height: row.plantH }}
                       >
                         <p className="font-display text-[1.55rem] leading-tight text-scene-ink">
-                          Nothing is growing yet. <span className="italic">The soil is ready.</span>
+                          {g.empty.title} <span className="italic">{g.empty.titleTail}</span>
                         </p>
-                        <p className="mt-2 max-w-md text-[14px] leading-relaxed text-scene-ink-2">
-                          Write something on the seed packet and leave it for later. The mycelium starts feeding it
-                          right away, and the plant sprouts, branches and fruits as each piece of work gets done.
-                        </p>
+                        <p className="mt-2 max-w-md text-[14px] leading-relaxed text-scene-ink-2">{g.empty.text}</p>
                         <div className="mt-4 flex flex-wrap gap-2">
-                          {SUGGESTIONS.map((s) => (
+                          {g.suggestions.map((s) => (
                             <button
                               key={s}
                               type="button"
@@ -372,7 +357,7 @@ export function Greenhouse({
                               aria-hidden
                             />
                           )}
-                          {openingExample ? "opening the example…" : "or open a ripe example, recorded from a real run"}
+                          {openingExample ? g.empty.openingExample : g.empty.openExample}
                         </button>
                       </div>
                     );
@@ -389,10 +374,9 @@ export function Greenhouse({
 
       <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 px-4 pb-6 pt-10 text-[12px] text-[#b9a888] sm:px-10">
         <div className="space-y-1">
-          <p className="typewriter">{agentNote(agent)}</p>
+          <p className="typewriter">{agentNote(t, agent)}</p>
           <p>
-            Plants are kept {data.retention.daysAfterVisit} days after your last visit, {data.retention.maximumDays} at
-            most.
+            {g.retention(data.retention.daysAfterVisit, data.retention.maximumDays)}
             {data.channel && (
               <>
                 {" "}
@@ -401,7 +385,7 @@ export function Greenhouse({
             )}
           </p>
         </div>
-        <p className="font-display italic">slow and steady.</p>
+        <p className="font-display italic">{g.motto}</p>
       </footer>
 
       {configurable && (

@@ -9,6 +9,7 @@ import { computeAnatomy } from "@/components/flora/anatomy";
 import { Specimen } from "@/components/flora/Specimen";
 import { PendingBar } from "@/components/PendingBar";
 import { formatReturn } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
 import { stageName } from "@/lib/growth";
 import { TONE_CLASS, TONE_DOT, awaitsAnswer, focusOf, moodOf, statusLine } from "@/lib/presence";
 import type { AgentStatus, TaskSummary } from "@/lib/types";
@@ -33,6 +34,8 @@ export function catalog(n: number) {
 
 export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, compact }: Props) {
   const router = useRouter();
+  const i18n = useI18n();
+  const p = i18n.t.plot;
   const [hover, setHover] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
   const go = (href: string) => startOpening(() => router.push(href));
@@ -50,9 +53,10 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
     [task],
   );
   const anatomy = useMemo(() => computeAnatomy(state), [state]);
-  const line = statusLine(task, agent);
+  const line = statusLine(i18n, task, agent);
   const mood = moodOf(task);
-  const back = task.status !== "ripe" ? formatReturn(task.returnAt) : null;
+  const back = task.status !== "ripe" ? formatReturn(i18n, task.returnAt) : null;
+  const stage = stageName(i18n.t, task.growth.stage);
 
   const open = (key: string) => {
     if (key === "apex") return go(`/t/${task.id}?piece=final`);
@@ -67,32 +71,31 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
     if (branch) {
       note = {
         at: branch.anchor,
-        title: `${branch.index} · ${branch.title ?? "Step"}`,
+        title: `${branch.index} · ${branch.title ?? p.step}`,
         detail:
           branch.status === "done"
-            ? "ready · click to read"
+            ? p.branch.done
             : branch.status === "working"
-              ? "being written right now"
+              ? p.branch.working
               : branch.status === "blocked"
-                ? "waiting on your answer"
-                : "not started yet",
+                ? p.branch.blocked
+                : p.branch.pending,
       };
     } else if (hover === "apex" && anatomy.apex) {
       note = {
         at: anatomy.apex.pos,
         title:
           anatomy.apex.kind === "fruit"
-            ? "The fruit"
+            ? p.apex.fruit
             : anatomy.apex.kind === "fruitlet"
-              ? "Fruit setting"
+              ? p.apex.fruitlet
               : anatomy.apex.kind === "flower"
-                ? "In bloom"
-                : "Growing tip",
-        detail:
-          anatomy.apex.kind === "fruit" ? "the finished work · click to read" : "the main result is still forming",
+                ? p.apex.flower
+                : p.apex.tip,
+        detail: anatomy.apex.kind === "fruit" ? p.apex.finished : p.apex.forming,
       };
     } else if (hover === "tag" && anatomy.tag) {
-      note = { at: anatomy.tag.card, title: "Review tag", detail: "the agent's review · click to read" };
+      note = { at: anatomy.tag.card, title: p.tag.title, detail: p.tag.detail };
     }
   }
   const notePos = note
@@ -119,7 +122,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
               onSelect={open}
               entrance={fresh}
               className="block h-full w-full"
-              title={`${task.title}: ${stageName(task.growth.stage)}`}
+              title={`${task.title}: ${stage}`}
             />
           </div>
         </ViewTransition>
@@ -146,7 +149,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         href={`/t/${task.id}`}
         className={`plot-label paper focus-ring group absolute z-20 block rounded-[2px] pb-2.5 pt-3 ${compact ? "px-2.5" : "px-3.5"} transition-[transform,box-shadow] duration-300 hover:z-30 hover:-translate-y-0.5 focus-visible:z-30`}
         style={{ left: x + w / 2 - labelW / 2, bottom: compact ? 10 : 14, width: labelW }}
-        aria-label={`${catalog(number)}: ${task.title}. ${stageName(task.growth.stage)} stage, ${line.text}`}
+        aria-label={p.label(catalog(number), task.title, stage, line.text)}
       >
         <span aria-hidden className="pointer-events-none absolute inset-[3px] rounded-[1px] border border-line" />
         <PendingBar also={opening} className="inset-x-[3px] bottom-[3px] h-[3px]" />
@@ -156,9 +159,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         />
         <span className="relative flex items-baseline justify-between gap-2">
           <span className="typewriter text-[10px] tracking-[0.06em] text-ink-3">{catalog(number)}</span>
-          <span className="typewriter text-[10px] uppercase tracking-[0.08em] text-ink-3">
-            {stageName(task.growth.stage)}
-          </span>
+          <span className="typewriter text-[10px] uppercase tracking-[0.08em] text-ink-3">{stage}</span>
         </span>
         <span
           className={`relative mt-1 font-display leading-[1.12] tracking-[-0.005em] text-ink ${compact ? "line-clamp-3 text-[15px]" : "line-clamp-2 text-[17.5px]"}`}
@@ -183,9 +184,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
                   </span>
                 )}
                 <span className="mt-1 flex items-center gap-1 text-[12px] text-cobalt">
-                  {task.growth.stepsDone
-                    ? `${task.growth.stepsDone} ${task.growth.stepsDone === 1 ? "piece" : "pieces"} to read`
-                    : "open the specimen sheet"}
+                  {task.growth.stepsDone ? p.toRead(task.growth.stepsDone) : p.openSheet}
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                 </span>
               </span>
@@ -195,7 +194,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
         <span className="relative mt-2 flex items-center justify-between gap-2 border-t border-dashed border-line-2 pt-1.5">
           <StepTicks leaves={task.leaves} />
           <span className="typewriter text-[10px] text-ink-3">
-            {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : "no plan yet"}
+            {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : p.noPlan}
           </span>
         </span>
       </Link>

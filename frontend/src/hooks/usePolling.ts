@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { documentI18n } from "@/lib/i18n";
 
 export const REALTIME_POLL_MS = 30_000;
 const REQUEST_DELAY_MS = 150;
@@ -54,7 +55,7 @@ export function usePolling<T>(url: string, initial: T, interval: (data: T) => nu
       setError(null);
     } catch (err) {
       if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : "Couldn't refresh.");
+      setError(err instanceof Error ? err.message : documentI18n().t.errors.refresh);
     }
   }, [url, apply]);
 

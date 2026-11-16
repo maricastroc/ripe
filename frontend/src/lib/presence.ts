@@ -1,3 +1,6 @@
+import { formatClock } from "./format";
+import type { I18n } from "./i18n";
+import type { Messages } from "./i18n/messages/en";
 import { activityLabel } from "./labels";
 import type { Activity, AgentStatus, TaskSummary } from "./types";
 
@@ -23,79 +26,56 @@ export function moodOf(task: TaskSummary): PlantMood {
   }
 }
 
-const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
-
-export function resumeHint(agent: Pick<AgentStatus, "resumesAt">, now = Date.now()): string | null {
+export function resumeHint(i18n: I18n, agent: Pick<AgentStatus, "resumesAt">, now = Date.now()): string | null {
   if (!agent.resumesAt) return null;
   const at = new Date(agent.resumesAt).getTime();
   if (Number.isNaN(at)) return null;
-  return at - now < 90_000 ? "in a moment" : `around ${timeFormat.format(at)}`;
+  return at - now < 90_000 ? i18n.t.rest.soon : i18n.t.rest.around(formatClock(i18n, at));
 }
 
-export function restText(agent: AgentStatus): { short: string; long: string } {
-  const hint = resumeHint(agent);
-  const when = hint ? `, ${hint}` : "";
-  switch (agent.rest) {
-    case "budget":
-      return {
-        short: "resting until tomorrow’s budget",
-        long: `Today’s budget is used up. Nothing is lost: the greenhouse picks up again on its own${when}.`,
-      };
-    case "capacity":
-      return {
-        short: hint ? `a short pause, back ${hint}` : "a short pause",
-        long: `The free model asked for a short pause. The greenhouse picks up again on its own${when}.`,
-      };
-    default:
-      return {
-        short: hint ? `resting, back ${hint}` : "resting until the model has room",
-        long: `The free model has used its allowance for now. Nothing is lost: the greenhouse picks up again on its own once it has room${when}.`,
-      };
-  }
+export function restText(i18n: I18n, agent: AgentStatus): { short: string; long: string } {
+  const hint = resumeHint(i18n, agent);
+  const rest = i18n.t.rest;
+  const kind = agent.rest === "budget" ? rest.budget : agent.rest === "capacity" ? rest.capacity : rest.quota;
+  return { short: kind.short(hint), long: kind.long(hint) };
 }
 
 function lowerFirst(text: string) {
   return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
-function doing(activity: Activity) {
-  return lowerFirst(activityLabel(activity.kind, activity.subject));
+function doing(t: Messages, activity: Activity) {
+  return lowerFirst(activityLabel(t, activity.kind, activity.subject));
 }
 
-export function statusLine(task: TaskSummary, agent: AgentStatus): { text: string; tone: Tone } {
-  if (task.isExample) return { text: "illustrative example", tone: "muted" };
+export function statusLine({ t }: I18n, task: TaskSummary, agent: AgentStatus): { text: string; tone: Tone } {
+  const s = t.status;
+  if (task.isExample) return { text: s.example, tone: "muted" };
   const running = task.activity?.running === true;
   switch (task.status) {
     case "waiting":
-      return {
-        text: task.essentialOpen > 1 ? `needs ${task.essentialOpen} answers from you` : "needs your answer",
-        tone: "accent",
-      };
+      return { text: s.needsAnswers(task.essentialOpen), tone: "accent" };
     case "stalled":
-      return { text: "needs some care", tone: "accent" };
+      return { text: s.stalled, tone: "accent" };
     case "dormant":
-      return { text: "dormant", tone: "muted" };
+      return { text: s.dormant, tone: "muted" };
     case "harvested":
-      return { text: "harvested", tone: "muted" };
+      return { text: s.harvested, tone: "muted" };
     case "ripe":
-      if (running && task.activity) return { text: doing(task.activity), tone: "leaf" };
-      if (task.activity) return { text: "ripe · rewrite queued", tone: "leaf" };
-      if (task.openQuestions)
-        return {
-          text: `ripe · ${task.openQuestions} optional ${task.openQuestions === 1 ? "answer" : "answers"}`,
-          tone: "leaf",
-        };
-      return { text: "ripe · ready to review", tone: "leaf" };
+      if (running && task.activity) return { text: doing(t, task.activity), tone: "leaf" };
+      if (task.activity) return { text: s.rewriteQueued, tone: "leaf" };
+      if (task.openQuestions) return { text: s.optionalAnswers(task.openQuestions), tone: "leaf" };
+      return { text: s.readyToReview, tone: "leaf" };
     default:
-      if (running && task.activity) return { text: doing(task.activity), tone: "leaf" };
-      if (agent.mode === "paused") return { text: "agent paused", tone: "ochre" };
-      if (agent.mode === "resting") return { text: "resting with the greenhouse", tone: "ochre" };
-      if (agent.mode === "halted") return { text: "waiting for the model", tone: "ochre" };
+      if (running && task.activity) return { text: doing(t, task.activity), tone: "leaf" };
+      if (agent.mode === "paused") return { text: s.agentPaused, tone: "ochre" };
+      if (agent.mode === "resting") return { text: s.resting, tone: "ochre" };
+      if (agent.mode === "halted") return { text: s.waitingModel, tone: "ochre" };
       if (agent.mode === "offline")
-        return { text: agent.driver === "ollama" ? "waiting for Ollama" : "waiting for the model", tone: "ochre" };
-      if (agent.mode === "model-missing") return { text: "waiting for the model", tone: "ochre" };
-      if (task.activity?.lastError) return { text: "will try again", tone: "ochre" };
-      return { text: "in the queue", tone: "muted" };
+        return { text: agent.driver === "ollama" ? s.waitingOllama : s.waitingModel, tone: "ochre" };
+      if (agent.mode === "model-missing") return { text: s.waitingModel, tone: "ochre" };
+      if (task.activity?.lastError) return { text: s.willRetry, tone: "ochre" };
+      return { text: s.queued, tone: "muted" };
   }
 }
 

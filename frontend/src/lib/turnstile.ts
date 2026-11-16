@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { documentI18n } from "./i18n";
 
 type TurnstileApi = {
   render: (element: HTMLElement, options: Record<string, unknown>) => string;
@@ -14,7 +15,10 @@ declare global {
 }
 
 const SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-const FAILED = "The greenhouse could not confirm you are a person. Try again.";
+
+function failed() {
+  return new Error(documentI18n().t.errors.notAPerson);
+}
 
 let loading: Promise<TurnstileApi> | null = null;
 
@@ -24,10 +28,10 @@ function load(): Promise<TurnstileApi> {
     const script = document.createElement("script");
     script.src = SCRIPT;
     script.async = true;
-    script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error(FAILED)));
+    script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(failed()));
     script.onerror = () => {
       loading = null;
-      reject(new Error(FAILED));
+      reject(failed());
     };
     document.head.appendChild(script);
   });
@@ -51,12 +55,13 @@ export function useTurnstile(siteKey: string | null) {
           sitekey: siteKey,
           execution: "execute",
           appearance: "interaction-only",
+          language: documentI18n().locale.toLowerCase(),
           callback: (token: string) => {
             pending.current?.resolve(token);
             pending.current = null;
           },
           "error-callback": () => {
-            pending.current?.reject(new Error(FAILED));
+            pending.current?.reject(failed());
             pending.current = null;
           },
         });
@@ -74,12 +79,12 @@ export function useTurnstile(siteKey: string | null) {
     if (!siteKey) return null;
     const turnstile = await load();
     const id = widget.current;
-    if (!id) throw new Error(FAILED);
+    if (!id) throw failed();
     turnstile.reset(id);
     return new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.current = null;
-        reject(new Error(FAILED));
+        reject(failed());
       }, 30_000);
       pending.current = {
         resolve: (value) => {

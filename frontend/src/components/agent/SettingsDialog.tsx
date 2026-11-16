@@ -5,7 +5,8 @@ import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { LIMITS, PACE_LABEL } from "@/lib/limits";
+import { useI18n } from "@/lib/i18n/context";
+import { LIMITS, PACES } from "@/lib/limits";
 import type { AgentStatus, Pace } from "@/lib/types";
 
 type Patch = { pace?: Pace; paused?: boolean; model?: string };
@@ -26,6 +27,8 @@ function Command({ children }: { children: string }) {
 }
 
 export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
+  const { t } = useI18n();
+  const st = t.settings;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customModel, setCustomModel] = useState("");
@@ -36,7 +39,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
     try {
       onChange(await api<AgentStatus>("/api/agent", { method: "PUT", body: patch }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save the settings.");
+      setError(err instanceof Error ? err.message : st.failed);
     } finally {
       setSaving(false);
     }
@@ -69,53 +72,48 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
               >
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <p className="label">local agent</p>
-                    <Dialog.Title className="mt-1 font-display text-3xl tracking-tight">
-                      Who tends the greenhouse
-                    </Dialog.Title>
+                    <p className="label">{st.kicker}</p>
+                    <Dialog.Title className="mt-1 font-display text-3xl tracking-tight">{st.title}</Dialog.Title>
                   </div>
                   <Dialog.Close
                     className="focus-ring -mr-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-3 hover:bg-paper-2 hover:text-ink"
-                    aria-label="Close"
+                    aria-label={st.close}
                   >
                     <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                   </Dialog.Close>
                 </div>
                 <Dialog.Description className="mt-3 text-[15px] leading-relaxed text-ink-2">
-                  {agent.driver === "fake"
-                    ? "A simulated model for development. It takes one small step at a time, saves the result and rests before the next."
-                    : "An open-weight model running in Ollama on this machine. It takes one small step at a time, saves the result and rests before the next. Nothing you write leaves your computer."}
+                  {agent.driver === "fake" ? st.fake : st.ollama}
                 </Dialog.Description>
 
                 {agent.mode === "offline" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">Ollama is not responding.</p>
+                    <p className="font-medium">{st.offline.title}</p>
                     <p className="mt-1 text-ink-2">
-                      Your tasks wait in the queue, and the work picks up again as soon as Ollama is back. Its address
-                      is set in the backend&apos;s <span className="font-mono text-[13px]">.env</span>.
+                      {st.offline.text} <span className="font-mono text-[13px]">.env</span>.
                     </p>
                     <Command>ollama serve</Command>
                   </div>
                 )}
                 {agent.mode === "stopped" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">The agent&apos;s worker is not running.</p>
-                    <p className="mt-1 text-ink-2">Your tasks wait in the queue. Start it from the backend folder:</p>
+                    <p className="font-medium">{st.stopped.title}</p>
+                    <p className="mt-1 text-ink-2">{st.stopped.text}</p>
                     <Command>composer dev</Command>
                   </div>
                 )}
                 {agent.mode === "model-missing" && (
                   <div className="mt-5 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm text-ink">
-                    <p className="font-medium">Model {agent.model} is not installed.</p>
-                    <p className="mt-1 text-ink-2">Pick one of the models below or pull this one:</p>
+                    <p className="font-medium">{st.missing.title(agent.model)}</p>
+                    <p className="mt-1 text-ink-2">{st.missing.text}</p>
                     <Command>{`ollama pull ${agent.model}`}</Command>
                   </div>
                 )}
 
                 <section className="mt-7">
-                  <h3 className="label">model</h3>
+                  <h3 className="label">{st.model}</h3>
                   {agent.online && agent.models.length === 0 && (
-                    <p className="mt-2 text-sm text-ink-2">No models installed yet.</p>
+                    <p className="mt-2 text-sm text-ink-2">{st.noModels}</p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {models.map((m) => {
@@ -135,7 +133,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                           aria-pressed={active}
                         >
                           {m}
-                          {!installed && <span className="ml-1.5 opacity-60">· not installed</span>}
+                          {!installed && <span className="ml-1.5 opacity-60">· {st.notInstalled}</span>}
                         </button>
                       );
                     })}
@@ -151,23 +149,23 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                     <input
                       value={customModel}
                       onChange={(e) => setCustomModel(e.target.value)}
-                      placeholder="another model, e.g. qwen3:8b"
+                      placeholder={st.otherPlaceholder}
                       className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[13px] placeholder:text-ink-3"
-                      aria-label="Name of another model"
+                      aria-label={st.otherLabel}
                     />
                     <button
                       type="submit"
                       className="focus-ring rounded-full border border-line px-4 text-sm text-ink-2 hover:text-ink"
                     >
-                      use
+                      {st.use}
                     </button>
                   </form>
                 </section>
 
                 <section className="mt-7">
-                  <h3 className="label">pace</h3>
+                  <h3 className="label">{st.pace}</h3>
                   <div className="mt-3 grid gap-2">
-                    {(Object.keys(PACE_LABEL) as (keyof typeof PACE_LABEL)[]).map((p) => {
+                    {PACES.map((p) => {
                       const active = p === settings.pace;
                       return (
                         <button
@@ -183,7 +181,7 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                           <span
                             className={`h-2.5 w-2.5 rounded-full border ${active ? "border-leaf bg-leaf" : "border-line-2"}`}
                           />
-                          {PACE_LABEL[p]}
+                          {t.pace[p]}
                         </button>
                       );
                     })}
@@ -192,18 +190,14 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
 
                 <section className="mt-7 flex items-center justify-between gap-4 rounded-2xl border border-line p-4">
                   <div>
-                    <p className="text-sm font-medium">{settings.paused ? "Work paused" : "Work active"}</p>
-                    <p className="mt-0.5 text-[13px] text-ink-2">
-                      {settings.paused
-                        ? "Nothing runs until you resume."
-                        : "The agent picks up the next step whenever it's free."}
-                    </p>
+                    <p className="text-sm font-medium">{settings.paused ? st.paused : st.active}</p>
+                    <p className="mt-0.5 text-[13px] text-ink-2">{settings.paused ? st.pausedText : st.activeText}</p>
                   </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={!settings.paused}
-                    aria-label="Pause or resume the agent"
+                    aria-label={st.toggle}
                     disabled={saving}
                     onClick={() => save({ paused: !settings.paused })}
                     className={`focus-ring relative h-7 w-12 shrink-0 rounded-full transition-colors ${settings.paused ? "bg-line-2" : "bg-leaf"}`}
@@ -217,12 +211,12 @@ export function SettingsDialog({ open, onOpenChange, agent, onChange }: Props) {
                 </section>
 
                 <section className="mt-7 border-t border-dashed border-line-2 pt-5">
-                  <h3 className="label">limits</h3>
+                  <h3 className="label">{st.limits.heading}</h3>
                   <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] text-ink-2 sm:grid-cols-2">
-                    <li>one step at a time</li>
-                    <li>up to {LIMITS.maxSteps} steps per task</li>
-                    <li>{LIMITS.maxAttempts} attempts per step</li>
-                    <li>resumes on its own after interruptions</li>
+                    <li>{st.limits.oneAtATime}</li>
+                    <li>{st.limits.steps(LIMITS.maxSteps)}</li>
+                    <li>{st.limits.attempts(LIMITS.maxAttempts)}</li>
+                    <li>{st.limits.resumes}</li>
                   </ul>
                 </section>
 

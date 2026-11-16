@@ -4,8 +4,9 @@ import { Check, Copy, Download, PanelLeftClose, PanelLeftOpen, PenLine, Tag, Und
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/Markdown";
-import { type DraftConflict, type DraftState, useDraft } from "@/hooks/useDraft";
+import { type DraftConflict, useDraft } from "@/hooks/useDraft";
 import { formatRelative } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
 import { countWords } from "@/lib/markers";
 import type { Activity, ArtifactView, StepView, TaskDetail } from "@/lib/types";
 
@@ -28,8 +29,6 @@ type Props = {
 const tool =
   "focus-ring inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-ink-2 transition-colors hover:bg-paper-2 hover:text-ink";
 
-const QUICK = ["shorter and more direct", "more formal tone", "more detailed", "as bullet points", "warmer"];
-
 function slug(text: string) {
   return text
     .normalize("NFD")
@@ -49,6 +48,7 @@ function Editor({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const { t } = useI18n();
   const area = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ function Editor({
   return (
     <div>
       <label htmlFor={`edit-${artifact.id}`} className="sr-only">
-        Edit {artifact.title}
+        {t.harvest.editLabel(artifact.title)}
       </label>
       <textarea
         id={`edit-${artifact.id}`}
@@ -75,14 +75,6 @@ function Editor({
   );
 }
 
-const SAVE_LABEL: Record<DraftState, string> = {
-  idle: "markdown · saves as you type",
-  saving: "saving…",
-  saved: "draft saved · kept as a version when you stop",
-  kept: "kept as a new version",
-  error: "not saved yet · it tries again as you type",
-};
-
 function ConflictNotice({
   conflict,
   onKeepMine,
@@ -92,29 +84,26 @@ function ConflictNotice({
   onKeepMine: () => void;
   onTakeTheirs: () => void;
 }) {
+  const c = useI18n().t.harvest.conflict;
   const overtaken = conflict.kind === "overtaken";
   return (
     <div role="alert" className="border-b border-line bg-accent-soft px-5 py-4 text-[14px] text-ink sm:px-8">
-      <p className="font-medium">
-        {overtaken
-          ? "Ripe wrote a new version of this piece while you were editing."
-          : "This piece was edited in another tab or window."}
-      </p>
-      <p className="mt-1 text-ink-2">Your edits are safe as a draft. Choose which one to go on with.</p>
+      <p className="font-medium">{overtaken ? c.overtaken : c.elsewhere}</p>
+      <p className="mt-1 text-ink-2">{c.safe}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={onKeepMine}
           className="focus-ring rounded-full bg-ink px-4 py-1.5 text-[13px] font-medium text-paper"
         >
-          keep my edits
+          {c.keepMine}
         </button>
         <button
           type="button"
           onClick={onTakeTheirs}
           className="focus-ring rounded-full border border-line px-4 py-1.5 text-[13px] text-ink-2 hover:text-ink"
         >
-          {overtaken ? "use the new version" : "load the other edits"}
+          {overtaken ? c.useNew : c.loadOther}
         </button>
       </div>
     </div>
@@ -136,6 +125,8 @@ export function Harvest({
   onTaskChange,
   reload,
 }: Props) {
+  const i18n = useI18n();
+  const h = i18n.t.harvest;
   const [chosenMode, setMode] = useState<"read" | "edit">("read");
   const [revising, setRevising] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -166,14 +157,12 @@ export function Harvest({
     return (
       <section id="harvest" aria-labelledby="harvest-title">
         <h2 id="harvest-title" className="label mb-3">
-          harvest
+          {h.heading}
         </h2>
         <div className="rounded-2xl border border-dashed border-line-2 px-6 py-10 text-center">
-          <p className="font-display text-xl tracking-tight text-ink-2">Nothing to harvest yet.</p>
+          <p className="font-display text-xl tracking-tight text-ink-2">{h.empty}</p>
           <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-3">
-            {next
-              ? `The first piece will be “${next.title}”. It appears here when it's ready, and you can edit it however you like.`
-              : "Every finished step becomes a piece here, ready to read, edit and copy."}
+            {next ? h.first(next.title) : h.every}
           </p>
         </div>
       </section>
@@ -215,14 +204,14 @@ export function Harvest({
     <section id="harvest" aria-labelledby="harvest-title" className="scroll-mt-6">
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 id="harvest-title" className="label">
-          harvest · {artifacts.length} {artifacts.length === 1 ? "piece" : "pieces"}
+          {h.count(artifacts.length)}
         </h2>
-        <span className="text-[13px] text-ink-3">{readOnly ? "read only" : "all editable"}</span>
+        <span className="text-[13px] text-ink-3">{readOnly ? h.readOnly : h.editable}</span>
       </div>
 
       <div
         role="tablist"
-        aria-label="Pieces"
+        aria-label={h.pieces}
         className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible"
       >
         {artifacts.map((a) => {
@@ -270,7 +259,7 @@ export function Harvest({
             <div
               className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-paper-2 p-0.5 sm:flex-none"
               role="group"
-              aria-label="Mode"
+              aria-label={h.mode}
             >
               {(["read", "edit"] as const).map((m) => (
                 <button
@@ -283,7 +272,7 @@ export function Harvest({
                     mode === m ? "bg-surface text-ink shadow-sm" : "text-ink-3 hover:text-ink"
                   }`}
                 >
-                  {m === "read" ? "Read" : "Edit"}
+                  {m === "read" ? h.read : h.edit}
                 </button>
               ))}
             </div>
@@ -294,7 +283,7 @@ export function Harvest({
                 ) : (
                   <Copy className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                 )}
-                {copied ? "copied" : "copy"}
+                {copied ? h.copied : h.copy}
               </button>
               <button type="button" onClick={download} className={tool}>
                 <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -309,7 +298,7 @@ export function Harvest({
                   className={`${tool} disabled:opacity-40`}
                 >
                   <PenLine className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-                  rewrite…
+                  {h.rewrite}
                 </button>
               )}
               {!readOnly && current.versions.length > 1 && current.version && !draft.hasDraft && !busyHere && (
@@ -319,7 +308,7 @@ export function Harvest({
                   className={tool}
                 >
                   <Undo2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-                  previous version
+                  {h.previous}
                 </button>
               )}
               {onToggleWide && (
@@ -328,14 +317,14 @@ export function Harvest({
                   onClick={onToggleWide}
                   aria-pressed={wide}
                   className={`${tool} max-lg:hidden`}
-                  title={wide ? "Show the plate again" : "Fold the plate away and read on a wider page"}
+                  title={wide ? h.showPlateTitle : h.widerTitle}
                 >
                   {wide ? (
                     <PanelLeftOpen className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                   ) : (
                     <PanelLeftClose className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                   )}
-                  {wide ? "show plate" : "wider page"}
+                  {wide ? h.showPlate : h.wider}
                 </button>
               )}
             </div>
@@ -351,13 +340,13 @@ export function Harvest({
 
           {!draft.conflict && draft.hasDraft && mode === "read" && !readOnly && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/60 px-5 py-3 text-[13.5px] text-ink-2 sm:px-8">
-              <span>You have edits to this piece that are not kept as a version yet.</span>
+              <span>{h.unkept}</span>
               <span className="flex gap-2">
                 <button type="button" onClick={() => setMode("edit")} className={tool}>
-                  go on editing
+                  {h.goOn}
                 </button>
                 <button type="button" onClick={() => void draft.keep()} className={tool}>
-                  keep them
+                  {h.keepThem}
                 </button>
               </span>
             </div>
@@ -377,14 +366,14 @@ export function Harvest({
               >
                 <div className="px-5 py-4 sm:px-8">
                   <label htmlFor="revise-input" className="text-[14px] text-ink-2">
-                    What should change in “{current.title}”?
+                    {h.reviseQuestion(current.title)}
                   </label>
                   <div className="mt-2 flex gap-2">
                     <input
                       id="revise-input"
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
-                      placeholder="e.g. cut it in half and make it more personal"
+                      placeholder={h.revisePlaceholder}
                       maxLength={500}
                       className="focus-ring min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2 text-[14px] placeholder:text-ink-3"
                     />
@@ -393,11 +382,11 @@ export function Harvest({
                       disabled={sending || !instruction.trim()}
                       className="focus-ring rounded-full bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
                     >
-                      {sending ? "…" : "ask"}
+                      {sending ? "…" : h.ask}
                     </button>
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {QUICK.map((q) => (
+                    {h.quick.map((q) => (
                       <button
                         key={q}
                         type="button"
@@ -409,7 +398,7 @@ export function Harvest({
                       </button>
                     ))}
                   </div>
-                  <p className="mt-3 text-[12px] text-ink-3">The current version is kept, so you can go back to it.</p>
+                  <p className="mt-3 text-[12px] text-ink-3">{h.versionKept}</p>
                 </div>
               </motion.form>
             )}
@@ -428,7 +417,7 @@ export function Harvest({
                   <>
                     <Editor artifact={current} value={draft.value} onChange={draft.edit} />
                     <p className="label mt-3 text-right" aria-live="polite">
-                      {draft.conflict ? "edits paused until you choose" : SAVE_LABEL[draft.state]}
+                      {draft.conflict ? h.paused : h.save[draft.state]}
                     </p>
                   </>
                 ) : (
@@ -440,23 +429,21 @@ export function Harvest({
               <div className="absolute inset-0 flex items-start justify-center pt-16">
                 <p className="rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-ink-2 shadow-sm">
                   <span className="live-dot mr-2 inline-block h-2 w-2 rounded-full bg-leaf text-leaf" />
-                  rewriting now · follow along under “now”
+                  {h.rewriting}
                 </p>
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-5 py-3 font-mono text-[11.5px] text-ink-3 sm:px-8">
-            <span>{countWords(content)} words</span>
+            <span>{h.words(countWords(content))}</span>
             {current.version && <span>v{current.version.number}</span>}
-            {current.editedByUser && <span className="text-leaf-dark">edited by you</span>}
+            {current.editedByUser && <span className="text-leaf-dark">{h.editedByYou}</span>}
             {current.model && current.model !== "example" && <span>{current.model}</span>}
-            {current.updatedAt && <span suppressHydrationWarning>updated {formatRelative(current.updatedAt)}</span>}
-            {current.gaps.length > 0 && (
-              <span className="text-accent-ink">
-                {current.gaps.length} open {current.gaps.length === 1 ? "gap" : "gaps"}
-              </span>
+            {current.updatedAt && (
+              <span suppressHydrationWarning>{h.updated(formatRelative(i18n, current.updatedAt))}</span>
             )}
+            {current.gaps.length > 0 && <span className="text-accent-ink">{h.gaps(current.gaps.length)}</span>}
           </div>
         </div>
       )}

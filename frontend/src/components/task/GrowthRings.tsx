@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
+import type { I18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/context";
 import { activityLabel } from "@/lib/labels";
 import type { Timeline, TimelineAttempt, RunKind } from "@/lib/types";
 
@@ -25,14 +27,6 @@ const MAX_RADIUS = CENTER - BARK - 4;
 const MIN_WIDTH = 4;
 const MAX_WIDTH = 10;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
-
-const MARK_TEXT: Record<Mark, string> = {
-  ring: "a ring: the run saved its work",
-  crack: "a crack: the attempt failed and saved nothing",
-  break: "a break: the work stopped halfway and saved nothing",
-  knot: "a knot: the attempt was stopped and saved nothing",
-  bud: "a bud: the attempt is still running",
-};
 
 function markOf(attempt: TimelineAttempt): Mark {
   if (attempt.savedWork) return "ring";
@@ -233,24 +227,25 @@ function frame(outer: number) {
   return `${CENTER - half} ${CENTER - half} ${half * 2} ${half * 2}`;
 }
 
-function outcomeText(entry: Entry) {
-  if (entry.mark === "ring") return "saved its work";
-  if (entry.mark === "bud") return "still running";
-  return `nothing saved · ${entry.error ?? "it did not finish"}`;
+function outcomeText({ t }: I18n, entry: Entry) {
+  if (entry.mark === "ring") return t.rings.saved;
+  if (entry.mark === "bud") return t.rings.running;
+  return t.rings.nothingSaved(entry.error ?? t.rings.unfinished);
 }
 
-function details(entry: Entry) {
-  const parts = [formatDuration(entry.durationMs)];
-  if (entry.firstTokenMs !== null) parts.push(`first word after ${formatDuration(entry.firstTokenMs)}`);
+function details(i18n: I18n, entry: Entry) {
+  const r = i18n.t.rings;
+  const parts = [formatDuration(i18n, entry.durationMs)];
+  if (entry.firstTokenMs !== null) parts.push(r.firstWord(formatDuration(i18n, entry.firstTokenMs)));
   if (entry.promptTokens !== null || entry.completionTokens !== null)
-    parts.push(
-      `${entry.promptTokens ?? "?"} → ${entry.completionTokens ?? "?"} tokens${entry.usageEstimated ? " (estimated)" : ""}`,
-    );
-  if (entry.waitedMs > 0) parts.push(`waited ${formatDuration(entry.waitedMs)}`);
+    parts.push(r.tokens(entry.promptTokens ?? "?", entry.completionTokens ?? "?", entry.usageEstimated));
+  if (entry.waitedMs > 0) parts.push(r.waited(formatDuration(i18n, entry.waitedMs)));
   return parts.join(" · ");
 }
 
 export function GrowthRings({ taskId, version }: { taskId: string; version: number }) {
+  const i18n = useI18n();
+  const r = i18n.t.rings;
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState<string | null>(null);
@@ -280,22 +275,21 @@ export function GrowthRings({ taskId, version }: { taskId: string; version: numb
   if (failed && !timeline) {
     return (
       <p className="text-[14px] text-ink-2">
-        The rings could not be read.{" "}
+        {r.unreadable}{" "}
         <button
           type="button"
           onClick={() => setRetry((n) => n + 1)}
           className="focus-ring rounded px-1 underline underline-offset-4"
         >
-          Try again
+          {r.retry}
         </button>
       </p>
     );
   }
 
-  if (!timeline) return <p className="typewriter text-[13px] text-ink-3">reading the rings…</p>;
+  if (!timeline) return <p className="typewriter text-[13px] text-ink-3">{r.reading}</p>;
 
-  if (!entries.length)
-    return <p className="text-[14px] text-ink-2">No attempts yet. The first ring appears once a run saves its work.</p>;
+  if (!entries.length) return <p className="text-[14px] text-ink-2">{r.none}</p>;
 
   const { totals } = timeline;
   const marks = totals.attempts - totals.savedWork;
@@ -306,14 +300,12 @@ export function GrowthRings({ taskId, version }: { taskId: string; version: numb
       <figure className="space-y-3 sm:sticky sm:top-6">
         <Cross placed={placed} outer={outer} active={active} />
         <figcaption className="typewriter text-[11.5px] leading-relaxed text-ink-3">
-          {totals.savedWork} {totals.savedWork === 1 ? "ring" : "rings"} of saved work
-          {marks > 0 ? `, ${marks} ${marks === 1 ? "mark" : "marks"} that saved nothing` : ""}. The plant only grows
-          from saved work.
+          {r.caption(totals.savedWork, marks)}
         </figcaption>
       </figure>
 
       <div className="min-w-0 space-y-4">
-        <ol className="space-y-1" aria-label="Every attempt, oldest first">
+        <ol className="space-y-1" aria-label={r.list}>
           {entries.map((entry) => (
             <li
               key={entry.id}
@@ -327,50 +319,43 @@ export function GrowthRings({ taskId, version }: { taskId: string; version: numb
               }`}
             >
               <Glyph mark={entry.mark} className="mt-0.5" />
-              <span className="sr-only">{MARK_TEXT[entry.mark]}.</span>
+              <span className="sr-only">{r.marks[entry.mark]}.</span>
               <span className="min-w-0 text-[13.5px] leading-snug">
                 <span className="text-ink">
                   {entry.ring !== null ? `${entry.ring}. ` : ""}
-                  {activityLabel(entry.kind, entry.subject)}
-                  {entry.number > 1 ? `, attempt ${entry.number}` : ""}
+                  {activityLabel(i18n.t, entry.kind, entry.subject)}
+                  {entry.number > 1 ? `, ${r.attempt(entry.number)}` : ""}
                 </span>
-                <span className={entry.mark === "ring" ? "text-leaf" : "text-ink-2"}> — {outcomeText(entry)}</span>
-                <span className="block font-mono text-[11.5px] text-ink-3">{details(entry)}</span>
+                <span className={entry.mark === "ring" ? "text-leaf" : "text-ink-2"}>
+                  {" "}
+                  — {outcomeText(i18n, entry)}
+                </span>
+                <span className="block font-mono text-[11.5px] text-ink-3">{details(i18n, entry)}</span>
               </span>
             </li>
           ))}
         </ol>
 
         <dl className="typewriter grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11.5px] text-ink-3">
-          <dt>working</dt>
-          <dd>{formatDuration(totals.workingMs)}</dd>
-          <dt>waiting</dt>
-          <dd>{formatDuration(totals.waitingMs)}</dd>
-          <dt>tokens</dt>
-          <dd>
-            {totals.promptTokens} in · {totals.completionTokens} out
-          </dd>
+          <dt>{r.working}</dt>
+          <dd>{formatDuration(i18n, totals.workingMs)}</dd>
+          <dt>{r.waiting}</dt>
+          <dd>{formatDuration(i18n, totals.waitingMs)}</dd>
+          <dt>{r.tokensLabel}</dt>
+          <dd>{r.tokenTotals(totals.promptTokens, totals.completionTokens)}</dd>
           {models.length > 0 && (
             <>
-              <dt>model</dt>
+              <dt>{r.model}</dt>
               <dd className="truncate">{models.join(", ")}</dd>
             </>
           )}
         </dl>
 
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-3" aria-label="How to read the rings">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-3" aria-label={r.legend}>
           {(["ring", "crack", "break", "knot", "bud"] as const).map((mark) => (
             <li key={mark} className="flex items-center gap-1.5">
               <Glyph mark={mark} />
-              {mark === "ring"
-                ? "saved work"
-                : mark === "crack"
-                  ? "failed"
-                  : mark === "break"
-                    ? "interrupted"
-                    : mark === "knot"
-                      ? "stopped"
-                      : "running"}
+              {r.key[mark]}
             </li>
           ))}
         </ul>
