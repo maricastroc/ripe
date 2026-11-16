@@ -21,6 +21,7 @@ import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
 import { formatDay, returnWhen } from "@/lib/format";
+import { shownPhase } from "@/lib/growth";
 import { useI18n } from "@/lib/i18n/context";
 import { deliverableLabel } from "@/lib/labels";
 import { LiveStore, asChange, asDelta } from "@/lib/live";
@@ -261,7 +262,12 @@ export function SpecimenSheet({
       seed: task.id,
       fruit: task.fruit,
       growth: task.growth,
-      steps: task.steps.map((s) => ({ id: s.id, status: s.phase, artifactId: s.artifactId, title: s.title })),
+      steps: task.steps.map((s) => ({
+        id: s.id,
+        status: shownPhase(s.phase, s.waitingFor === "answer"),
+        artifactId: s.artifactId,
+        title: s.title,
+      })),
       awaiting: awaitsAnswer(task),
     }),
     [task],
@@ -461,7 +467,7 @@ export function SpecimenSheet({
             </div>
 
             <div className="mt-5">
-              <GrowthSeries growth={task.growth} compact={wide} />
+              <GrowthSeries growth={task.growth} fruit={task.fruit} compact={wide} />
             </div>
             {!wide && (
               <p className="typewriter mt-2 text-center text-[11px] text-ink-3" suppressHydrationWarning>

@@ -3,7 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { usePolling } from "@/hooks/usePolling";
@@ -66,6 +66,18 @@ function myceliumOf(t: Messages, agent: AgentStatus) {
   if (agent.driver === "fake") return t.greenhouse.mycelium.fake;
   if (agent.hosting === "local" && agent.driver === "ollama") return t.greenhouse.mycelium.local;
   return t.greenhouse.mycelium.hosted(agent.model);
+}
+
+function unbroken(text: string, name: string) {
+  const at = name ? text.indexOf(name) : -1;
+  if (at < 0) return text;
+  return (
+    <>
+      {text.slice(0, at)}
+      <span className="whitespace-nowrap">{name}</span>
+      {text.slice(at + name.length)}
+    </>
+  );
 }
 
 function agentNote(t: Messages, agent: AgentStatus) {
@@ -173,7 +185,9 @@ export function Greenhouse({
         <header className="relative z-30 flex items-start justify-between gap-4 px-4 pt-5 sm:px-10 sm:pt-7">
           <div>
             <p className="font-display font-display-wonk text-[2rem] italic leading-none text-scene-ink">ripe</p>
-            <p className="typewriter mt-1 text-[11px] uppercase tracking-[0.16em] text-scene-ink-2">{g.tagline}</p>
+            <p className="typewriter mt-1 text-[10px] uppercase tracking-[0.12em] text-scene-ink-2 sm:text-[11px] sm:tracking-[0.16em]">
+              {g.tagline}
+            </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 text-right">
             <button
@@ -208,7 +222,7 @@ export function Greenhouse({
               {g.headline} <span className="font-display-wonk italic">{g.headlineTail}</span>
             </motion.h1>
             <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-scene-ink sm:text-[15.5px]">
-              {g.intro(myceliumOf(t, agent))}
+              {unbroken(g.intro(myceliumOf(t, agent)), agent.model)}
             </p>
             {plants.length > 0 && (
               <p className="typewriter mt-3 text-[12px] text-scene-ink-2">
@@ -244,8 +258,8 @@ export function Greenhouse({
               .filter((p) => p.kind === "plant")
               .map((p) => ({ id: plants[p.index].id, x: p.x + p.w / 2, state: threadState(plants[p.index]) }));
             return (
-              <div key={r} className="relative" style={{ height: row.plantH + row.soilH }}>
-                <div className="absolute inset-x-0" style={{ top: row.plantH, height: row.soilH }}>
+              <div key={r} className="relative grid" style={{ minHeight: row.plantH + row.soilH }}>
+                <div className="relative self-end [grid-area:1/1]" style={{ height: row.soilH }}>
                   <SoilBand
                     width={size.w}
                     height={row.soilH}
@@ -263,12 +277,12 @@ export function Greenhouse({
                   if (plot.kind === "fungus") {
                     const h = (plot.w * 158) / 112;
                     return (
-                      <div key="fungus">
+                      <Fragment key="fungus">
                         <button
                           type="button"
                           onClick={() => setSettings(configurable)}
                           className="focus-ring absolute z-10 block"
-                          style={{ left: plot.x, width: plot.w, top: row.plantH - (h * 150) / 158, height: h }}
+                          style={{ left: plot.x, width: plot.w, bottom: row.soilH - (h * 8) / 158, height: h }}
                           aria-label={configurable ? g.fungusLocal(line.text) : g.fungus(line.text)}
                         >
                           <Fungus mode={agent.mode} paused={agent.mode === "paused"} />
@@ -278,7 +292,12 @@ export function Greenhouse({
                             type="button"
                             onClick={() => setSettings(configurable)}
                             className="focus-ring absolute z-20 rounded-[2px] border border-[#6f5a3c] bg-[#1d140e]/85 px-2 py-1.5 text-left"
-                            style={{ left: plot.x + 8, width: plot.w - 4, top: row.plantH + 30 }}
+                            style={{
+                              left: plot.x + 8,
+                              width: plot.w - 4,
+                              bottom: row.soilH - 30,
+                              transform: "translateY(100%)",
+                            }}
                           >
                             <span className="typewriter block text-[9.5px] uppercase tracking-[0.14em] text-[#c9b48f]">
                               {g.myceliumName}
@@ -289,7 +308,7 @@ export function Greenhouse({
                             <span className={`mt-0.5 block text-[11px] leading-tight ${line.tone}`}>{line.text}</span>
                           </button>
                         )}
-                      </div>
+                      </Fragment>
                     );
                   }
                   if (plot.kind === "plant") {
@@ -324,8 +343,8 @@ export function Greenhouse({
                     return (
                       <div
                         key="empty"
-                        className="absolute z-10 flex flex-col justify-end px-4 pb-10 sm:px-10"
-                        style={{ left: plot.x, width: plot.w, top: 0, height: row.plantH }}
+                        className="relative z-10 flex flex-col justify-end self-start justify-self-start px-4 pb-10 [grid-area:1/1] sm:px-10"
+                        style={{ marginLeft: plot.x, width: plot.w, minHeight: row.plantH, marginBottom: row.soilH }}
                       >
                         <p className="font-display text-[1.55rem] leading-tight text-scene-ink">
                           {g.empty.title} <span className="italic">{g.empty.titleTail}</span>
@@ -348,7 +367,7 @@ export function Greenhouse({
                           onClick={example}
                           disabled={openingExample}
                           aria-busy={openingExample}
-                          className="focus-ring mt-4 inline-flex items-center gap-2 self-start text-[13px] text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink disabled:no-underline"
+                          className="focus-ring mt-4 inline-flex items-center gap-2 self-start text-left text-[13px] text-pretty text-scene-ink-2 underline decoration-dotted underline-offset-4 hover:text-scene-ink disabled:no-underline"
                         >
                           {openingExample && (
                             <LoaderCircle

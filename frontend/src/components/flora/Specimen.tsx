@@ -415,6 +415,30 @@ function Callout({ at, side, text, lit }: { at: Pt; side: number; text: string; 
   );
 }
 
+function PaperTag({ text, ink, lit }: { text: string; ink: string; lit: boolean }) {
+  const width = text.length * 3.84;
+  const start = -(width + 11.4) / 2;
+  const eyelet = start + 3 + width + 3.4;
+  return (
+    <>
+      <path
+        d={`M ${r1(start)} -9 L ${r1(eyelet)} -9 L ${r1(eyelet + 5)} 0 L ${r1(eyelet)} 9 L ${r1(start)} 9 Z`}
+        style={{ fill: "#f4ead2", stroke: lit ? "var(--cobalt)" : "#8a6a45", strokeWidth: lit ? 1.2 : 0.6 }}
+      />
+      <circle cx={r1(eyelet)} cy={0} r={1.6} style={{ fill: "none", stroke: "#8a6a45", strokeWidth: 0.6 }} />
+      <text
+        x={r1(start + 3)}
+        y={2.6}
+        textLength={r1(width)}
+        lengthAdjust="spacingAndGlyphs"
+        style={{ fill: ink, fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
+      >
+        {text}
+      </text>
+    </>
+  );
+}
+
 function Soil({ uid, seed }: { uid: string; seed: number }) {
   const pebbles = Array.from({ length: 14 }, (_, i) => ({
     x: -160 + rand(seed, i) * 320,
@@ -915,23 +939,7 @@ export function Specimen({
               <g
                 transform={`translate(${r1(anatomy.tag.card.x)} ${r1(anatomy.tag.card.y)}) rotate(${anatomy.tag.card.x > anatomy.tag.knot.x ? 8 : -8})`}
               >
-                <path
-                  d="M -13 -9 L 9 -9 L 14 0 L 9 9 L -13 9 Z"
-                  style={{
-                    fill: "#f4ead2",
-                    stroke: highlight === "tag" ? "var(--cobalt)" : "#8a6a45",
-                    strokeWidth: highlight === "tag" ? 1.2 : 0.6,
-                  }}
-                />
-                <circle cx={9} cy={0} r={1.6} style={{ fill: "none", stroke: "#8a6a45", strokeWidth: 0.6 }} />
-                <text
-                  x={-2}
-                  y={2.6}
-                  textAnchor="middle"
-                  style={{ fill: "#5a4630", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
-                >
-                  {sp.tagText}
-                </text>
+                <PaperTag text={sp.tagText} ink="#5a4630" lit={highlight === "tag"} />
               </g>
             </motion.g>
           </Hit>
@@ -947,23 +955,7 @@ export function Specimen({
               <g
                 transform={`translate(${r1(anatomy.waiting.card.x)} ${r1(anatomy.waiting.card.y)}) rotate(${anatomy.waiting.card.x > anatomy.waiting.knot.x ? 6 : -6})`}
               >
-                <path
-                  d="M -15 -9 L 11 -9 L 16 0 L 11 9 L -15 9 Z"
-                  style={{
-                    fill: "#f4ead2",
-                    stroke: highlight === "waiting" ? "var(--cobalt)" : "#8a6a45",
-                    strokeWidth: highlight === "waiting" ? 1.2 : 0.6,
-                  }}
-                />
-                <circle cx={11} cy={0} r={1.6} style={{ fill: "none", stroke: "#8a6a45", strokeWidth: 0.6 }} />
-                <text
-                  x={-2}
-                  y={2.6}
-                  textAnchor="middle"
-                  style={{ fill: "var(--cobalt)", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
-                >
-                  {sp.waitingText}
-                </text>
+                <PaperTag text={sp.waitingText} ink="var(--cobalt)" lit={highlight === "waiting"} />
               </g>
             </motion.g>
           </Hit>
@@ -982,7 +974,10 @@ export function Specimen({
         ))}
       {callouts && anatomy.apex && (anatomy.apex.kind === "fruit" || anatomy.apex.kind === "fruitlet") && (
         <Callout
-          at={{ x: anatomy.apex.pos.x + anatomy.apex.size * 0.9, y: anatomy.apex.pos.y + anatomy.apex.size }}
+          at={{
+            x: anatomy.apex.pos.x + (anatomy.apex.pos.x >= anatomy.top.x ? 1 : -1) * anatomy.apex.size * 0.9,
+            y: anatomy.apex.pos.y + anatomy.apex.size,
+          }}
           side={anatomy.apex.pos.x >= anatomy.top.x ? 1 : -1}
           text="∗"
           lit={highlight === "apex"}

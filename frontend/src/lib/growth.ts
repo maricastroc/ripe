@@ -1,7 +1,11 @@
 import type { Messages } from "./i18n/messages/en";
-import type { Fruit, Stage } from "./types";
+import type { Fruit, Stage, StepPhase } from "./types";
 
 export const STAGES: Stage[] = ["seed", "sprout", "leafing", "blossom", "fruit", "ripe"];
+
+export function shownPhase(phase: StepPhase, waitsOnAnswer: boolean): StepPhase {
+  return phase === "blocked" && !waitsOnAnswer ? "ready" : phase;
+}
 
 export function stageName(t: Messages, stage: Stage): string {
   return t.stages[stage]?.name ?? stage;

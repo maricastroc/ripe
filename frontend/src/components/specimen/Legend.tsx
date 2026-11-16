@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import { shownPhase } from "@/lib/growth";
 import { useI18n } from "@/lib/i18n/context";
 import { outputLabel } from "@/lib/labels";
 import type { ArtifactView, QuestionView, StepPhase, StepView, TaskDetail } from "@/lib/types";
@@ -47,7 +48,8 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
       <p className="label mb-2">{l.heading}</p>
       <ol className="divide-y divide-dashed divide-line-2 border-y border-dashed border-line-2">
         {task.steps.map((step) => {
-          const s = { ...l.phase[step.phase], tone: TONE[step.phase] };
+          const phase = shownPhase(step.phase, step.waitingFor === "answer");
+          const s = { ...l.phase[phase], tone: TONE[phase] };
           const lit = highlight === step.id;
           const waits = step.phase === "blocked" && step.waitingFor === "answer" ? needsText(step, task.questions) : [];
           return (

@@ -1,7 +1,7 @@
 "use client";
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { RETURN_OPTIONS, type ReturnId } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -23,8 +23,9 @@ export function ReturnPicker({ value, onChange }: { value: ReturnId; onChange: (
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content
-          align="start"
+          align="end"
           sideOffset={6}
+          collisionPadding={16}
           className="z-50 min-w-[200px] rounded-2xl border border-line bg-surface p-1.5 shadow-xl"
         >
           <Menu.Label className="label px-3 pb-1 pt-2">{r.question}</Menu.Label>
@@ -35,7 +36,7 @@ export function ReturnPicker({ value, onChange }: { value: ReturnId; onChange: (
               className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-[15px] text-ink-2 outline-none data-[highlighted]:bg-paper-2 data-[highlighted]:text-ink"
             >
               {t.returnOptions[option.id]}
-              {option.id === current.id && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
+              {option.id === current.id && <Check className="h-3.5 w-3.5 text-leaf-dark" strokeWidth={2} aria-hidden />}
             </Menu.Item>
           ))}
         </Menu.Content>

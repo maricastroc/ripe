@@ -105,9 +105,9 @@ export const RETURN_OPTIONS: ReturnOption[] = [
 
 export function formatDuration({ locale }: I18n, ms: number | null) {
   if (ms === null) return "—";
-  if (ms < 1000) return `${ms} ms`;
+  if (ms < 1000) return `${ms} ms`;
   const seconds = ms / 1000;
   const f = formats(locale);
-  if (seconds < 60) return `${f.seconds.format(seconds)} s`;
-  return `${Math.floor(seconds / 60)} min ${f.tenths.format(seconds % 60)} s`;
+  if (seconds < 60) return `${f.seconds.format(seconds)} s`;
+  return `${Math.floor(seconds / 60)} min ${f.tenths.format(seconds % 60)} s`;
 }
