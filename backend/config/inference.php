@@ -45,7 +45,16 @@ return [
                 'idle' => 180,
                 'total' => 300,
             ],
-            'models' => [],
+            'models' => [
+                'gpt-6-luna' => [
+                    'reasoning' => true,
+                    'supports_temperature' => false,
+                    'prices' => [
+                        'standard' => ['input' => 0.10, 'cached_input' => 0.01, 'cache_write' => 0.125, 'output' => 0.50, 'checked_on' => '2026-11-15'],
+                        'flex' => ['input' => 0.05, 'cached_input' => 0.005, 'cache_write' => 0.125, 'output' => 0.25, 'checked_on' => '2026-11-15'],
+                    ],
+                ],
+            ],
         ],
 
         'fake' => [

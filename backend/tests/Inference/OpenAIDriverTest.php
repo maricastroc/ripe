@@ -218,7 +218,7 @@ it('turns transport problems into scoped errors with an estimate of what was spe
         ->toThrow(ModelUnavailable::class);
 });
 
-it('caps the possible cost of a request before sending it', function (): void {
+it('caps the possible cost of a request before sending it, and refuses a model with no price', function (): void {
     $request = textRequest(null, ReasoningEffort::Medium);
     $driver = openai(ReplayTransport::fixture('openai/text.sse'));
     $ceiling = $driver->maximumCost($request);
@@ -226,7 +226,7 @@ it('caps the possible cost of a request before sending it', function (): void {
 
     expect($ceiling)->toBeGreaterThan(0)
         ->and($ceiling)->toBeGreaterThanOrEqual((int) $actual)
-        ->and(openai(ReplayTransport::fixture('openai/text.sse'), 'gpt-unpriced')->maximumCost($request))->toBeNull();
+        ->and(fn () => openai(ReplayTransport::fixture('openai/text.sse'), 'gpt-unpriced')->maximumCost($request))->toThrow(DriverMisconfigured::class);
 });
 
 it('checks its health without spending tokens', function (): void {

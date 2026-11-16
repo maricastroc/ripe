@@ -337,7 +337,7 @@ export interface components {
          * AgentMode
          * @enum {string}
          */
-        AgentMode: "idle" | "working" | "paused" | "halted" | "offline" | "model-missing" | "stopped";
+        AgentMode: "idle" | "working" | "paused" | "halted" | "resting" | "offline" | "model-missing" | "stopped";
         /** AgentStatusResource */
         AgentStatusResource: {
             hosting: components["schemas"]["HostingMode"];
@@ -360,6 +360,8 @@ export interface components {
             } | null;
             elsewhere: boolean;
             queued: number;
+            resumesAt: string | null;
+            rest: components["schemas"]["RestReason"] | null;
         };
         /** AnswerQuestionRequest */
         AnswerQuestionRequest: {
@@ -442,6 +444,11 @@ export interface components {
         RenameTaskRequest: {
             title: string;
         };
+        /**
+         * RestReason
+         * @enum {string}
+         */
+        RestReason: "capacity" | "daily" | "budget";
         /** RestoreVersionRequest */
         RestoreVersionRequest: {
             /** Format: uuid */
@@ -457,7 +464,7 @@ export interface components {
          * RunDeferral
          * @enum {string}
          */
-        RunDeferral: "pace" | "backoff" | "rate_limited" | "budget" | "driver_unavailable" | "paused";
+        RunDeferral: "pace" | "backoff" | "rate_limited" | "budget" | "quota" | "driver_unavailable" | "paused";
         /**
          * RunKind
          * @enum {string}

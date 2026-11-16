@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 
 #[DateFormat('Y-m-d H:i:s.uP')]
 #[Table(key: 'day', keyType: 'string', incrementing: false)]
-#[Fillable(['day', 'limit_microusd', 'reserved_microusd', 'spent_microusd'])]
+#[Fillable(['day', 'limit_microusd', 'reserved_microusd', 'spent_microusd', 'estimated_microusd'])]
 class InferenceBudgetDay extends Model
 {
     /** @use HasFactory<InferenceBudgetDayFactory> */
@@ -22,6 +22,7 @@ class InferenceBudgetDay extends Model
     protected $attributes = [
         'reserved_microusd' => 0,
         'spent_microusd' => 0,
+        'estimated_microusd' => 0,
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class InferenceBudgetDay extends Model
             'limit_microusd' => 'integer',
             'reserved_microusd' => 'integer',
             'spent_microusd' => 'integer',
+            'estimated_microusd' => 'integer',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];

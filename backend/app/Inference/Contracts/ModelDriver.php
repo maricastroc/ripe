@@ -16,6 +16,8 @@ interface ModelDriver
 
     public function health(): DriverHealth;
 
+    public function isMetered(): bool;
+
     public function maximumCost(ModelRequest $request): ?int;
 
     public function generate(ModelRequest $request, ?CallSupervisor $supervisor = null, ?StreamObserver $observer = null): ModelResponse;

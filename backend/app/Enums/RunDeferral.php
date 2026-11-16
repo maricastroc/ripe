@@ -10,6 +10,7 @@ enum RunDeferral: string
     case Backoff = 'backoff';
     case RateLimited = 'rate_limited';
     case Budget = 'budget';
+    case Quota = 'quota';
     case DriverUnavailable = 'driver_unavailable';
     case Paused = 'paused';
 }

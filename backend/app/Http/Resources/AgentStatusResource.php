@@ -37,6 +37,8 @@ final class AgentStatusResource extends JsonResource
             ],
             'elsewhere' => $status->elsewhere,
             'queued' => $status->queued,
+            'resumesAt' => $status->resumesAt?->toIso8601ZuluString('microsecond'),
+            'rest' => $status->rest,
         ];
     }
 }

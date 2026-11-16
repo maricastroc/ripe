@@ -15,5 +15,6 @@ final readonly class Claim
         public RunAttempt $attempt,
         public string $token,
         public CarbonImmutable $expiresAt,
+        public ?PreparedCall $call = null,
     ) {}
 }

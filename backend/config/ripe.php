@@ -36,6 +36,24 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'inference' => [
+        'allow_paid' => (bool) env('RIPE_ALLOW_PAID_INFERENCE', false),
+    ],
+
+    'quota' => [
+        'abandoned_after_seconds' => 600,
+        'daily_recheck_minutes' => 30,
+        'busy_recheck_seconds' => 5,
+        'typical_call_tokens' => 4000,
+    ],
+
+    'budget' => [
+        'daily_usd' => (float) env('RIPE_DAILY_BUDGET_USD', 0.30),
+        'visitor_share' => (float) env('RIPE_VISITOR_BUDGET_SHARE', 0.10),
+        'recheck_minutes' => 10,
+        'resting_below_microusd' => 5000,
+    ],
+
     'realtime' => [
         'enabled' => (bool) env('RIPE_REALTIME_ENABLED', env('BROADCAST_CONNECTION', 'null') === 'reverb'),
         'queue_connection' => env('RIPE_REALTIME_QUEUE_CONNECTION', 'realtime'),
