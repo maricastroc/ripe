@@ -36,6 +36,10 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'examples' => [
+        'directory' => env('RIPE_EXAMPLES_DIRECTORY', database_path('examples')),
+    ],
+
     'inference' => [
         'allow_paid' => (bool) env('RIPE_ALLOW_PAID_INFERENCE', false),
     ],

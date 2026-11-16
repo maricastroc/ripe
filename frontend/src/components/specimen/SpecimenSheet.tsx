@@ -393,7 +393,7 @@ export function SpecimenSheet({
             {task.isExample && (
               <p className="mb-5 rounded-sm border border-dashed border-vermilion/50 px-3 py-2 text-[13px] text-ink-2">
                 <span className="label mr-2 text-vermilion-ink">example</span>
-                Grown once by a scripted model to show a ripe task. The agent never works on it again.
+                Grown once by the real agent and kept as it was. The agent never works on it again.
               </p>
             )}
             <div className="flex items-baseline justify-between gap-3">

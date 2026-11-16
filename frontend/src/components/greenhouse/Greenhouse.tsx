@@ -10,7 +10,7 @@ import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
 import type { RealtimeConfig } from "@/lib/realtime";
-import type { AgentStatus, Garden as GardenData, TaskDetail, TaskSummary } from "@/lib/types";
+import type { AgentStatus, Garden as GardenData, TaskSummary } from "@/lib/types";
 import { Fungus } from "./Fungus";
 import { Glasshouse } from "./Glasshouse";
 import { layoutBed, naturalSize } from "./layout";
@@ -140,8 +140,10 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
   async function example() {
     setOpeningExample(true);
     try {
-      const { task } = await api<{ task: TaskDetail }>("/api/examples", { method: "POST" });
-      router.push(`/t/${task.id}`);
+      const { examples } = await api<{ examples: TaskSummary[] }>("/api/examples");
+      const first = examples[0];
+      if (!first) throw new Error("No example is installed.");
+      router.push(`/t/${first.id}`);
     } catch {
       setOpeningExample(false);
     }
@@ -354,9 +356,7 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
                               aria-hidden
                             />
                           )}
-                          {openingExample
-                            ? "opening the example…"
-                            : "or open a ripe example, grown once by a scripted model"}
+                          {openingExample ? "opening the example…" : "or open a ripe example, recorded from a real run"}
                         </button>
                       </div>
                     );

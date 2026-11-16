@@ -34,6 +34,11 @@ class TaskSummaryResource extends JsonResource
             'version' => $task->version,
             'returnAt' => $task->return_at?->toIso8601ZuluString('microsecond'),
             'createdAt' => $task->created_at?->toIso8601ZuluString('microsecond'),
+            'example' => $task->exampleRecord === null ? null : [
+                'driver' => $task->exampleRecord->driver,
+                'model' => $task->exampleRecord->model,
+                'generatedAt' => $task->exampleRecord->generated_at?->toIso8601ZuluString(),
+            ],
             'ripeAt' => $task->ripe_at?->toIso8601ZuluString('microsecond'),
             'harvestedAt' => $task->harvested_at?->toIso8601ZuluString('microsecond'),
             'stallReason' => $task->stall_reason,

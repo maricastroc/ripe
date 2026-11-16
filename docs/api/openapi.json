@@ -503,8 +503,8 @@
             }
         },
         "/examples": {
-            "post": {
-                "operationId": "examples.store",
+            "get": {
+                "operationId": "examples.index",
                 "tags": [
                     "Example"
                 ],
@@ -516,12 +516,15 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "task": {
-                                            "$ref": "#/components/schemas/TaskResource"
+                                        "examples": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TaskSummaryResource"
+                                            }
                                         }
                                     },
                                     "required": [
-                                        "task"
+                                        "examples"
                                     ]
                                 }
                             }
@@ -2159,6 +2162,28 @@
                             "null"
                         ]
                     },
+                    "example": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "driver": {
+                                "type": "string"
+                            },
+                            "model": {
+                                "type": "string"
+                            },
+                            "generatedAt": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "driver",
+                            "model",
+                            "generatedAt"
+                        ]
+                    },
                     "ripeAt": {
                         "type": [
                             "string",
@@ -2591,6 +2616,7 @@
                     "version",
                     "returnAt",
                     "createdAt",
+                    "example",
                     "ripeAt",
                     "harvestedAt",
                     "stallReason",
@@ -2667,6 +2693,28 @@
                         "type": [
                             "string",
                             "null"
+                        ]
+                    },
+                    "example": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "driver": {
+                                "type": "string"
+                            },
+                            "model": {
+                                "type": "string"
+                            },
+                            "generatedAt": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "driver",
+                            "model",
+                            "generatedAt"
                         ]
                     },
                     "ripeAt": {
@@ -2766,6 +2814,7 @@
                     "version",
                     "returnAt",
                     "createdAt",
+                    "example",
                     "ripeAt",
                     "harvestedAt",
                     "stallReason",

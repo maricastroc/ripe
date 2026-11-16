@@ -26,6 +26,7 @@ Route::middleware('throttle:reads')->group(static function (): void {
     Route::get('garden', [GardenController::class, 'show'])->name('garden.show');
     Route::get('tasks/{task}', [TaskController::class, 'show'])->can('view', 'task')->name('tasks.show');
     Route::get('agent', [AgentController::class, 'show'])->name('agent.show');
+    Route::get('examples', [ExampleController::class, 'index'])->name('examples.index');
     Route::post('broadcasting/auth', AuthorizeChannelController::class)->name('broadcasting.auth');
 });
 
@@ -52,5 +53,4 @@ Route::middleware('throttle:mutations')->group(static function (): void {
     Route::post('artifacts/{artifact}/revise', ReviseArtifactController::class)->can('update', 'artifact')->name('artifacts.revise');
 
     Route::put('agent', [AgentController::class, 'update'])->name('agent.update');
-    Route::post('examples', [ExampleController::class, 'store'])->name('examples.store');
 });

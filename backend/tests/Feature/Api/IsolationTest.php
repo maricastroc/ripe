@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Examples\ExampleGarden;
 use App\Models\Artifact;
 use App\Models\ArtifactDraft;
 use App\Models\ArtifactVersion;
@@ -74,7 +73,7 @@ it('never lists another visitor tasks in the garden', function (): void {
 });
 
 it('shows the example to everyone and lets nobody change it', function (): void {
-    $example = app(ExampleGarden::class)->ensure();
+    $example = installedExample();
     [, $token] = visitor();
     $before = footprint($example);
 

@@ -91,9 +91,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["examples.index"];
         put?: never;
-        post: operations["examples.store"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -498,6 +498,11 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            example: {
+                driver: string;
+                model: string;
+                generatedAt: string;
+            } | null;
             ripeAt: string | null;
             harvestedAt: string | null;
             stallReason: string | null;
@@ -600,6 +605,11 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            example: {
+                driver: string;
+                model: string;
+                generatedAt: string;
+            } | null;
             ripeAt: string | null;
             harvestedAt: string | null;
             stallReason: string | null;
@@ -973,7 +983,7 @@ export interface operations {
             };
         };
     };
-    "examples.store": {
+    "examples.index": {
         parameters: {
             query?: never;
             header?: never;
@@ -988,7 +998,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        task: components["schemas"]["TaskResource"];
+                        examples: components["schemas"]["TaskSummaryResource"][];
                     };
                 };
             };

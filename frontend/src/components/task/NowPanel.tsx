@@ -131,8 +131,10 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     key = "example";
     content = (
       <Shell tone="text-ink-3" title="Illustrative example">
-        Nothing is running here. A scripted model wrote every piece ahead of time, to show what you find once a task is
-        ripe.
+        Nothing is running here.{" "}
+        {task.example
+          ? `Recorded from a real run by ${task.example.model}${task.example.generatedAt ? ` on ${new Date(task.example.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}, to show what you find once a task is ripe.`
+          : "It shows what you find once a task is ripe."}
       </Shell>
     );
   } else if (running && activity) {
