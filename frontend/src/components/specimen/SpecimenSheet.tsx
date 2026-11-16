@@ -356,9 +356,11 @@ export function SpecimenSheet({
                   : "offline"
                 : agent.mode === "paused"
                   ? "paused"
-                  : agent.mode === "halted" || agent.mode === "stopped"
+                  : agent.mode === "resting" || agent.mode === "stopped"
                     ? "resting"
-                    : "ready"}
+                    : agent.mode === "halted"
+                      ? "no model"
+                      : "ready"}
           </span>
         </button>
       </header>
@@ -411,6 +413,7 @@ export function SpecimenSheet({
               ) : (
                 <p className="typewriter text-[11.5px] text-ink-3" suppressHydrationWarning>
                   {task.createdAt ? `sown ${dayFormat.format(new Date(task.createdAt))}` : null}
+                  {task.expiresAt ? ` · kept until ${dayFormat.format(new Date(task.expiresAt))}` : null}
                 </p>
               )}
             </div>

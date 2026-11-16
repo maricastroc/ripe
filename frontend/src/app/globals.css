@@ -418,6 +418,20 @@ body::after {
   }
 }
 
+.myc-hibernate {
+  animation: myc-hibernate 9s ease-in-out infinite;
+}
+
+@keyframes myc-hibernate {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.34;
+  }
+}
+
 @keyframes glow-breathe {
   0%,
   100% {
@@ -683,6 +697,7 @@ body::after {
   .live-dot,
   .myc-pulse,
   .myc-breathe,
+  .myc-hibernate,
   .glow-breathe,
   .bud-pulse,
   .spore,

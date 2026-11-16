@@ -10,11 +10,12 @@ const CAPS: Cap[] = [
 ];
 
 export function Fungus({ mode, paused }: { mode: AgentMode; paused: boolean }) {
-  const down = mode === "offline" || mode === "stopped" || mode === "model-missing";
+  const down = mode === "offline" || mode === "stopped" || mode === "model-missing" || mode === "halted";
+  const resting = mode === "resting";
   const active = !down && !paused && mode === "working";
-  const capFill = down ? "#a8a196" : "#d8c49c";
-  const capTop = down ? "#8c867b" : "#b98f5e";
-  const gill = down ? "#c9c3b5" : active ? "#eaff9a" : "#f1ebd2";
+  const capFill = down ? "#a8a196" : resting ? "#cbc7bc" : "#d8c49c";
+  const capTop = down ? "#8c867b" : resting ? "#9d9b93" : "#b98f5e";
+  const gill = down ? "#c9c3b5" : active ? "#eaff9a" : resting ? "#dde7ec" : "#f1ebd2";
   return (
     <svg viewBox="-56 -150 112 158" className="block h-auto w-full" aria-hidden style={{ overflow: "visible" }}>
       <defs>
@@ -23,15 +24,20 @@ export function Fungus({ mode, paused }: { mode: AgentMode; paused: boolean }) {
           <stop offset="0.45" stopColor="#d9f57a" stopOpacity="0.35" />
           <stop offset="1" stopColor="#d9f57a" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="fungus-rest">
+          <stop offset="0" stopColor="#e4f1f7" stopOpacity="0.8" />
+          <stop offset="0.5" stopColor="#b9d3e0" stopOpacity="0.3" />
+          <stop offset="1" stopColor="#b9d3e0" stopOpacity="0" />
+        </radialGradient>
       </defs>
       {!down && !paused && (
         <circle
           cx={-4}
           cy={-70}
           r={62}
-          fill="url(#fungus-glow)"
-          className={active ? "glow-breathe" : "myc-breathe"}
-          opacity={active ? 1 : 0.5}
+          fill={resting ? "url(#fungus-rest)" : "url(#fungus-glow)"}
+          className={active ? "glow-breathe" : resting ? "myc-hibernate" : "myc-breathe"}
+          opacity={active ? 1 : resting ? 0.35 : 0.5}
         />
       )}
       {CAPS.map((c, i) => {

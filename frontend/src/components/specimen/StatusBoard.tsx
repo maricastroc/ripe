@@ -1,4 +1,5 @@
 import { BookOpen, Flag, MessageCircleQuestion, Sprout } from "lucide-react";
+import { restText } from "@/lib/presence";
 import type { LucideIcon } from "lucide-react";
 import { formatRelative, returnWhen } from "@/lib/format";
 import { activityLabel } from "@/lib/labels";
@@ -86,8 +87,14 @@ function agentWork(task: TaskDetail, agent: AgentStatus): { value: string; detai
   }
   if (agent.mode === "paused")
     return { value: "Agent paused", detail: `${written}. It resumes when you turn it back on.`, tone: "muted" };
+  if (agent.mode === "resting")
+    return { value: "Resting", detail: `${written}. ${restText(agent).long}`, tone: "muted" };
   if (agent.mode === "halted")
-    return { value: "Resting for now", detail: `${written}. It picks up again on its own.`, tone: "muted" };
+    return {
+      value: "Waiting for the model",
+      detail: `${written}. The greenhouse can’t reach its model right now. It picks up again on its own.`,
+      tone: "muted",
+    };
   if (agent.mode === "offline")
     return {
       value: agent.driver === "ollama" ? "Waiting for Ollama" : "Waiting for the model",

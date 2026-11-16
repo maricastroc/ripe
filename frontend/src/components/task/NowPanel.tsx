@@ -8,6 +8,7 @@ import { useNow, useTypewriter } from "@/hooks/useTicker";
 import { returnWhen } from "@/lib/format";
 import { activityLabel } from "@/lib/labels";
 import { countWords } from "@/lib/markers";
+import { restText } from "@/lib/presence";
 import type { AgentStatus, RunKind, TaskDetail } from "@/lib/types";
 
 type Props = {
@@ -231,10 +232,17 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
           The work stays in the queue until you turn the agent back on.
         </Shell>
       );
+    } else if (agent.mode === "resting") {
+      content = (
+        <Shell tone="text-ochre" title="Resting">
+          <span suppressHydrationWarning>{restText(agent).long}</span> The step is saved and nothing done so far is
+          lost.
+        </Shell>
+      );
     } else if (agent.mode === "halted") {
       content = (
-        <Shell tone="text-ochre" title="Resting for now">
-          The greenhouse is resting. The step is saved and will continue on its own.
+        <Shell tone="text-ochre" title="Waiting for the model">
+          The greenhouse can’t reach its model right now. The step is saved and will continue on its own.
         </Shell>
       );
     } else if (agent.mode === "offline") {
