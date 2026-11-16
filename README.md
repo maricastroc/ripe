@@ -1,6 +1,6 @@
 # Ripe
 
-**Tasks that ripen while you procrastinate.**
+**Tasks that ripen while you procrastinate.** Live at **https://ripe.marianacastro.dev**.
 
 You write down something you keep putting off — "reply to the difficult client email", "plan the December trip" — and leave it for later. From then on, an AI agent works on it in small steps, saving every result: locally on Ollama, or on Groq's free plan in the public demo. When you come back, you find a plan, a draft, a checklist or a first version — and a clear list of what still depends on you.
 
@@ -112,6 +112,10 @@ model stream ───▶ realtime queue ─▶ relay worker ─▶ Reverb ─�
 - **Reverb is never on the critical path.** The agent's executor only queues signals. A separate worker publishes them with a one-second timeout; after a failure it pauses for a few seconds and drops what would be stale.
 - **Polling stays.** While the channel is subscribed, the page polls every 30 seconds; otherwise it polls as often as before. It also refetches on reconnect and when the tab gets focus.
 
+### Deploying
+
+The site runs on Vercel and the backend on Railway, as one supervised container next to PostgreSQL 17. [docs/deploy.md](docs/deploy.md) is the runbook: the architecture, every setting and variable, updating, the smoke test (`node scripts/smoke.mjs`), backups and restoring, and day-to-day operation.
+
 ### The public demo
 
 The public demo runs on Groq's free plan, so it costs nothing to run, and it is shared by everyone who visits:
@@ -134,6 +138,7 @@ The public demo runs on Groq's free plan, so it costs nothing to run, and it is 
 | `php artisan ripe:timing` | Checks that leases, model calls, the worker timeout and queue redelivery are ordered safely |
 | `php artisan ripe:audit {task?}` | Checks that every task's journal agrees with its persisted state; exits with an error when one does not |
 | `php artisan ripe:inspect {task?}` | Without a task: the agent, its quota and the last day of attempts. With one: its steps, runs, attempts, latest journal events and the audit |
+| `php artisan ripe:backup` | Dumps the database to the private backup bucket and keeps the latest 14; runs daily at 03:30 UTC and before every deploy |
 | `php artisan ripe:prune` | Deletes tasks past their retention date and idle visitors without tasks; the scheduler runs it every hour |
 | `php artisan ripe:examples:install` | Installs the recorded examples from `database/examples/`; unchanged ones are left alone |
 | `php artisan ripe:examples:record` | Grows the examples again through the real agent with the configured model, saves them as fixtures and installs them |
@@ -153,6 +158,8 @@ The agent is configured in `backend/.env`; the model is a matter of configuratio
 | `RIPE_ALLOW_PAID_INFERENCE` | `true` lets a paid driver run in public mode; off by default   |
 | `RIPE_DAILY_BUDGET_USD`, `RIPE_VISITOR_BUDGET_SHARE` | the money budget for paid drivers: per day, and the share one visitor may use |
 | `RIPE_RETENTION_DAYS`, `RIPE_RETENTION_MAXIMUM_DAYS` | days a task is kept after the later of the last visit and the planned return (30), and at most after planting (90) |
+| `TURNSTILE_SECRET_KEY`    | Cloudflare Turnstile's secret; when set, planting needs a token the backend confirms (the site needs `RIPE_TURNSTILE_SITE_KEY`) |
+| `RIPE_BACKUP_DISK`, `BACKUP_*` | the S3-compatible bucket `ripe:backup` writes to; without it, backups are skipped |
 | `RIPE_LIMIT_PLANT_PER_DAY_PER_VISITOR`, `RIPE_LIMIT_PLANT_PER_DAY_PER_NETWORK`, `RIPE_LIMIT_PLANT_PER_DAY`, `RIPE_LIMIT_PLANTS_IN_BED`, `RIPE_LIMIT_REVISIONS_PER_DAY_PER_VISITOR` | daily limits on new tasks (8 per visitor, 30 per network, 400 in all), unharvested plants (6) and rewrites (20 per visitor) |
 | `RIPE_PACE`               | pause between the agent's automatic runs: `calm` (30 s), `steady` (6 s, default), `brisk` (1 s) or `instant` |
 | `RIPE_MODE`               | `local` (settings editable from the interface) or `public` (configuration from the environment only) |

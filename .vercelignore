@@ -1,0 +1,9 @@
+backend
+docs
+docker
+scripts
+compose.yaml
+frontend/node_modules
+frontend/.next
+frontend/test-results
+frontend/playwright-report
