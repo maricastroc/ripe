@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsDialog } from "@/components/agent/SettingsDialog";
+import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { usePolling } from "@/hooks/usePolling";
 import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
@@ -195,6 +196,7 @@ export function Greenhouse({
               {sky}
               {time ? ` · ${time}` : ""}
             </p>
+            <LanguageSwitch className="-mr-1 text-scene-ink-2 hover:text-scene-ink" />
           </div>
         </header>
 

@@ -1,3 +1,5 @@
+import { localeOf } from "@/lib/i18n/locales";
+
 const SECRET_HEADER = "x-ripe-gateway";
 const CLIENT_HEADER = "x-ripe-client-ip";
 const PLATFORM_CLIENT_HEADER = "x-vercel-forwarded-for";
@@ -26,6 +28,7 @@ function clientAddress(incoming: Headers): string | null {
 }
 
 function sign(headers: Headers, incoming: Headers) {
+  headers.set("accept-language", localeOf(incoming));
   const secret = process.env.RIPE_GATEWAY_SECRET;
   if (secret) headers.set(SECRET_HEADER, secret);
   const address = clientAddress(incoming);
