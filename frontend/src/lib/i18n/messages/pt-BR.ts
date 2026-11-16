@@ -321,7 +321,7 @@ export const ptBR: Messages = {
         (optional
           ? ` Se quiser que as lacunas marcadas sejam preenchidas, responda ${optional === 1 ? "a pergunta opcional" : `as ${optional} perguntas opcionais`} abaixo.`
           : "") +
-        " Quando estiver tudo certo, use Colher embaixo da prancha." +
+        " Quando estiver tudo certo, é só colher." +
         (early ? " Ela amadureceu antes de você dizer que voltaria." : ""),
     },
     lining: "Organizando a próxima etapa",
@@ -497,23 +497,7 @@ export const ptBR: Messages = {
   },
   board: {
     label: "Como está esta tarefa",
-    cells: { task: "esta tarefa", work: "trabalho do agente", you: "de você", read: "pronto para ler" },
-    task: {
-      done: "Concluída",
-      harvested: (since: string | null) =>
-        `Você a colheu${since ? ` ${since}` : ""}. Ela continua legível na despensa.`,
-      ripe: "Madura",
-      ripeDetail: "O agente terminou. A tarefa só conta como concluída quando você a colhe.",
-      onHold: "Crescendo, em espera",
-      onHoldDetail: "Parou na etapa que precisa da sua resposta.",
-      dormant: "Dormente",
-      dormantDetail: "Plantada, mas nada está rodando.",
-      stalled: "Precisa de cuidado",
-      stalledDetail: "O agente parou depois de várias tentativas que falharam.",
-      growing: "Crescendo",
-      away: (when: string) => `Continua amadurecendo enquanto você está fora. Você disse que voltaria ${when}.`,
-      growingDetail: "Continua amadurecendo, uma etapa de cada vez.",
-    },
+    cells: { work: "trabalho do agente", you: "de você", read: "pronto para ler" },
     work: {
       written: (done: number, total: number) =>
         `${done} de ${total} ${plural(total, "etapa escrita", "etapas escritas")}`,

@@ -1,9 +1,8 @@
 "use client";
 
-import { BookOpen, Flag, MessageCircleQuestion, Sprout } from "lucide-react";
+import { BookOpen, MessageCircleQuestion, Sprout } from "lucide-react";
 import { restText } from "@/lib/presence";
 import type { LucideIcon } from "lucide-react";
-import { formatRelative, returnWhen } from "@/lib/format";
 import { shownPhase } from "@/lib/growth";
 import type { I18n } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/context";
@@ -25,35 +24,6 @@ const SEGMENT: Record<StepPhase, string> = {
   ready: "bg-line-2",
   blocked: "bg-ochre",
 };
-
-function since(i18n: I18n, iso: string) {
-  const text = formatRelative(i18n, iso);
-  return Date.now() - new Date(iso).getTime() < 86_400_000 ? text : i18n.t.when.date(text);
-}
-
-function overall(i18n: I18n, task: TaskDetail): { value: string; detail: string; tone: Tone } {
-  const o = i18n.t.board.task;
-  switch (task.status) {
-    case "harvested":
-      return {
-        value: o.done,
-        detail: o.harvested(task.harvestedAt ? since(i18n, task.harvestedAt) : null),
-        tone: "ink",
-      };
-    case "ripe":
-      return { value: o.ripe, detail: o.ripeDetail, tone: "leaf" };
-    case "waiting":
-      return { value: o.onHold, detail: o.onHoldDetail, tone: "vermilion" };
-    case "dormant":
-      return { value: o.dormant, detail: o.dormantDetail, tone: "muted" };
-    case "stalled":
-      return { value: o.stalled, detail: o.stalledDetail, tone: "vermilion" };
-    default: {
-      const when = returnWhen(i18n, task.returnAt);
-      return { value: o.growing, detail: when ? o.away(when) : o.growingDetail, tone: "ink" };
-    }
-  }
-}
 
 function agentWork(i18n: I18n, task: TaskDetail, agent: AgentStatus): { value: string; detail: string; tone: Tone } {
   const w = i18n.t.board.work;
@@ -98,7 +68,6 @@ function Cell({
   detail,
   tone,
   children,
-  wide,
 }: {
   icon: LucideIcon;
   label: string;
@@ -106,18 +75,15 @@ function Cell({
   detail: string;
   tone: Tone;
   children?: React.ReactNode;
-  wide?: boolean;
 }) {
   return (
-    <div className={`min-w-0 bg-paper px-4 py-3.5 ${wide ? "sm:col-span-3" : ""}`}>
+    <div className="min-w-0 bg-paper px-4 py-3.5">
       <dt className="label flex items-center gap-1.5 text-[10px]">
         <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
         {label}
       </dt>
       <dd className="mt-1.5">
-        <span className={`block font-display leading-tight ${TONE[tone]} ${wide ? "text-[1.3rem]" : "text-[1.05rem]"}`}>
-          {value}
-        </span>
+        <span className={`block font-display text-[1.05rem] leading-tight ${TONE[tone]}`}>{value}</span>
         <span className="mt-1 block text-[13px] leading-snug text-ink-2">{detail}</span>
         {children}
       </dd>
@@ -134,7 +100,6 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
   const stepPieces = task.artifacts.filter((a) => a.kind === "step").length;
   const review = task.artifacts.some((a) => a.kind === "review");
   const pieces = task.artifacts.length;
-  const state = overall(i18n, task);
   const work = agentWork(i18n, task, agent);
 
   const you: { value: string; detail: string; tone: Tone } = essential
@@ -146,7 +111,6 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
   return (
     <section aria-label={b.label}>
       <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-[2px] border border-line-2 bg-line-2 sm:grid-cols-3">
-        <Cell icon={Flag} label={b.cells.task} value={state.value} detail={state.detail} tone={state.tone} wide />
         <Cell icon={Sprout} label={b.cells.work} value={work.value} detail={work.detail} tone={work.tone}>
           {task.steps.length > 0 && (
             <span className="mt-2 flex gap-1" aria-hidden>
