@@ -9,8 +9,10 @@ import { usePolling } from "@/hooks/usePolling";
 import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
+import { restText } from "@/lib/presence";
 import type { RealtimeConfig } from "@/lib/realtime";
-import type { AgentStatus, Garden as GardenData, TaskDetail, TaskSummary } from "@/lib/types";
+import type { AgentStatus, Garden as GardenData, TaskSummary } from "@/lib/types";
+import { ForgetGreenhouse } from "./ForgetGreenhouse";
 import { Fungus } from "./Fungus";
 import { Glasshouse } from "./Glasshouse";
 import { layoutBed, naturalSize } from "./layout";
@@ -36,8 +38,10 @@ function agentLine(agent: AgentStatus) {
   switch (agent.mode) {
     case "paused":
       return { text: "paused in settings", tone: "text-ochre" };
+    case "resting":
+      return { text: restText(agent).short, tone: "text-[#b9d3e0]" };
     case "halted":
-      return { text: "resting for now", tone: "text-ochre" };
+      return { text: "can’t reach its model", tone: "text-[#ff9b7a]" };
     case "working":
       return { text: agent.current ? `feeding “${agent.current.taskTitle}”` : "working", tone: "text-[#d9f27a]" };
     case "offline":
@@ -140,8 +144,10 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
   async function example() {
     setOpeningExample(true);
     try {
-      const { task } = await api<{ task: TaskDetail }>("/api/examples", { method: "POST" });
-      router.push(`/t/${task.id}`);
+      const { examples } = await api<{ examples: TaskSummary[] }>("/api/examples");
+      const first = examples[0];
+      if (!first) throw new Error("No example is installed.");
+      router.push(`/t/${first.id}`);
     } catch {
       setOpeningExample(false);
     }
@@ -244,7 +250,7 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
                     continues={r < layout.rows.length - 1}
                     threads={threads}
                     agentMode={agent.mode}
-                    paused={agent.mode === "paused" || agent.mode === "halted"}
+                    paused={agent.mode === "paused"}
                     salt={r * 97 + 11}
                   />
                 </div>
@@ -265,7 +271,7 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
                               : `The mycelium, the agent: ${line.text}`
                           }
                         >
-                          <Fungus mode={agent.mode} paused={agent.mode === "paused" || agent.mode === "halted"} />
+                          <Fungus mode={agent.mode} paused={agent.mode === "paused"} />
                         </button>
                         {!layout.mobile && (
                           <button
@@ -354,9 +360,7 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
                               aria-hidden
                             />
                           )}
-                          {openingExample
-                            ? "opening the example…"
-                            : "or open a ripe example, grown once by a scripted model"}
+                          {openingExample ? "opening the example…" : "or open a ripe example, recorded from a real run"}
                         </button>
                       </div>
                     );
@@ -372,7 +376,19 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
       <Pantry tasks={harvested} numbers={numbers} />
 
       <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 px-4 pb-6 pt-10 text-[12px] text-[#b9a888] sm:px-10">
-        <p className="typewriter">{agentNote(agent)}</p>
+        <div className="space-y-1">
+          <p className="typewriter">{agentNote(agent)}</p>
+          <p>
+            Plants are kept {data.retention.daysAfterVisit} days after your last visit, {data.retention.maximumDays} at
+            most.
+            {data.channel && (
+              <>
+                {" "}
+                <ForgetGreenhouse />
+              </>
+            )}
+          </p>
+        </div>
         <p className="font-display italic">slow and steady.</p>
       </footer>
 

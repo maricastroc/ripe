@@ -96,13 +96,15 @@ final class OpenAIDriver implements ModelDriver
         };
     }
 
-    public function maximumCost(ModelRequest $request): ?int
+    public function isMetered(): bool
+    {
+        return true;
+    }
+
+    public function maximumCost(ModelRequest $request): int
     {
         $model = $this->resolveModel();
-
-        if ($model->price === null) {
-            return null;
-        }
+        $price = $model->priceFor($this->serviceTier) ?? throw new DriverMisconfigured("No price is configured for {$model->id}, so Ripe will not call it.");
 
         $inputTokens = strlen($request->instructions) + self::MESSAGE_OVERHEAD_TOKENS * (count($request->messages) + 1);
 
@@ -110,7 +112,7 @@ final class OpenAIDriver implements ModelDriver
             $inputTokens += strlen($message->content);
         }
 
-        return $this->costs->ceiling($inputTokens, $this->maxOutputTokens($request, $model), $model->price);
+        return $this->costs->ceiling($inputTokens, $this->maxOutputTokens($request, $model), $price);
     }
 
     public function generate(ModelRequest $request, ?CallSupervisor $supervisor = null, ?StreamObserver $observer = null): ModelResponse
@@ -157,7 +159,8 @@ final class OpenAIDriver implements ModelDriver
     {
         $requestId = $response->header('x-request-id');
         $usage = $this->reportedUsage($stream->response()) ?? $this->estimate($request, $stream);
-        $cost = $model->price === null ? null : $this->costs->microdollars($usage, $model->price);
+        $price = $model->priceFor(Json::string($stream->response(), 'service_tier') ?? $this->serviceTier);
+        $cost = $price === null ? null : $this->costs->microdollars($usage, $price);
         $fail = static fn (InferenceException $exception): InferenceException => $exception->withCallDetails($usage, $requestId, $cost);
 
         $finish = match ($stream->terminal()) {
@@ -292,7 +295,9 @@ final class OpenAIDriver implements ModelDriver
     {
         $usage = $this->estimate($request, $stream);
 
-        return [$usage, null, $model->price === null ? null : $this->costs->microdollars($usage, $model->price)];
+        $price = $model->priceFor($this->serviceTier);
+
+        return [$usage, null, $price === null ? null : $this->costs->microdollars($usage, $price)];
     }
 
     private function withEstimate(InferenceException $exception, ModelRequest $request, OpenAIStream $stream, OpenAIModel $model): InferenceException

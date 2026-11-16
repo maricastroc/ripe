@@ -7,6 +7,7 @@ namespace App\Inference;
 use App\Enums\Inference\ReasoningEffort;
 use App\Inference\Contracts\ModelDriver;
 use App\Inference\Drivers\Fake\FakeDriver;
+use App\Inference\Drivers\Groq\GroqDriver;
 use App\Inference\Drivers\Ollama\OllamaDriver;
 use App\Inference\Drivers\OpenAI\OpenAIDriver;
 use App\Inference\Pricing\CostCalculator;
@@ -106,6 +107,22 @@ final class InferenceManager extends Manager
             serviceTier: $this->optional("{$config}.service_tier"),
             organization: $this->optional("{$config}.organization"),
             project: $this->optional("{$config}.project"),
+        );
+    }
+
+    protected function createGroqDriver(): GroqDriver
+    {
+        $config = 'inference.drivers.groq';
+
+        return new GroqDriver(
+            transport: $this->container->make(StreamTransport::class),
+            http: $this->container->make(HttpFactory::class),
+            timeouts: Timeouts::fromConfig(Config::array("{$config}.timeouts")),
+            apiKey: $this->optional("{$config}.api_key"),
+            modelId: $this->optional("{$config}.model"),
+            baseUrl: Config::string("{$config}.base_url"),
+            defaultEffort: ReasoningEffort::from(Config::string("{$config}.reasoning_effort")),
+            catalogue: Config::array("{$config}.models"),
         );
     }
 

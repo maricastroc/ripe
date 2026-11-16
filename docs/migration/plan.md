@@ -143,19 +143,46 @@ Other cases:
 interface ModelDriver
 {
     public function name(): string;
+    public function model(): string;
     public function health(): DriverHealth;
-    public function generate(ModelRequest $request, ?StreamObserver $observer = null): ModelResponse;
+    public function isMetered(): bool;
+    public function maximumCost(ModelRequest $request): ?int;
+    public function generate(ModelRequest $request, ?CallSupervisor $supervisor = null, ?StreamObserver $observer = null): ModelResponse;
+}
+
+interface QuotaLimited
+{
+    public function quotaScope(): string;
+    public function quotaLimits(): QuotaLimits;
+    public function tokenDemand(ModelRequest $request): int;
 }
 ```
+
+A metered driver prices each call and goes through the money budget; a driver with provider quotas also implements `QuotaLimited` and goes through the quota gate (section 3.9).
 
 - `ModelRequest` carries the instructions and messages, an optional named JSON schema, a visible-output budget, an optional reasoning effort, an optional temperature and an opaque safety identifier.
 - `ModelResponse` carries the text, the finish reason (`stop | length | content_filter | refusal | aborted`), usage, model, the provider's request and response ids, TTFT and duration.
 - `Usage` carries input, cached input, cache-write, output and reasoning tokens, plus whether the numbers were reported by the provider or estimated. A stream aborted by Ripe never receives the provider's final usage, so its cost is estimated and flagged as such.
 - Errors are typed exceptions that each declare a scope (section 3.5): `ModelUnavailable`, `RateLimited` (with the retry hint), `ModelTimeout`, `InvalidModelOutput`, `ModelRequestRejected`, `ModelRefused`, `DriverMisconfigured` and `ProviderQuotaExhausted`.
 
-Selecting a driver is configuration only (`RIPE_INFERENCE_DRIVER=openai|ollama|fake`). The orchestrator depends on the contract and on error scopes, never on a provider.
+Selecting a driver is configuration only (`RIPE_INFERENCE_DRIVER=groq|openai|ollama|fake`). The orchestrator depends on the contract and on error scopes, never on a provider.
 
-**OpenAIDriver**, the provider of the hosted demo, uses the official Responses API (`POST /v1/responses`) with `stream: true`:
+**GroqDriver**, the provider of the public demo, on Groq's free plan (stage 7):
+- **Endpoint.** Chat Completions (`POST /openai/v1/chat/completions`). Groq's Responses API is in beta and accepts neither `store` nor `safety_identifier`, so it is not used.
+- **Structured outputs.** `response_format = {type: "json_schema", json_schema: {name, strict: true, schema}}`, which Groq offers in strict mode on a few models only. Groq documents strict output as incompatible with streaming, so interpret, plan and review make one plain request; generate and revise stream SSE, and they are the only runs whose text is shown live. A streamed strict request was accepted when checked, but nothing documents whether it is validated, so the plain request stays.
+- **Model.** `openai/gpt-oss-120b`, a production model with strict output. `reasoning_effort` follows the configured effort and `include_reasoning: false` keeps the reasoning out of the answer. `max_completion_tokens` covers reasoning, so each run kind gets its visible budget plus a reasoning allowance, as with OpenAI.
+- **Usage.** `usage` on a plain response. On a stream, the last chunk carries it both at the top level and under `x_groq.usage`; the driver reads either. Cached prompt tokens do not count towards Groq's limits.
+- **Errors.**
+  - 401, 403 and 404 are driver scope: the key or the model;
+  - 429 is a rate limit with `retry-after` in seconds, and its message names the limit (`RPM`, `TPM`, `RPD`, `TPD`), which tells a daily exhaustion from a short one; 498 (flex capacity) is a rate limit too;
+  - 400 `json_validate_failed` and 422 are invalid output: the answer failed strict validation, for instance because the token limit cut it;
+  - 413 and any other 400 are a rejected request; 5xx is unavailability.
+
+  Messages lose the organization id and Groq's upgrade offer before they are stored, because a visitor sees the last error of their own runs.
+- **Privacy.** `user` carries the same HMAC as OpenAI's `safety_identifier`.
+- **Cost.** None: the driver is not metered, so no money is reserved, and its usage feeds the quota ledger instead.
+
+**OpenAIDriver**, an optional paid alternative that the public demo does not use, uses the official Responses API (`POST /v1/responses`) with `stream: true`:
 
 - **Events.** It reads `response.output_text.delta` and `response.refusal.delta` for content, and finishes on `response.completed`, `response.incomplete` (`incomplete_details.reason`: `max_output_tokens` or `content_filter`), `response.failed` (with the response's error code) or `error`. A stream that ends without one of these is an error.
 - **Structured outputs.** `text.format = {type: "json_schema", name, schema, strict: true}`. A refusal is a `refusal` content part, never parsed as data. An incomplete structured response is rejected even when its JSON happens to parse.
@@ -165,7 +192,7 @@ Selecting a driver is configuration only (`RIPE_INFERENCE_DRIVER=openai|ollama|f
   - 429 billing codes (`credit_balance_exhausted`, `organization_spend_limit_exceeded`, `project_spend_limit_exceeded`, `organization_usage_limit_exceeded`) and 401/403 are driver scope, because retrying cannot fix them.
   - A rejected request or prompt is run scope.
 - **Privacy.** `store: false`, because the default keeps responses for 30 days. `safety_identifier` is an HMAC of the visitor id, never the id or the cookie.
-- **Cost.** Usage comes from the final event: `input_tokens`, `input_tokens_details.cached_tokens` and `cache_write_tokens`, `output_tokens` (reasoning included) and `output_tokens_details.reasoning_tokens`. It is priced from a per-model table in configuration, which records the date the prices were checked.
+- **Cost.** Usage comes from the final event: `input_tokens`, `input_tokens_details.cached_tokens` and `cache_write_tokens`, `output_tokens` (reasoning included) and `output_tokens_details.reasoning_tokens`. It is priced from a per-model and per-tier table in configuration, which records the date the prices were checked. A model or tier without a price is refused, so a call is never made without a ceiling.
 - **Per-model capabilities.** Parameters a model does not accept, such as sampling settings on some reasoning models, are declared per model in configuration instead of being discovered by failed requests.
 - **Logging.** `x-request-id` and the response id are kept on the attempt.
 
@@ -214,16 +241,40 @@ Dedicated tests:
   - Policies use the visitor guard; another visitor's task answers 404.
   - Mutations require a same-origin `Origin` or `Sec-Fetch-Site`.
 - **No leaks.** The agent status never exposes another visitor's task; the mycelium "feeds other greenhouses" instead.
-- **Budget.**
-  - A reservation is made before each call with `UPDATE … SET reserved = reserved + :max WHERE spent + reserved + :max <= limit`.
-  - `:max` prices the estimated input plus the whole `max_output_tokens`, reasoning included.
-  - The reservation is settled with the reported usage, or with the flagged estimate when Ripe aborted the stream.
-  - Orphaned reservations are released by the reconciler.
-  - Ripe's own daily budget stays below the spend limit configured on the OpenAI project, so the provider's limit is a backstop, not the mechanism.
-- **Rest versus night.** The sky follows the visitor's clock; the mycelium shows the agent's state. Budget rest is a hibernating mycelium, distinct from night (light) and offline (grey). A driver-scope halt (credit or credentials) also rests the greenhouse.
-- **Modes.**
-  - `RIPE_MODE=local|public`. Local mode keeps today's settings and Ollama; public mode uses OpenAI and reads its configuration from the environment only.
-  - The interface copy that calls the mycelium "an open model running on this machine" becomes mode-dependent: in public mode it names the hosted model.
+- **Quotas (Groq).** Groq's free plan limits each model per organization in requests and tokens per minute and per day; for `gpt-oss-120b` they were 30 RPM, 1,000 RPD, 8,000 TPM and 200,000 TPD when checked. All four, and a cap on concurrent calls, are configuration (`GROQ_*`).
+  - **Admission.** Before a call, the executor locks the scope's row in `inference_quotas` and reads the append-only `inference_calls` ledger: requests and tokens in the last minute and the last 24 hours, and the calls in flight. The call is admitted only if all five limits still hold, and it records the tokens it reserves: the estimated input plus the whole `max_completion_tokens`, capped at the minute limit. The lock makes concurrent workers take turns instead of passing the same check together.
+  - **Settlement.** When the attempt finishes, its reservation becomes the usage Groq reported (input minus cached, plus output). An estimate never counts less than the reservation. A request Groq refused (401, 404, 413, 429) counts no tokens; a request Groq processed without reporting usage (invalid output, 5xx) keeps its reservation. The reconciler closes calls whose attempt is gone at their reservation.
+  - **429.** The scope is blocked for every worker until `retry-after`, with no retry in between; a daily limit is marked as such.
+  - The ledger outlives tasks, so deleting tasks never frees quota.
+- **Money budget (paid drivers only).** A metered driver (OpenAI) keeps the stage 7 money budget:
+  - a reservation before each call for the global day and the visitor's share, as one conditional `UPDATE` each;
+  - settlement when the attempt finishes, idempotent, with confirmed and estimated costs kept apart;
+  - orphaned reservations settled conservatively by the reconciler.
+
+  The Groq demo never touches it. In public mode a metered driver is refused unless `RIPE_ALLOW_PAID_INFERENCE=true`, and nothing ever falls back from Groq to another provider.
+- **Resting.** A refused admission defers the run without creating an attempt: nothing is consumed, nothing done is redone, and the run resumes on its own. The agent status says `resting` with a reason:
+  - `capacity` (a per-minute limit or concurrency): a short pause, with the time when it is known;
+  - `daily` (a daily limit): resting, with no time promised unless Groq gave one; the journal records it once per episode;
+  - `budget`: a paid driver's money budget.
+
+  A driver-scope failure (key or model) halts the agent instead, and the greenhouse says it cannot reach its model. A resting mycelium hibernates in cool colours, distinct from night (light) and offline (grey).
+- **Limits.**
+  - Per day: 8 tasks per visitor, 30 per network (the address reported by the gateway) and 400 in all.
+  - 6 unharvested plants per visitor.
+  - 20 rewrites per visitor and 60 per network per day.
+
+  The network and global limits do not depend on the cookie.
+- **Retention.**
+  - A task is deleted 30 days after the later of its owner's last visit and its planned return, and never later than 90 days after it was planted.
+  - The API returns that date (`expiresAt`), and pruning (`ripe:prune`, hourly) uses the same rule.
+  - A visitor without tasks is deleted after 30 idle days. Examples are never pruned.
+- **Delete my greenhouse.** `DELETE /api/greenhouse` cancels every run, so late results are fenced, settles open reservations, signals the deletions, deletes the visitor and clears the cookie. Nothing of another visitor changes.
+- **Examples.**
+  - They are recorded with Groq through the real executor (`ripe:examples:record`).
+  - Each is exported with its steps, questions, pieces, versions, runs, attempts and journal as a JSON fixture in `backend/database/examples/`.
+  - They are installed idempotently by checksum (`ripe:examples:install`), and each names the model and the date it was generated.
+  - Viewing one never calls a model.
+- **Modes.** `RIPE_MODE=local|public`. Local mode keeps the settings editable and Ollama; public mode reads its configuration from the environment only and runs Groq.
 
 ### 3.10 Observability
 
@@ -455,7 +506,7 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 | 4 | API, visitors and policies | Parity with the 20 current operations; visitor isolation tests; rate limits; OpenAPI generated and TypeScript types checked for drift in CI | M |
 | 5 | Frontend cut-over (polling) | Next talks only to Laravel; Prisma, the agent and the API routes are removed; the working twig becomes a transient signal; completion-condition waiting is drawn on the fruit; the `docs/screens` scenarios are reproduced; the full flow is verified in the browser with local Ollama | L |
 | 6 | Realtime | Reverb and Echo with version-based invalidation and offset-checked streaming; stopping Reverb mid-task lets the interface converge through polling; reconnecting restores the correct snapshot and live text | M |
-| 7 | Public demo | The OpenAI model, reasoning effort and service tier are chosen with verified prices, together with the daily budget and the project spend limit; budget reservations never exceed the limit under concurrency; exhaustion rests the greenhouse (distinct from night and offline) and resumes automatically; per-visitor and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded from real runs, read-only and labelled | L |
+| 7 | Public demo | The public demo runs on Groq's free plan with zero inference cost: a Groq driver that keeps the inference contract (strict structured output, streaming, errors, usage), checked against real responses; quota admission (requests and tokens per minute and per day, concurrency) that concurrent workers cannot exceed; exhaustion rests the greenhouse without consuming attempts and resumes on its own, distinct from night, offline and a configuration failure; the money budget kept for paid drivers and never used by the demo, with no automatic fallback to a paid provider; per-visitor, per-network and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded with Groq through the real executor, installed idempotently, read-only and labelled with model and date | L |
 | 8 | Observability | Structured logs with context; timeline endpoint and `ripe:inspect`; the Growth rings tab; `ripe:audit` passes for every task produced by the resilience suite and for the recorded examples; every attempt appears in the timeline; nothing claims or requires replaying state from events | M |
 | 9 | Deploy | `ripe.marianacastro.dev` on Vercel, with the API, the agent worker, the scheduler, Reverb and PostgreSQL on Railway; the gateway secret and client address in place; daily PostgreSQL backups with a tested restore; an automated smoke test; a runbook | M |
 
@@ -465,11 +516,12 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 |---|---|
 | Synchronous streaming in PHP | Supervised `curl_multi` loop (section 4) with socket-level tests from stage 2 |
 | `retry_after` shorter than a call | Ordering constraints asserted by a test; leases and fencing as the real guarantee |
-| OpenAI retires a model or changes prices | A dated snapshot pinned in configuration; prices in configuration with the date they were checked |
-| Account-level limits at OpenAI (credit, spend, usage) | Driver-scope errors halt the agent and rest the greenhouse instead of failing tasks; Ripe's budget stays below the project spend limit |
+| A provider retires a model or changes prices or free limits | The model pinned in configuration; OpenAI prices and Groq limits in configuration, with the date they were checked; an unpriced OpenAI model is refused |
+| Groq's free limits are reached | Ripe's own quota gate admits calls below the limits, a 429 blocks every worker until `retry-after`, and runs rest without consuming attempts |
+| Account-level failures (key, model, OpenAI credit or spend) | Driver-scope errors halt the agent instead of failing tasks; Ripe's money budget stays below the OpenAI project limit |
 | Reasoning tokens exhausting `max_output_tokens` | A visible budget plus a reasoning allowance per run kind; incomplete structured output is rejected and counted |
 | Structured output differences between OpenAI and Ollama | One schema subset accepted by both, checked by a test, and validation after decoding |
-| Abuse and cost in the public demo | Budget reservations, per-visitor and hashed-IP limits, bounded prompts and outputs |
+| Abuse of the public demo | Quota admission, per-visitor, per-network and global daily limits that do not depend on the cookie, a cap on plants per visitor, bounded prompts and outputs, retention |
 | Reverb behind the proxy | Polling stays as a permanent fallback |
 | Visual parity at the cut-over | `docs/screens` as the reference set |
 | Laravel 13 ecosystem compatibility | Checked in stage 0 and at each stage that adds a package |
@@ -484,7 +536,7 @@ Until stage 5 the original application kept working from `frontend/`, with its o
   - the choice between OpenAI and Ollama is configuration only;
   - the model, reasoning effort, service tier and daily budget are chosen in stage 7.
 
-  This replaces the earlier choice of an open-weight model on an OpenAI-compatible provider.
+  This replaces the earlier choice of an open-weight model on an OpenAI-compatible provider. Stage 7 revised it again: the public demo runs on Groq's free plan, and OpenAI stays as an optional driver.
 - Examples come from real agent runs, keeping their results and history, and are explicitly labelled as demonstrations.
 - The partial growth of `working` twigs is replaced by transient activity signals.
 - The existing local `ripe.db` is not migrated.
@@ -524,8 +576,22 @@ Until stage 5 the original application kept working from `frontend/`, with its o
   - publishing never touches the executor, lease renewal or stall detection, and a prolonged Reverb outage is tested, not only a single failure;
   - channel authorization covers both channels, crossed visitors, missing cookies, arbitrary identifiers and examples, and keeps the origin and gateway checks.
 
+**Approved for stage 7 (2026-11-15), revised the same day:**
+- **Provider.** The plan first approved for this stage used OpenAI (`gpt-6-luna` on Flex with `low` effort), a $0.30 daily budget with a 10% share per visitor and a $10 monthly project limit. Before anything was committed it was replaced: the public demo runs on Groq's free plan and costs nothing in inference. There is no benchmark or comparison between providers.
+- **Model.** `openai/gpt-oss-120b` with `low` effort, through Chat Completions, verified against real responses rather than assumed to match OpenAI.
+- **Quotas instead of money for the demo.** The limits are configuration. Admission is transactional and conservative, and a 429 is honoured through `retry-after` without aggressive retries.
+- **Other drivers.**
+  - Ollama stays for local use.
+  - OpenAI stays as an optional driver that the demo never uses, with its money budget and prices that fail closed.
+  - A metered driver in public mode needs `RIPE_ALLOW_PAID_INFERENCE=true`.
+  - Nothing falls back automatically to a paid provider.
+- **Resting** tells a short pause, the daily allowance and a configuration failure apart, and never promises a time it does not know.
+- **Limits.** 8, 30 and 400 tasks per day (visitor, network, overall); 6 unharvested plants; 20 rewrites per visitor per day.
+- **Retention.** 30 days after the later of the last visit and the planned return, capped at 90 days; automatic pruning; examples kept; "delete my greenhouse".
+- **Examples.** Two, recorded with Groq through the real executor, kept as immutable fixtures installed idempotently and labelled with model and date.
+
 **Pending:**
-- OpenAI model, reasoning effort, service tier and daily budget (stage 7).
-- Whether to use OpenAI's background mode to resume generations after a worker dies (stage 7).
-- Retention period (stage 7).
-- Usage limits and invisible Turnstile on task creation (stage 7).
+- Invisible Turnstile on task creation (stage 9, with the production site key). The network and global limits already hold without the cookie.
+
+**Not pursued:**
+- OpenAI's background mode to resume a generation after a worker dies: the public demo no longer uses OpenAI.

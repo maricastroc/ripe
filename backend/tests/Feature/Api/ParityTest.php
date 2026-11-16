@@ -250,13 +250,19 @@ it('lets the local operator change the agent settings', function (): void {
         ->assertJsonPath('settings.paused', true);
 });
 
-it('opens the community garden example', function (): void {
-    $response = api()->postJson('/api/examples')->assertOk();
+it('lists the installed examples, credited to the model that wrote them, without calling any model', function (): void {
+    $example = installedExample();
+    $driver = fakeAgent();
 
-    $response->assertJsonPath('task.isExample', true)
-        ->assertJsonPath('task.status', 'ripe')
-        ->assertJsonPath('task.title', 'Community garden proposal');
+    api()->getJson('/api/examples')->assertOk()
+        ->assertJsonCount(1, 'examples')
+        ->assertJsonPath('examples.0.id', $example->id)
+        ->assertJsonPath('examples.0.isExample', true)
+        ->assertJsonPath('examples.0.status', 'ripe')
+        ->assertJsonPath('examples.0.title', 'Community garden proposal')
+        ->assertJsonPath('examples.0.example.model', 'fake-model');
+    api()->getJson("/api/tasks/{$example->id}")->assertOk()->assertJsonPath('task.example.driver', 'fake');
 
-    api()->postJson('/api/examples')->assertOk()->assertJsonPath('task.id', $response->json('task.id'));
+    expect($driver->sent())->toBe([]);
     api()->getJson('/api/garden')->assertJsonPath('tasks', []);
 });

@@ -12,6 +12,7 @@ use App\Exceptions\Inference\ModelUnavailable;
 use App\Exceptions\Inference\ProviderQuotaExhausted;
 use App\Exceptions\Inference\RateLimited;
 use App\Inference\Support\Json;
+use App\Inference\Support\RetryHint;
 use App\Inference\Transport\StreamResponse;
 
 final class OpenAIErrors

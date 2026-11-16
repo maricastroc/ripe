@@ -8,6 +8,7 @@ import { useNow, useTypewriter } from "@/hooks/useTicker";
 import { returnWhen } from "@/lib/format";
 import { activityLabel } from "@/lib/labels";
 import { countWords } from "@/lib/markers";
+import { restText } from "@/lib/presence";
 import type { AgentStatus, RunKind, TaskDetail } from "@/lib/types";
 
 type Props = {
@@ -131,8 +132,10 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
     key = "example";
     content = (
       <Shell tone="text-ink-3" title="Illustrative example">
-        Nothing is running here. A scripted model wrote every piece ahead of time, to show what you find once a task is
-        ripe.
+        Nothing is running here.{" "}
+        {task.example
+          ? `Recorded from a real run by ${task.example.model}${task.example.generatedAt ? ` on ${new Date(task.example.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}, to show what you find once a task is ripe.`
+          : "It shows what you find once a task is ripe."}
       </Shell>
     );
   } else if (running && activity) {
@@ -229,10 +232,17 @@ export function NowPanel({ task, agent, liveText = null, onAct, busy }: Props) {
           The work stays in the queue until you turn the agent back on.
         </Shell>
       );
+    } else if (agent.mode === "resting") {
+      content = (
+        <Shell tone="text-ochre" title="Resting">
+          <span suppressHydrationWarning>{restText(agent).long}</span> The step is saved and nothing done so far is
+          lost.
+        </Shell>
+      );
     } else if (agent.mode === "halted") {
       content = (
-        <Shell tone="text-ochre" title="Resting for now">
-          The greenhouse is resting. The step is saved and will continue on its own.
+        <Shell tone="text-ochre" title="Waiting for the model">
+          The greenhouse can’t reach its model right now. The step is saved and will continue on its own.
         </Shell>
       );
     } else if (agent.mode === "offline") {

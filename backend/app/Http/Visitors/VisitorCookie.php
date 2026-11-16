@@ -38,6 +38,21 @@ final class VisitorCookie
         );
     }
 
+    public function expire(): Cookie
+    {
+        return Cookie::create(
+            name: $this->name(),
+            value: '',
+            expire: 1,
+            path: '/',
+            domain: null,
+            secure: $this->isSecure(),
+            httpOnly: true,
+            raw: true,
+            sameSite: Cookie::SAMESITE_LAX,
+        );
+    }
+
     public function ensureCoherent(): void
     {
         $name = $this->name();

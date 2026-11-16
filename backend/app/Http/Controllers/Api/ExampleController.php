@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Examples\ExampleGarden;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaskSummaryResource;
+use App\Snapshots\TaskSnapshots;
 use Illuminate\Http\JsonResponse;
 
 final class ExampleController extends Controller
 {
-    use RespondsWithTasks;
-
-    public function store(ExampleGarden $examples): JsonResponse
+    public function index(TaskSnapshots $snapshots): JsonResponse
     {
-        return $this->task($examples->ensure());
+        return new JsonResponse(['examples' => TaskSummaryResource::collection($snapshots->examples())]);
     }
 }

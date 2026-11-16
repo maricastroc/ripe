@@ -8,6 +8,7 @@ use App\Enums\ArtifactKind;
 use App\Enums\RunKind;
 use App\Enums\RunStatus;
 use App\Enums\TaskEventType;
+use App\Examples\ExampleLibrary;
 use App\Exceptions\Inference\InferenceException;
 use App\Facades\Inference;
 use App\Http\Visitors\VisitorResolver;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\AssertionFailedError;
+use Tests\Support\CommunityGarden;
 use Tests\Support\RecordingBroadcaster;
 use Tests\TestCase;
 
@@ -203,4 +205,24 @@ function queuedSignals(): array
 
             return $command instanceof PublishSignal ? $command->signal : throw new RuntimeException('Unexpected job on the realtime queue.');
         })->values()->all();
+}
+
+function recordedExamples(): string
+{
+    $directory = storage_path('framework/testing/examples-'.bin2hex(random_bytes(4)));
+    @mkdir($directory, 0755, true);
+    Inference::fakeWith(FakeDriver::respondingWith((new CommunityGarden)->reply(...)));
+    app(ExampleLibrary::class)->record(['key' => 'community-garden', 'prompt' => CommunityGarden::PROMPT, 'answers' => []], $directory, static fn (): null => null);
+
+    return $directory;
+}
+
+function installedExample(): Task
+{
+    $directory = recordedExamples();
+    app(ExampleLibrary::class)->install($directory);
+    array_map(unlink(...), glob("{$directory}/*") ?: []);
+    rmdir($directory);
+
+    return Task::query()->where('is_example', true)->sole();
 }

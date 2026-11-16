@@ -2,7 +2,7 @@
 
 **Tasks that ripen while you procrastinate.**
 
-You write down something you keep putting off — "reply to the difficult client email", "plan the December trip" — and leave it for later. From then on, an AI agent works on it in small steps, saving every result: locally on Ollama, or on a hosted model in the public demo. When you come back, you find a plan, a draft, a checklist or a first version — and a clear list of what still depends on you.
+You write down something you keep putting off — "reply to the difficult client email", "plan the December trip" — and leave it for later. From then on, an AI agent works on it in small steps, saving every result: locally on Ollama, or on Groq's free plan in the public demo. When you come back, you find a plan, a draft, a checklist or a first version — and a clear list of what still depends on you.
 
 Built for the Hacktoberfest Open-Source AI Challenge, week 3: _Slow and Steady_.
 
@@ -18,7 +18,7 @@ Built for the Hacktoberfest Open-Source AI Challenge, week 3: _Slow and Steady_.
 
 ## The greenhouse
 
-Ripe is drawn as a raised bed in a Victorian glasshouse, seen **in cross-section**: plants above the soil, roots below — and running through the soil, a glowing **mycelium network**. The mycelium is the agent: the model that feeds whichever plant it is working on. You can see a pulse of light travel from the mushrooms at the edge of the bed to that plant's roots. When the model can't be reached, the network goes grey.
+Ripe is drawn as a raised bed in a Victorian glasshouse, seen **in cross-section**: plants above the soil, roots below — and running through the soil, a glowing **mycelium network**. The mycelium is the agent: the model that feeds whichever plant it is working on. You can see a pulse of light travel from the mushrooms at the edge of the bed to that plant's roots. When the model can't be reached, the network goes grey; when the free model needs a pause or has used its allowance for the day, it hibernates in cool colours and picks up again on its own.
 
 Every change in a plant comes from **persisted work**, never from the passage of time:
 
@@ -77,7 +77,9 @@ Both applications share one secret, which the site uses to prove to the API that
 
 The model and the pace can be changed from the interface (click the mushrooms, or the mycelium chip at the top). Add `?sky=night` (or `dawn`, `dusk`) to the URL to preview another time of day. Any model installed in Ollama works; models with good structured JSON output give the best results.
 
-To see a ripe task without waiting, click "open a ripe example" on the empty bed. The example is grown once by a scripted model, marked as **illustrative**, and never processed again.
+To run the agent on Groq instead, set `RIPE_INFERENCE_DRIVER=groq` and `GROQ_API_KEY` in `backend/.env` (a key from [console.groq.com](https://console.groq.com/keys); the free plan is enough).
+
+To see a ripe task without waiting, open one of the examples on the empty bed. They were grown by the real agent on Groq and saved with everything they produced; each names the model and the day it was recorded, is read-only, and never calls a model when you open it. `composer setup` installs them.
 
 ### How the site reaches the API
 
@@ -110,6 +112,17 @@ model stream ───▶ realtime queue ─▶ relay worker ─▶ Reverb ─�
 - **Reverb is never on the critical path.** The agent's executor only queues signals. A separate worker publishes them with a one-second timeout; after a failure it pauses for a few seconds and drops what would be stale.
 - **Polling stays.** While the channel is subscribed, the page polls every 30 seconds; otherwise it polls as often as before. It also refetches on reconnect and when the tab gets focus.
 
+### The public demo
+
+The public demo runs on Groq's free plan, so it costs nothing to run, and it is shared by everyone who visits:
+
+- **Quotas.** Before each call, Ripe checks Groq's limits (requests and tokens per minute and per day, and calls in flight) against its own ledger, under a lock, so several workers can never go over them together. When Groq answers 429, every worker waits for as long as Groq says.
+- **Resting.** When the limits are reached, the work waits instead of failing: no attempt is spent, nothing finished is redone, and it picks up again on its own. The greenhouse says whether it is a short pause or the day's allowance, and only shows a time when it knows one. A wrong key or model is shown differently: the greenhouse cannot reach its model.
+- **Limits.** Per day, 8 new tasks per visitor, 30 per network and 400 in all, and 20 rewrites per visitor; at most 6 plants growing at once. Clearing the cookie does not reset the network and overall limits.
+- **Retention.** A task is kept for 30 days after the later of your last visit and the day you said you would come back, and never more than 90 days after it was planted. Each task shows the date.
+- **Delete my greenhouse.** The link at the foot of the bed deletes every plant and jar, stops the work in progress and forgets the visitor.
+- **No paid fallback.** OpenAI stays available as a driver, with its own money budget, but public mode refuses it unless `RIPE_ALLOW_PAID_INFERENCE=true`, and nothing switches to it on its own.
+
 ### Backend
 
 `composer check` runs Pint, Larastan and the Pest suite against PostgreSQL. Tests are written only when they are indispensable; see [docs/testing.md](docs/testing.md) before adding one.
@@ -119,16 +132,26 @@ model stream ───▶ realtime queue ─▶ relay worker ─▶ Reverb ─�
 | `php artisan ripe:simulate` | Plants a task and ripens it through real queue workers with the fake model, then prints its journal |
 | `php artisan ripe:reconcile` | Recovers expired leases, re-dispatches lost runs and reconciles idle tasks |
 | `php artisan ripe:timing` | Checks that leases, model calls, the worker timeout and queue redelivery are ordered safely |
+| `php artisan ripe:prune` | Deletes tasks past their retention date and idle visitors without tasks; the scheduler runs it every hour |
+| `php artisan ripe:examples:install` | Installs the recorded examples from `database/examples/`; unchanged ones are left alone |
+| `php artisan ripe:examples:record` | Grows the examples again through the real agent with the configured model, saves them as fixtures and installs them |
 
 The agent is configured in `backend/.env`; the model is a matter of configuration alone:
 
 | Variable                  | Meaning                                                         |
 | ------------------------- | --------------------------------------------------------------- |
-| `RIPE_INFERENCE_DRIVER`   | `ollama` (default, fully local), `openai` (the hosted demo) or `fake` |
+| `RIPE_INFERENCE_DRIVER`   | `ollama` (default, fully local), `groq` (the public demo), `openai` (optional, paid) or `fake` |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | the local Ollama server and model                            |
+| `GROQ_API_KEY`, `GROQ_MODEL` | the Groq key and model (default `openai/gpt-oss-120b`)        |
+| `GROQ_REASONING_EFFORT`   | reasoning effort (default `low`)                                 |
+| `GROQ_REQUESTS_PER_MINUTE`, `GROQ_REQUESTS_PER_DAY`, `GROQ_TOKENS_PER_MINUTE`, `GROQ_TOKENS_PER_DAY`, `GROQ_CONCURRENCY` | the free plan's limits Ripe keeps below (defaults 30, 1000, 8000, 200000 and 1) |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | the OpenAI project key and model                          |
 | `OPENAI_REASONING_EFFORT` | reasoning effort for reasoning models (default `low`)            |
 | `OPENAI_SERVICE_TIER`     | optional service tier, such as `flex`                           |
+| `RIPE_ALLOW_PAID_INFERENCE` | `true` lets a paid driver run in public mode; off by default   |
+| `RIPE_DAILY_BUDGET_USD`, `RIPE_VISITOR_BUDGET_SHARE` | the money budget for paid drivers: per day, and the share one visitor may use |
+| `RIPE_RETENTION_DAYS`, `RIPE_RETENTION_MAXIMUM_DAYS` | days a task is kept after the later of the last visit and the planned return (30), and at most after planting (90) |
+| `RIPE_LIMIT_PLANT_PER_DAY_PER_VISITOR`, `RIPE_LIMIT_PLANT_PER_DAY_PER_NETWORK`, `RIPE_LIMIT_PLANT_PER_DAY`, `RIPE_LIMIT_PLANTS_IN_BED`, `RIPE_LIMIT_REVISIONS_PER_DAY_PER_VISITOR` | daily limits on new tasks (8 per visitor, 30 per network, 400 in all), unharvested plants (6) and rewrites (20 per visitor) |
 | `RIPE_PACE`               | pause between the agent's automatic runs: `calm` (30 s), `steady` (6 s, default), `brisk` (1 s) or `instant` |
 | `RIPE_MODE`               | `local` (settings editable from the interface) or `public` (configuration from the environment only) |
 | `RIPE_GATEWAY_SECRET`     | the secret shared with the site; API requests without it are refused |
@@ -138,7 +161,7 @@ The agent is configured in `backend/.env`; the model is a matter of configuratio
 | `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | the Reverb application; the key is public, and the secret is derived from `APP_KEY` when left empty |
 | `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | where the API publishes to Reverb |
 
-`php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, and OpenAI when a key and a model are set.
+`php artisan test --group=live` runs the agent end to end against the live models that are available: local Ollama, Groq when `GROQ_API_KEY` is set, and OpenAI when a key and a model are set (`--filter=groq` runs one only).
 
 The OpenAPI document is [`docs/api/openapi.json`](docs/api/openapi.json). After changing the API, run `composer openapi` in `backend/` (against a migrated database) and `npm run api:types` in `frontend/`. The test suite and CI fail when either is out of date.
 
@@ -158,14 +181,16 @@ frontend/src/
 frontend/e2e/   two end-to-end scenarios through the whole stack
 
 backend/app/
-  Orchestration/  the reconciler, leases, retries, the executor and live text
-  Inference/      the OpenAI, Ollama and fake drivers on a supervised transport
+  Orchestration/  the reconciler, leases, retries, the executor, live text, the quota gate and the money budget
+  Inference/      the Groq, OpenAI, Ollama and fake drivers on a supervised transport
   Agent/          prompts, schemas and structured output
   Http/           controllers, form requests, resources, the visitor cookie and the gateway check
   Realtime/       signals after commit, the relay to Reverb and its pause
   Broadcasting/   who may join each private channel
   Actions/        what visitors can do to tasks, questions and pieces
   Journal/        the audit of the task journal against the state
+  Retention/      when a task is forgotten
+  Examples/       recording, exporting and installing the examples
 ```
 
 ### The agent
@@ -178,6 +203,7 @@ backend/app/
 - **Your edits** — editing a piece saves a draft as you type; the draft becomes a new version when you stop. Versions are never changed, and if the agent rewrites a piece while you edit it, your draft is kept until you choose.
 - **Limits** — one step at a time; up to 5 steps per task; 3 attempts per step with growing back-off; 24 runs per task; a configurable rest between steps (the "pace").
 - **Model down** — runs wait instead of failing, and the work continues on its own when the model is back.
+- **Out of quota** — when the free model's limits are reached, runs wait without spending an attempt and resume when there is room.
 
 The agent writes in the same language as your request.
 
@@ -224,7 +250,7 @@ Backend, from `backend/`:
 
 Frontend: Next.js 16 (App Router, view transitions) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Radix UI · types generated from OpenAPI · Playwright
 
-Backend: Laravel 13 · PHP 8.4 · PostgreSQL 17 · OpenAI and Ollama · Scramble · Pest · Pint · Larastan
+Backend: Laravel 13 · PHP 8.4 · PostgreSQL 17 · Groq, OpenAI and Ollama · Scramble · Pest · Pint · Larastan
 
 ## License
 

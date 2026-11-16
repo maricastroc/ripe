@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Examples;
+namespace Tests\Support;
 
 use App\Inference\Drivers\Fake\FakeReply;
 use App\Inference\ModelRequest;

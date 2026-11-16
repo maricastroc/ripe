@@ -79,6 +79,7 @@ final readonly class FieldNotes
             TaskEventType::RunRetryScheduled => [NoteKind::Warn, 'Something went wrong, so it will try again shortly.'],
             TaskEventType::RunInterrupted => [NoteKind::Warn, 'The work stopped halfway, so it will pick it up again.'],
             TaskEventType::BudgetDeferred => [NoteKind::Info, 'Resting until there is budget again.'],
+            TaskEventType::QuotaDeferred => [NoteKind::Info, ($payload['wait'] ?? null) === 'daily' ? 'Resting until the free model has room again.' : 'Waiting a moment for the free model to have room.'],
             TaskEventType::TaskStatusChanged => $this->status($payload),
             default => null,
         };

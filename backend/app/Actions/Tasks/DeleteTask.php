@@ -7,15 +7,13 @@ namespace App\Actions\Tasks;
 use App\Enums\EventActor;
 use App\Exceptions\TaskActionRejected;
 use App\Models\Task;
-use App\Orchestration\RunCancellation;
-use App\Realtime\TaskChanges;
 use Illuminate\Support\Facades\DB;
 
 final readonly class DeleteTask
 {
     use LocksTasks;
 
-    public function __construct(private RunCancellation $cancellation, private TaskChanges $changes) {}
+    public function __construct(private ForgetTask $forget) {}
 
     public function handle(Task $task): void
     {
@@ -26,9 +24,7 @@ final readonly class DeleteTask
                 throw new TaskActionRejected('Examples can only be read.');
             }
 
-            $this->cancellation->cancelActive($task, EventActor::Visitor);
-            $this->changes->deleted($task);
-            $task->delete();
+            $this->forget->handle($task, EventActor::Visitor);
         });
     }
 }

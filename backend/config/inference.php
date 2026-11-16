@@ -45,7 +45,43 @@ return [
                 'idle' => 180,
                 'total' => 300,
             ],
-            'models' => [],
+            'models' => [
+                'gpt-6-luna' => [
+                    'reasoning' => true,
+                    'supports_temperature' => false,
+                    'prices' => [
+                        'standard' => ['input' => 0.10, 'cached_input' => 0.01, 'cache_write' => 0.125, 'output' => 0.50, 'checked_on' => '2026-11-15'],
+                        'flex' => ['input' => 0.05, 'cached_input' => 0.005, 'cache_write' => 0.125, 'output' => 0.25, 'checked_on' => '2026-11-15'],
+                    ],
+                ],
+            ],
+        ],
+
+        'groq' => [
+            'api_key' => env('GROQ_API_KEY'),
+            'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
+            'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
+            'reasoning_effort' => env('GROQ_REASONING_EFFORT', 'low'),
+            'timeouts' => [
+                'connect' => 10,
+                'first_byte' => 90,
+                'idle' => 60,
+                'total' => 240,
+            ],
+            'models' => [
+                'openai/gpt-oss-120b' => [
+                    'reasoning' => true,
+                    'supports_temperature' => true,
+                    'reasoning_allowance' => ['low' => 1024, 'medium' => 4096, 'high' => 8192],
+                    'limits' => [
+                        'requests_per_minute' => env('GROQ_REQUESTS_PER_MINUTE', 30),
+                        'requests_per_day' => env('GROQ_REQUESTS_PER_DAY', 1000),
+                        'tokens_per_minute' => env('GROQ_TOKENS_PER_MINUTE', 8000),
+                        'tokens_per_day' => env('GROQ_TOKENS_PER_DAY', 200000),
+                        'concurrency' => env('GROQ_CONCURRENCY', 1),
+                    ],
+                ],
+            ],
         ],
 
         'fake' => [

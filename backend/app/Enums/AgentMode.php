@@ -10,6 +10,7 @@ enum AgentMode: string
     case Working = 'working';
     case Paused = 'paused';
     case Halted = 'halted';
+    case Resting = 'resting';
     case Offline = 'offline';
     case ModelMissing = 'model-missing';
     case Stopped = 'stopped';

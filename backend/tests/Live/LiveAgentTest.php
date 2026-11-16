@@ -18,13 +18,13 @@ use App\Enums\QuestionStatus;
 use App\Enums\RunKind;
 use App\Inference\InferenceManager;
 
-dataset('live drivers', ['ollama', 'openai']);
+dataset('live drivers', ['ollama', 'groq', 'openai']);
 
 it('interprets, plans, writes and reviews a real request', function (string $name): void {
     $driver = app(InferenceManager::class)->current($name);
 
     if (! $driver->health()->isAvailable()) {
-        $this->markTestSkipped("{$name} is not available: start Ollama, or set OPENAI_API_KEY and OPENAI_MODEL.");
+        $this->markTestSkipped("{$name} is not available: start Ollama, or set GROQ_API_KEY, or OPENAI_API_KEY and OPENAI_MODEL.");
     }
     $book = new PromptBook;
     $requests = new AgentRequests;

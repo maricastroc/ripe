@@ -503,8 +503,8 @@
             }
         },
         "/examples": {
-            "post": {
-                "operationId": "examples.store",
+            "get": {
+                "operationId": "examples.index",
                 "tags": [
                     "Example"
                 ],
@@ -516,16 +516,51 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "task": {
-                                            "$ref": "#/components/schemas/TaskResource"
+                                        "examples": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TaskSummaryResource"
+                                            }
                                         }
                                     },
                                     "required": [
-                                        "task"
+                                        "examples"
                                     ]
                                 }
                             }
                         }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/greenhouse": {
+            "delete": {
+                "operationId": "greenhouse.forget",
+                "tags": [
+                    "ForgetGreenhouse"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
                     },
                     "429": {
                         "description": "Too many requests",
@@ -577,12 +612,28 @@
                                                 "string",
                                                 "null"
                                             ]
+                                        },
+                                        "retention": {
+                                            "type": "object",
+                                            "properties": {
+                                                "daysAfterVisit": {
+                                                    "type": "integer"
+                                                },
+                                                "maximumDays": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "daysAfterVisit",
+                                                "maximumDays"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "tasks",
                                         "agent",
-                                        "channel"
+                                        "channel",
+                                        "retention"
                                     ]
                                 }
                             }
@@ -1667,6 +1718,7 @@
                     "working",
                     "paused",
                     "halted",
+                    "resting",
                     "offline",
                     "model-missing",
                     "stopped"
@@ -1762,6 +1814,22 @@
                     },
                     "queued": {
                         "type": "integer"
+                    },
+                    "resumesAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "rest": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/RestReason"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -1775,7 +1843,9 @@
                     "settings",
                     "current",
                     "elsewhere",
-                    "queued"
+                    "queued",
+                    "resumesAt",
+                    "rest"
                 ],
                 "title": "AgentStatusResource"
             },
@@ -1980,6 +2050,15 @@
                 ],
                 "title": "RenameTaskRequest"
             },
+            "RestReason": {
+                "type": "string",
+                "enum": [
+                    "capacity",
+                    "daily",
+                    "budget"
+                ],
+                "title": "RestReason"
+            },
             "RestoreVersionRequest": {
                 "type": "object",
                 "properties": {
@@ -2020,6 +2099,7 @@
                     "backoff",
                     "rate_limited",
                     "budget",
+                    "quota",
                     "driver_unavailable",
                     "paused"
                 ],
@@ -2128,6 +2208,34 @@
                         "type": [
                             "string",
                             "null"
+                        ]
+                    },
+                    "expiresAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "example": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "driver": {
+                                "type": "string"
+                            },
+                            "model": {
+                                "type": "string"
+                            },
+                            "generatedAt": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "driver",
+                            "model",
+                            "generatedAt"
                         ]
                     },
                     "ripeAt": {
@@ -2562,6 +2670,8 @@
                     "version",
                     "returnAt",
                     "createdAt",
+                    "expiresAt",
+                    "example",
                     "ripeAt",
                     "harvestedAt",
                     "stallReason",
@@ -2638,6 +2748,34 @@
                         "type": [
                             "string",
                             "null"
+                        ]
+                    },
+                    "expiresAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "example": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "driver": {
+                                "type": "string"
+                            },
+                            "model": {
+                                "type": "string"
+                            },
+                            "generatedAt": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "driver",
+                            "model",
+                            "generatedAt"
                         ]
                     },
                     "ripeAt": {
@@ -2737,6 +2875,8 @@
                     "version",
                     "returnAt",
                     "createdAt",
+                    "expiresAt",
+                    "example",
                     "ripeAt",
                     "harvestedAt",
                     "stallReason",

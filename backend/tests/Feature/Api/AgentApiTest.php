@@ -34,7 +34,7 @@ it('keeps settings, installed models and operator messages to local mode', funct
     api()->getJson('/api/agent')
         ->assertJsonPath('hosting', 'public')
         ->assertJsonPath('mode', 'halted')
-        ->assertJsonPath('message', 'The greenhouse is resting for a while.')
+        ->assertJsonPath('message', 'The greenhouse cannot reach its model right now.')
         ->assertJsonPath('settings', null)
         ->assertJsonPath('models', []);
 

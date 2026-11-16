@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Examples\ExampleGarden;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 
@@ -23,7 +22,7 @@ it('lets a visitor join only the channels of what they may see, through the site
     [$owner, $token] = visitor();
     [, $strangerToken] = visitor();
     $task = apiTask($token);
-    $example = app(ExampleGarden::class)->ensure();
+    $example = installedExample();
 
     expect(joinChannel($token, "private-task.{$task->id}")->assertOk()->json('auth'))
         ->toBe('ripe-test:'.hash_hmac('sha256', "1234.5678:private-task.{$task->id}", 'a-test-secret'));

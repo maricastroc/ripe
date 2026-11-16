@@ -91,10 +91,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get: operations["examples.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/greenhouse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         get?: never;
         put?: never;
-        post: operations["examples.store"];
-        delete?: never;
+        post?: never;
+        delete: operations["greenhouse.forget"];
         options?: never;
         head?: never;
         patch?: never;
@@ -337,7 +353,7 @@ export interface components {
          * AgentMode
          * @enum {string}
          */
-        AgentMode: "idle" | "working" | "paused" | "halted" | "offline" | "model-missing" | "stopped";
+        AgentMode: "idle" | "working" | "paused" | "halted" | "resting" | "offline" | "model-missing" | "stopped";
         /** AgentStatusResource */
         AgentStatusResource: {
             hosting: components["schemas"]["HostingMode"];
@@ -360,6 +376,8 @@ export interface components {
             } | null;
             elsewhere: boolean;
             queued: number;
+            resumesAt: string | null;
+            rest: components["schemas"]["RestReason"] | null;
         };
         /** AnswerQuestionRequest */
         AnswerQuestionRequest: {
@@ -442,6 +460,11 @@ export interface components {
         RenameTaskRequest: {
             title: string;
         };
+        /**
+         * RestReason
+         * @enum {string}
+         */
+        RestReason: "capacity" | "daily" | "budget";
         /** RestoreVersionRequest */
         RestoreVersionRequest: {
             /** Format: uuid */
@@ -457,7 +480,7 @@ export interface components {
          * RunDeferral
          * @enum {string}
          */
-        RunDeferral: "pace" | "backoff" | "rate_limited" | "budget" | "driver_unavailable" | "paused";
+        RunDeferral: "pace" | "backoff" | "rate_limited" | "budget" | "quota" | "driver_unavailable" | "paused";
         /**
          * RunKind
          * @enum {string}
@@ -491,6 +514,12 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            expiresAt: string | null;
+            example: {
+                driver: string;
+                model: string;
+                generatedAt: string;
+            } | null;
             ripeAt: string | null;
             harvestedAt: string | null;
             stallReason: string | null;
@@ -593,6 +622,12 @@ export interface components {
             version: number;
             returnAt: string | null;
             createdAt: string | null;
+            expiresAt: string | null;
+            example: {
+                driver: string;
+                model: string;
+                generatedAt: string;
+            } | null;
             ripeAt: string | null;
             harvestedAt: string | null;
             stallReason: string | null;
@@ -966,7 +1001,7 @@ export interface operations {
             };
         };
     };
-    "examples.store": {
+    "examples.index": {
         parameters: {
             query?: never;
             header?: never;
@@ -981,9 +1016,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        task: components["schemas"]["TaskResource"];
+                        examples: components["schemas"]["TaskSummaryResource"][];
                     };
                 };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "greenhouse.forget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Too many requests */
             429: {
@@ -1017,6 +1082,10 @@ export interface operations {
                         tasks: components["schemas"]["TaskSummaryResource"][];
                         agent: components["schemas"]["AgentStatusResource"];
                         channel: string | null;
+                        retention: {
+                            daysAfterVisit: number;
+                            maximumDays: number;
+                        };
                     };
                 };
             };

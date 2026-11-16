@@ -35,4 +35,5 @@ enum TaskEventType: string
     case RunResultRejected = 'run.result_rejected';
     case PlantStageChanged = 'plant.stage_changed';
     case BudgetDeferred = 'budget.deferred';
+    case QuotaDeferred = 'quota.deferred';
 }

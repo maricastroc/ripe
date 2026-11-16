@@ -14,6 +14,8 @@ use App\Models\AgentRun;
 use App\Models\RunAttempt;
 use App\Models\Task;
 use App\Models\TaskEvent;
+use App\Orchestration\Budget\InferenceBudget;
+use App\Orchestration\Quota\QuotaGate;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -25,9 +27,11 @@ final class Sweeper
         private readonly AgentHalt $halt,
         private readonly AgentSettings $settings,
         private readonly InferenceManager $inference,
+        private readonly InferenceBudget $budget,
+        private readonly QuotaGate $quota,
     ) {}
 
-    /** @return array{expired: int, redispatched: int, reconciled: int, halt_lifted: bool} */
+    /** @return array{expired: int, redispatched: int, reconciled: int, orphans_settled: int, calls_closed: int, calls_pruned: int, halt_lifted: bool} */
     public function sweep(): array
     {
         $now = CarbonImmutable::now();
@@ -36,6 +40,9 @@ final class Sweeper
             'expired' => $this->expireLeases($now),
             'redispatched' => $this->redispatchStale($now),
             'reconciled' => $this->reconcileIdle(),
+            'orphans_settled' => $this->budget->settleOrphans($now),
+            'calls_closed' => $this->quota->closeAbandoned($now),
+            'calls_pruned' => $this->quota->prune($now),
             'halt_lifted' => $this->liftHalt(),
         ];
     }

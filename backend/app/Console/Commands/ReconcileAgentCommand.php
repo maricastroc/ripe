@@ -18,10 +18,11 @@ final class ReconcileAgentCommand extends Command
         $report = $sweeper->sweep();
 
         $this->line(sprintf(
-            'expired %d, redispatched %d, reconciled %d%s',
+            'expired %d, redispatched %d, reconciled %d, orphaned reservations settled %d%s',
             $report['expired'],
             $report['redispatched'],
             $report['reconciled'],
+            $report['orphans_settled'],
             $report['halt_lifted'] ? ', agent resumed' : '',
         ));
 

@@ -92,6 +92,11 @@ final class OllamaDriver implements ModelDriver
         return DriverHealth::available($models);
     }
 
+    public function isMetered(): bool
+    {
+        return false;
+    }
+
     public function maximumCost(ModelRequest $request): int
     {
         return 0;

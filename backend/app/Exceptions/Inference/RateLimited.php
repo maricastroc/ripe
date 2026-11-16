@@ -8,8 +8,11 @@ use App\Enums\Inference\ErrorScope;
 
 final class RateLimited extends InferenceException
 {
-    public function __construct(string $message, private readonly ?float $retryAfterSeconds = null)
-    {
+    public function __construct(
+        string $message,
+        private readonly ?float $retryAfterSeconds = null,
+        public readonly bool $daily = false,
+    ) {
         parent::__construct($message);
     }
 

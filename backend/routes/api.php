@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Artifacts\RestoreVersionController;
 use App\Http\Controllers\Api\Artifacts\ReviseArtifactController;
 use App\Http\Controllers\Api\AuthorizeChannelController;
 use App\Http\Controllers\Api\ExampleController;
+use App\Http\Controllers\Api\ForgetGreenhouseController;
 use App\Http\Controllers\Api\GardenController;
 use App\Http\Controllers\Api\Questions\AnswerQuestionController;
 use App\Http\Controllers\Api\Questions\ReopenQuestionController;
@@ -26,6 +27,7 @@ Route::middleware('throttle:reads')->group(static function (): void {
     Route::get('garden', [GardenController::class, 'show'])->name('garden.show');
     Route::get('tasks/{task}', [TaskController::class, 'show'])->can('view', 'task')->name('tasks.show');
     Route::get('agent', [AgentController::class, 'show'])->name('agent.show');
+    Route::get('examples', [ExampleController::class, 'index'])->name('examples.index');
     Route::post('broadcasting/auth', AuthorizeChannelController::class)->name('broadcasting.auth');
 });
 
@@ -49,8 +51,8 @@ Route::middleware('throttle:mutations')->group(static function (): void {
     Route::post('artifacts/{artifact}/draft/keep', KeepDraftController::class)->can('update', 'artifact')->name('artifacts.draft.keep');
     Route::delete('artifacts/{artifact}/draft', [DraftController::class, 'destroy'])->can('update', 'artifact')->name('artifacts.draft.discard');
     Route::post('artifacts/{artifact}/restore', RestoreVersionController::class)->can('update', 'artifact')->name('artifacts.restore');
-    Route::post('artifacts/{artifact}/revise', ReviseArtifactController::class)->can('update', 'artifact')->name('artifacts.revise');
+    Route::post('artifacts/{artifact}/revise', ReviseArtifactController::class)->middleware('throttle:revisions')->can('update', 'artifact')->name('artifacts.revise');
 
+    Route::delete('greenhouse', ForgetGreenhouseController::class)->name('greenhouse.forget');
     Route::put('agent', [AgentController::class, 'update'])->name('agent.update');
-    Route::post('examples', [ExampleController::class, 'store'])->name('examples.store');
 });

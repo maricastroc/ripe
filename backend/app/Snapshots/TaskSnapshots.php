@@ -29,6 +29,17 @@ final class TaskSnapshots
             ->get();
     }
 
+    /** @return Collection<int, Task> */
+    public function examples(): Collection
+    {
+        return Task::query()
+            ->where('is_example', true)
+            ->whereHas('exampleRecord')
+            ->with($this->summaryRelations())
+            ->orderBy('created_at')
+            ->get();
+    }
+
     public function detail(Task $task): Task
     {
         return Task::query()->with([
@@ -57,6 +68,8 @@ final class TaskSnapshots
     private function summaryRelations(): array
     {
         return [
+            'visitor' => static fn (Builder $query): Builder => $query->select(['id', 'last_seen_at']),
+            'exampleRecord' => static fn (Builder $query): Builder => $query,
             'steps' => static fn (Builder $query): Builder => $query->orderBy('position'),
             'steps.artifact' => static fn (Builder $query): Builder => $query->select(['id', 'step_id']),
             'questions' => static fn (Builder $query): Builder => $query->orderBy('position'),

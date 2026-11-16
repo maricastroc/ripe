@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Inference\Drivers\OpenAI;
+namespace App\Inference\Support;
 
 use App\Inference\Transport\StreamResponse;
 use DateTimeImmutable;

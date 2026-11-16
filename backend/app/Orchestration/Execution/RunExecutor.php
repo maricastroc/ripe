@@ -7,16 +7,21 @@ namespace App\Orchestration\Execution;
 use App\Enums\AttemptOutcome;
 use App\Enums\EventActor;
 use App\Enums\Inference\ErrorScope;
+use App\Enums\QuotaWait;
 use App\Enums\RunDeferral;
 use App\Enums\RunStatus;
 use App\Enums\TaskEventType;
 use App\Enums\TaskStatus;
+use App\Exceptions\AdmissionRefused;
 use App\Exceptions\Inference\CallAborted;
+use App\Exceptions\Inference\DriverMisconfigured;
 use App\Exceptions\Inference\InferenceException;
 use App\Exceptions\Inference\InvalidModelOutput;
 use App\Exceptions\Inference\ModelTimeout;
 use App\Exceptions\Inference\RateLimited;
 use App\Growth\GrowthCalculator;
+use App\Inference\Contracts\ModelDriver;
+use App\Inference\Contracts\QuotaLimited;
 use App\Inference\InferenceManager;
 use App\Inference\ModelResponse;
 use App\Models\AgentRun;
@@ -26,12 +31,19 @@ use App\Models\TaskEvent;
 use App\Orchestration\AgentHalt;
 use App\Orchestration\AgentSettings;
 use App\Orchestration\AttemptReport;
+use App\Orchestration\Budget\InferenceBudget;
+use App\Orchestration\Budget\Reservation;
+use App\Orchestration\Budget\Shortfall;
 use App\Orchestration\Leases;
 use App\Orchestration\LeaseSupervisor;
 use App\Orchestration\Output\PartialOutput;
+use App\Orchestration\Quota\QuotaGate;
+use App\Orchestration\Quota\QuotaShortfall;
+use App\Orchestration\Quota\QuotaTicket;
 use App\Orchestration\RunDispatcher;
 use App\Orchestration\TaskOrchestrator;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -50,6 +62,8 @@ final class RunExecutor
         private readonly AgentHalt $halt,
         private readonly AgentSettings $settings,
         private readonly PartialOutput $output,
+        private readonly InferenceBudget $budget,
+        private readonly QuotaGate $quota,
     ) {}
 
     public function execute(string $runId, ?string $queueJobId = null): void
@@ -70,7 +84,7 @@ final class RunExecutor
     private function attempt(Claim $claim): void
     {
         try {
-            $call = $this->requests->prepare($claim->run);
+            $call = $claim->call ?? $this->requests->prepare($claim->run);
             $response = $this->inference->current()->generate($call->request, $this->supervisor($claim), $this->output->open($claim->run, $claim->attempt));
             $result = $this->results->prepare($claim->run, $call, $response);
         } catch (CallAborted $abort) {
@@ -135,6 +149,27 @@ final class RunExecutor
             }
 
             $driver = $this->inference->current();
+
+            if ($driver->isMetered() && $this->settings->isPublic() && ! Config::boolean('ripe.inference.allow_paid')) {
+                $this->holdForDriver($run, 'The public greenhouse only runs on a free model.', $now);
+
+                return null;
+            }
+
+            $call = $this->prepare($run);
+
+            try {
+                [$ticket, $reservation] = $call === null ? [null, null] : $this->admit($driver, $task, $call, $now);
+            } catch (DriverMisconfigured $misconfigured) {
+                $this->holdForDriver($run, $misconfigured->getMessage(), $now);
+
+                return null;
+            } catch (AdmissionRefused $refused) {
+                $this->rest($task, $run, $refused->refusal, $now);
+
+                return null;
+            }
+
             $token = (string) Str::uuid();
             $expiresAt = $now->addMilliseconds((int) round($this->settings->leaseTtl() * 1000));
             $run->startLease($token, $now, $expiresAt);
@@ -148,11 +183,18 @@ final class RunExecutor
                 'started_at' => $now,
                 'driver' => $driver->name(),
                 'model' => mb_substr($driver->model(), 0, 120),
+                'reserved_microusd' => $reservation->amount ?? 0,
+                'budget_day' => $reservation?->day,
+                'budget_visitor_id' => $reservation?->visitorId,
             ]);
+
+            if ($ticket !== null) {
+                $this->quota->attach($ticket, $attempt);
+            }
 
             TaskEvent::record($task, TaskEventType::RunStarted, ['run_id' => $run->id, 'attempt' => $attempt->number], EventActor::Agent, $run, $attempt);
 
-            return new Claim($run, $attempt, $token, $expiresAt);
+            return new Claim($run, $attempt, $token, $expiresAt, $call);
         });
     }
 
@@ -217,6 +259,10 @@ final class RunExecutor
 
             $attempt->finish($this->outcomeOf($failure), $now, $report);
             $decision = $this->policy->decide($run, $failure, $now);
+
+            if ($failure instanceof RateLimited) {
+                $this->blockQuota($failure, $now);
+            }
 
             if (! $decision->retry) {
                 $reason = $this->stallReason($run, $failure);
@@ -319,6 +365,76 @@ final class RunExecutor
             $this->settings->renewInterval(),
             $this->settings->safetyMargin(),
         );
+    }
+
+    private function prepare(AgentRun $run): ?PreparedCall
+    {
+        try {
+            return $this->requests->prepare($run);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @return array{?QuotaTicket, ?Reservation} */
+    private function admit(ModelDriver $driver, Task $task, PreparedCall $call, CarbonImmutable $now): array
+    {
+        return DB::transaction(function () use ($driver, $task, $call, $now): array {
+            $ticket = null;
+
+            if ($driver instanceof QuotaLimited) {
+                $admitted = $this->quota->admit($driver->quotaScope(), $driver->quotaLimits(), $driver->tokenDemand($call->request), $now);
+                $ticket = $admitted instanceof QuotaShortfall ? throw new AdmissionRefused($admitted) : $admitted;
+            }
+
+            $ceiling = $driver->maximumCost($call->request);
+            $reservation = null;
+
+            if ($ceiling !== null && $ceiling > 0) {
+                $reserved = $this->budget->reserve($task, $ceiling, $now);
+                $reservation = $reserved instanceof Shortfall ? throw new AdmissionRefused($reserved) : $reserved;
+            }
+
+            return [$ticket, $reservation];
+        });
+    }
+
+    private function rest(Task $task, AgentRun $run, QuotaShortfall|Shortfall $refusal, CarbonImmutable $now): void
+    {
+        if ($refusal instanceof Shortfall && $run->deferred_reason !== RunDeferral::Budget) {
+            TaskEvent::record($task, TaskEventType::BudgetDeferred, ['run_id' => $run->id, 'scope' => $refusal->scope->value], EventActor::System, $run);
+        }
+
+        if ($refusal instanceof QuotaShortfall && $refusal->wait === QuotaWait::Daily && $run->deferred_reason !== RunDeferral::Quota) {
+            TaskEvent::record($task, TaskEventType::QuotaDeferred, ['run_id' => $run->id, 'wait' => $refusal->wait->value], EventActor::System, $run);
+        }
+
+        $run->defer($refusal->retryAt, $refusal instanceof Shortfall ? RunDeferral::Budget : RunDeferral::Quota);
+        $this->dispatcher->dispatch($run, $now);
+    }
+
+    private function holdForDriver(AgentRun $run, string $reason, CarbonImmutable $now): void
+    {
+        $this->halt->halt($reason, $now);
+        $run->defer($now->addSeconds($this->settings->haltRetrySeconds()), RunDeferral::DriverUnavailable);
+        $this->dispatcher->dispatch($run, $now);
+    }
+
+    private function blockQuota(RateLimited $limited, CarbonImmutable $now): void
+    {
+        $driver = $this->inference->current();
+
+        if (! $driver instanceof QuotaLimited) {
+            return;
+        }
+
+        $seconds = $limited->retryAfter() ?? ($limited->daily ? 60.0 * Config::integer('ripe.quota.daily_recheck_minutes') : (float) Config::integer('ripe.quota.busy_recheck_seconds'));
+
+        try {
+            $this->quota->block($driver->quotaScope(), $now->addMilliseconds((int) round($seconds * 1000)), $limited->daily ? QuotaWait::Daily : QuotaWait::Capacity, $now);
+        } catch (DriverMisconfigured) {
+            return;
+        }
     }
 
     private function anotherRunIsRunning(AgentRun $run): bool

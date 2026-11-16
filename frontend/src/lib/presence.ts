@@ -23,6 +23,37 @@ export function moodOf(task: TaskSummary): PlantMood {
   }
 }
 
+const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+
+export function resumeHint(agent: Pick<AgentStatus, "resumesAt">, now = Date.now()): string | null {
+  if (!agent.resumesAt) return null;
+  const at = new Date(agent.resumesAt).getTime();
+  if (Number.isNaN(at)) return null;
+  return at - now < 90_000 ? "in a moment" : `around ${timeFormat.format(at)}`;
+}
+
+export function restText(agent: AgentStatus): { short: string; long: string } {
+  const hint = resumeHint(agent);
+  const when = hint ? `, ${hint}` : "";
+  switch (agent.rest) {
+    case "budget":
+      return {
+        short: "resting until tomorrow’s budget",
+        long: `Today’s budget is used up. Nothing is lost: the greenhouse picks up again on its own${when}.`,
+      };
+    case "capacity":
+      return {
+        short: hint ? `a short pause, back ${hint}` : "a short pause",
+        long: `The free model asked for a short pause. The greenhouse picks up again on its own${when}.`,
+      };
+    default:
+      return {
+        short: hint ? `resting, back ${hint}` : "resting until the model has room",
+        long: `The free model has used its allowance for now. Nothing is lost: the greenhouse picks up again on its own once it has room${when}.`,
+      };
+  }
+}
+
 function lowerFirst(text: string) {
   return text.charAt(0).toLowerCase() + text.slice(1);
 }
@@ -58,7 +89,8 @@ export function statusLine(task: TaskSummary, agent: AgentStatus): { text: strin
     default:
       if (running && task.activity) return { text: doing(task.activity), tone: "leaf" };
       if (agent.mode === "paused") return { text: "agent paused", tone: "ochre" };
-      if (agent.mode === "halted") return { text: "the greenhouse is resting", tone: "ochre" };
+      if (agent.mode === "resting") return { text: "resting with the greenhouse", tone: "ochre" };
+      if (agent.mode === "halted") return { text: "waiting for the model", tone: "ochre" };
       if (agent.mode === "offline")
         return { text: agent.driver === "ollama" ? "waiting for Ollama" : "waiting for the model", tone: "ochre" };
       if (agent.mode === "model-missing") return { text: "waiting for the model", tone: "ochre" };

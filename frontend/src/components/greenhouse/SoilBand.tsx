@@ -49,7 +49,9 @@ function sprigs(points: Pt[], salt: number, count: number) {
 }
 
 export function SoilBand({ width, height, sourceX, fromAbove, continues, threads, agentMode, paused, salt }: Props) {
-  const down = agentMode === "offline" || agentMode === "stopped" || agentMode === "model-missing";
+  const down =
+    agentMode === "offline" || agentMode === "stopped" || agentMode === "model-missing" || agentMode === "halted";
+  const resting = agentMode === "resting";
   const scene = useMemo(() => {
     const specks = Array.from({ length: Math.round(width / 6) }, (_, i) => ({
       x: r1(rand(salt, i) * width),
@@ -83,8 +85,8 @@ export function SoilBand({ width, height, sourceX, fromAbove, continues, threads
     const y = height * 0.36 + (rand(salt, i + 300) - 0.5) * 14;
     return `M ${r1(a.x)} ${r1(height * 0.22)} C ${r1(a.x + 40)} ${r1(y)} ${r1(t.x - 40)} ${r1(y)} ${r1(t.x)} ${r1(height * 0.24)}`;
   });
-  const color = down ? "#9b9585" : "var(--myc)";
-  const baseOpacity = down ? 0.55 : paused ? 0.3 : 0.62;
+  const color = down ? "#9b9585" : resting ? "#a9bcc6" : "var(--myc)";
+  const baseOpacity = down ? 0.55 : paused ? 0.3 : resting ? 0.4 : 0.62;
   const edgePath = `${openSmooth(scene.edge)} L ${r1(width)} ${r1(height)} L 0 ${r1(height)} Z`;
 
   return (
@@ -173,7 +175,7 @@ export function SoilBand({ width, height, sourceX, fromAbove, continues, threads
           />
         )}
         {paths.map((p) => {
-          const lit = !down && !paused && p.state === "working";
+          const lit = !down && !paused && !resting && p.state === "working";
           return (
             <g key={p.id}>
               {!down && (
@@ -207,7 +209,7 @@ export function SoilBand({ width, height, sourceX, fromAbove, continues, threads
                   strokeLinecap="round"
                 />
               )}
-              {!down && !paused && p.state === "queued" && (
+              {!down && !paused && !resting && p.state === "queued" && (
                 <path
                   d={p.d}
                   pathLength={1000}

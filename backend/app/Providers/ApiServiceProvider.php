@@ -8,6 +8,7 @@ use App\Http\Middleware\ThroughGateway;
 use App\Http\Visitors\VisitorResolver;
 use App\Models\Visitor;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
@@ -31,11 +32,25 @@ final class ApiServiceProvider extends ServiceProvider
         RateLimiter::for('plant', static fn (Request $request): array => [
             Limit::perHour(Config::integer('ripe.limits.plant_per_hour_per_visitor'))->by('plant:'.self::requester($request)),
             Limit::perHour(Config::integer('ripe.limits.plant_per_hour_per_ip'))->by('plant-ip:'.self::network($request)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_visitor'))->by('plant-day:'.self::requester($request))->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_network'))->by('plant-day-ip:'.self::network($request))->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_global'))->by('plant-day-global')->response(self::tomorrow(...)),
+        ]);
+
+        RateLimiter::for('revisions', static fn (Request $request): array => [
+            Limit::perDay(Config::integer('ripe.limits.revisions_per_day_per_visitor'))->by('revise-day:'.self::requester($request))->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.revisions_per_day_per_network'))->by('revise-day-ip:'.self::network($request))->response(self::tomorrow(...)),
         ]);
 
         RateLimiter::for('mutations', static fn (Request $request): Limit => Limit::perMinute(Config::integer('ripe.limits.mutations_per_minute'))->by('mutations:'.self::requester($request)));
 
         RateLimiter::for('reads', static fn (Request $request): Limit => Limit::perMinute(Config::integer('ripe.limits.reads_per_minute'))->by('reads:'.self::requester($request)));
+    }
+
+    /** @param array<string, string> $headers */
+    private static function tomorrow(Request $request, array $headers): JsonResponse
+    {
+        return new JsonResponse(['message' => 'The greenhouse has done enough for today. Come back tomorrow.'], 429, $headers);
     }
 
     private static function requester(Request $request): string

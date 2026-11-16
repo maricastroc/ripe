@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Orchestration;
 
+use App\Enums\ChargeBasis;
 use App\Exceptions\Inference\CallAborted;
 use App\Exceptions\Inference\InferenceException;
 use App\Inference\ModelResponse;
@@ -55,5 +56,14 @@ final readonly class AttemptReport
     public static function withDetail(string $detail): self
     {
         return new self(detail: $detail);
+    }
+
+    public function billing(): ChargeBasis
+    {
+        if ($this->usage !== null && $this->costMicrodollars !== null) {
+            return $this->usage->estimated ? ChargeBasis::Estimated : ChargeBasis::Reported;
+        }
+
+        return $this->usage === null && $this->requestId !== null ? ChargeBasis::Unbilled : ChargeBasis::Reservation;
     }
 }

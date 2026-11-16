@@ -6,7 +6,9 @@ namespace App\Orchestration;
 
 use App\Enums\AgentMode;
 use App\Enums\HostingMode;
+use App\Enums\RestReason;
 use App\Models\AgentRun;
+use Carbon\CarbonImmutable;
 
 final readonly class AgentStatus
 {
@@ -23,5 +25,7 @@ final readonly class AgentStatus
         public ?AgentRun $current,
         public bool $elsewhere,
         public int $queued,
+        public ?CarbonImmutable $resumesAt = null,
+        public ?RestReason $rest = null,
     ) {}
 }

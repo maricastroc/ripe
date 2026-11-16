@@ -9,6 +9,7 @@ use App\Http\Resources\AgentStatusResource;
 use App\Http\Resources\TaskSummaryResource;
 use App\Models\Visitor;
 use App\Orchestration\AgentStatusReader;
+use App\Retention\Retention;
 use App\Snapshots\TaskSnapshots;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ final class GardenController extends Controller
             'tasks' => TaskSummaryResource::collection($snapshots->garden($visitor)),
             'agent' => new AgentStatusResource($agent->for($visitor)),
             'channel' => $visitor === null ? null : "greenhouse.{$visitor->id}",
+            'retention' => ['daysAfterVisit' => Retention::daysAfterVisit(), 'maximumDays' => Retention::maximumDays()],
         ]);
     }
 }

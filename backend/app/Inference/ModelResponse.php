@@ -20,4 +20,9 @@ final readonly class ModelResponse
         public ?int $timeToFirstTokenMs,
         public int $durationMs,
     ) {}
+
+    public function costing(int $microdollars): self
+    {
+        return new self($this->text, $this->finishReason, $this->usage, $this->driver, $this->model, $microdollars, $this->requestId, $this->responseId, $this->timeToFirstTokenMs, $this->durationMs);
+    }
 }
