@@ -10,7 +10,7 @@ function clamp(min: number, value: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export function layoutBed(width: number, viewport: number, sizes: number[]): BedLayout {
+export function layoutBed(width: number, viewport: number, sizes: number[], room?: number): BedLayout {
   const mobile = width < 640;
   const plants = sizes.length;
   const fungusW = mobile ? 46 : 108;
@@ -19,17 +19,18 @@ export function layoutBed(width: number, viewport: number, sizes: number[]): Bed
   const firstCap = Math.max(1, Math.floor((width - fungusW - packetW) / minPlant));
   const restCap = Math.max(1, Math.floor((width - fungusW) / minPlant));
 
+  const fit = (share: number) => room ?? viewport * share;
   const baseH = mobile
     ? plants <= 1
       ? 330
       : 270
     : plants <= 1
-      ? clamp(380, viewport * 0.52, 540)
+      ? clamp(330, fit(0.52), 540)
       : plants <= 3
-        ? clamp(340, viewport * 0.46, 480)
+        ? clamp(320, fit(0.46), 480)
         : plants <= firstCap
-          ? clamp(310, viewport * 0.42, 420)
-          : 340;
+          ? clamp(310, fit(0.42), 420)
+          : clamp(310, fit(0.42), 340);
 
   const counts: number[] = [Math.min(plants, firstCap)];
   const rest = plants - counts[0];
@@ -43,9 +44,7 @@ export function layoutBed(width: number, viewport: number, sizes: number[]): Bed
   const rows: Row[] = counts.map((count, r) => {
     const tallest = count ? Math.max(...sizes.slice(index, index + count)) : 1;
     const withPacket = r === 0 && !mobile;
-    const plantH = Math.round(
-      withPacket ? Math.max(baseH * Math.max(0.5, tallest), 380) : baseH * Math.max(0.5, tallest),
-    );
+    const plantH = Math.round(withPacket ? Math.max(baseH, 330) : baseH * Math.max(0.5, tallest));
     const plots: Plot[] = [{ kind: r === 0 ? "fungus" : "trunk", x: 0, w: fungusW, index: -1 }];
     const available = width - fungusW - (withPacket ? packetW : 0);
     if (count === 0) {

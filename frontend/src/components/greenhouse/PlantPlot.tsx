@@ -105,7 +105,15 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
   const notePos = note
     ? { x: left + (note.at.x - VIEW.left) * box.scale, y: top + (note.at.y - VIEW.top) * box.scale }
     : null;
-  const labelW = Math.min(w - (compact ? 8 : 20), compact ? 176 : 244);
+  const labelW = Math.min(w - (compact ? 8 : 20), compact ? 176 : 206);
+  const ticks = (
+    <span className="relative mt-2 flex items-center justify-between gap-2 border-t border-dashed border-line-2 pt-1.5">
+      <StepTicks leaves={leaves} />
+      <span className="typewriter text-[10px] text-ink-3">
+        {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : p.noPlan}
+      </span>
+    </span>
+  );
 
   return (
     <>
@@ -151,7 +159,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
 
       <Link
         href={`/t/${task.id}`}
-        className={`plot-label paper focus-ring group absolute z-20 block rounded-[2px] pb-2.5 pt-3 ${compact ? "px-2.5" : "px-3.5"} transition-[transform,box-shadow] duration-300 hover:z-30 hover:-translate-y-0.5 focus-visible:z-30`}
+        className={`plot-label paper focus-ring group absolute z-20 block rounded-[2px] pb-2 pt-2.5 ${compact ? "px-2.5" : "px-3"} transition-[transform,box-shadow] duration-300 hover:z-30 hover:-translate-y-0.5 focus-visible:z-30`}
         style={{ left: x + w / 2 - labelW / 2, bottom: compact ? 10 : 14, width: labelW }}
         aria-label={p.label(catalog(number), task.title, stage, line.text)}
       >
@@ -166,7 +174,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
           <span className="typewriter text-[10px] uppercase tracking-[0.08em] text-ink-3">{stage}</span>
         </span>
         <span
-          className={`relative mt-1 font-display leading-[1.12] tracking-[-0.005em] text-ink ${compact ? "line-clamp-3 text-[15px]" : "line-clamp-2 text-[17.5px]"}`}
+          className={`relative mt-1 font-display leading-[1.12] tracking-[-0.005em] text-ink ${compact ? "line-clamp-3 text-[15px]" : "line-clamp-2 text-[15.5px]"}`}
           style={{ fontWeight: 500 }}
         >
           {task.title}
@@ -191,16 +199,12 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
                   {task.growth.stepsDone ? p.toRead(task.growth.stepsDone) : p.openSheet}
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                 </span>
+                {ticks}
               </span>
             </span>
           </span>
         )}
-        <span className="relative mt-2 flex items-center justify-between gap-2 border-t border-dashed border-line-2 pt-1.5">
-          <StepTicks leaves={leaves} />
-          <span className="typewriter text-[10px] text-ink-3">
-            {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : p.noPlan}
-          </span>
-        </span>
+        {compact && ticks}
       </Link>
     </>
   );

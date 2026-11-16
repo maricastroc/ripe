@@ -18,11 +18,12 @@ type Props = {
   nextNumber: number;
   ref?: Ref<PacketHandle>;
   turnstile?: string | null;
+  stake?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
 
-export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, className, style }: Props) {
+export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, stake = true, className, style }: Props) {
   const { t } = useI18n();
   const p = t.packet;
   const [text, setText] = useState("");
@@ -212,7 +213,12 @@ export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, class
           )}
         </AnimatePresence>
       </form>
-      <div className="mx-auto h-6 w-3 rounded-b-sm bg-[#8a6040] shadow-[inset_-2px_0_0_rgba(0,0,0,0.2)]" aria-hidden />
+      {stake && (
+        <div
+          className="mx-auto h-6 w-3 rounded-b-sm bg-[#8a6040] shadow-[inset_-2px_0_0_rgba(0,0,0,0.2)]"
+          aria-hidden
+        />
+      )}
     </div>
   );
 }

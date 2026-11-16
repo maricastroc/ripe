@@ -6,50 +6,77 @@ const W = 1600;
 const H = 1000;
 
 const FROND = { type: "blade" as const, width: 0.34, skew: 0.9, point: 1.2, teeth: 0, toothDepth: 0 };
-const MONSTERA = {
-  type: "palmate" as const,
-  lobes: [
-    { angle: 0, reach: 1 },
-    { angle: 40, reach: 0.95 },
-    { angle: -40, reach: 0.95 },
-    { angle: 85, reach: 0.85 },
-    { angle: -85, reach: 0.85 },
-    { angle: 130, reach: 0.6 },
-    { angle: -130, reach: 0.6 },
-  ],
-  sinus: 0.62,
-  width: 1,
-};
 
-function Palm({ x, y, scale, flip, salt }: { x: number; y: number; scale: number; flip: number; salt: number }) {
-  const fronds = Array.from({ length: 7 }, (_, i) => {
-    const angle = -90 + flip * (-70 + i * 22) + (rand(salt, i) - 0.5) * 10;
-    return leafPaths(FROND, { x, y }, angle, 220 * scale * (0.75 + rand(salt, i + 9) * 0.35), i % 2 ? 1 : -1).body;
-  });
-  return (
-    <g>
-      {fronds.map((d, i) => (
-        <path key={i} d={d} />
-      ))}
-    </g>
-  );
+export type GlassFrame = { width: number; height: number; viewport: number };
+
+function sceneBox(frame: GlassFrame) {
+  const scale = Math.max(frame.width / W, (1.3 * frame.viewport) / H);
+  const width = frame.width / scale;
+  const height = frame.height / scale;
+  return { x: (W - width) / 2, width, height };
 }
 
-export function Glasshouse({ sky }: { sky: Sky }) {
-  const night = sky === "night";
-  const mullions = Array.from({ length: 13 }, (_, i) => 60 + i * 123);
-  const stars = Array.from({ length: 40 }, (_, i) => ({
-    x: rand(7, i) * W,
-    y: rand(9, i) * 360,
-    r: 0.6 + rand(11, i) * 1.4,
-  }));
-  const monstera = leafPaths(MONSTERA, { x: 1490, y: 760 }, -128, 300, 1);
-  const monstera2 = leafPaths(MONSTERA, { x: 1560, y: 820 }, -100, 240, -1);
+function HangingPot({ night }: { night: boolean }) {
   const vines = Array.from({ length: 5 }, (_, i) => {
     const x0 = 1255 + i * 12;
     const len = 150 + rand(31, i) * 170;
     return { x0, len };
   });
+  return (
+    <svg
+      className="pointer-events-none absolute top-0 hidden xl:block"
+      style={{ right: 290, width: 180, height: 420 }}
+      viewBox="1195 0 180 420"
+      aria-hidden
+    >
+      <line x1={1285} y1={0} x2={1285} y2={70} stroke="var(--iron)" strokeWidth={1.4} opacity={0.6} />
+      <path
+        d="M 1225 70 Q 1285 130 1345 70 Z"
+        fill="#8c5a3c"
+        stroke="#3e2a1d"
+        strokeWidth={1.5}
+        opacity={night ? 0.7 : 1}
+      />
+      <path d="M 1222 70 L 1348 70" stroke="#5b3b26" strokeWidth={5} strokeLinecap="round" opacity={night ? 0.7 : 1} />
+      {vines.map((v, i) => (
+        <g key={i} opacity={night ? 0.55 : 0.95}>
+          <path
+            d={`M ${v.x0} 78 C ${v.x0 - 14} ${78 + v.len * 0.35} ${v.x0 + 16} ${78 + v.len * 0.7} ${v.x0 - 4} ${Math.round(78 + v.len)}`}
+            stroke="#4d6b3a"
+            strokeWidth={1.4}
+            fill="none"
+          />
+          {Array.from({ length: Math.round(v.len / 26) }, (_, k) => {
+            const y = 92 + k * 26;
+            const side = k % 2 ? 1 : -1;
+            return (
+              <path
+                key={k}
+                d={leafPaths(FROND, { x: v.x0 + side * 2, y }, 90 + side * 50, 16, side).body}
+                fill={k % 3 ? "#6c9a52" : "#4f7d40"}
+                stroke="var(--ink-line)"
+                strokeWidth={0.6}
+              />
+            );
+          })}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+export function Glasshouse({ sky, frame }: { sky: Sky; frame?: GlassFrame | null }) {
+  const night = sky === "night";
+  const box = frame ? sceneBox(frame) : null;
+  const depth = Math.max(H, box?.height ?? H);
+  const mullions = Array.from({ length: 13 }, (_, i) => 60 + i * 123);
+  const bars = [380, 620, 840];
+  for (let y = 1080; y < depth; y += 240) bars.push(y);
+  const stars = Array.from({ length: 40 }, (_, i) => ({
+    x: rand(7, i) * W,
+    y: rand(9, i) * 360,
+    r: 0.6 + rand(11, i) * 1.4,
+  }));
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -58,8 +85,12 @@ export function Glasshouse({ sky }: { sky: Sky }) {
         style={{ background: "linear-gradient(180deg, var(--glass-top) 0%, var(--glass-bottom) 78%)" }}
       />
       <svg
-        className="absolute inset-x-0 top-0 h-[115%] w-full"
-        viewBox={`0 0 ${W} ${H}`}
+        className={
+          frame === undefined
+            ? "absolute inset-x-0 top-0 h-[115%] w-full"
+            : `absolute inset-0 h-full w-full transition-opacity duration-700 ${box ? "opacity-100" : "opacity-0"}`
+        }
+        viewBox={box ? `${box.x} 0 ${box.width} ${box.height}` : `0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMin slice"
       >
         <defs>
@@ -90,8 +121,8 @@ export function Glasshouse({ sky }: { sky: Sky }) {
                 opacity={0.55}
               />
             ))}
-            <circle cx={1290} cy={150} r={90} fill="url(#gh-moon)" />
-            <circle cx={1290} cy={150} r={26} fill="#f8f2d8" />
+            <circle cx={930} cy={140} r={90} fill="url(#gh-moon)" />
+            <circle cx={930} cy={140} r={26} fill="#f8f2d8" />
           </g>
         )}
 
@@ -102,13 +133,6 @@ export function Glasshouse({ sky }: { sky: Sky }) {
             <polygon points="900,0 960,0 1420,1000 1320,1000" fill="url(#gh-shaft)" opacity={0.25} />
           </g>
         )}
-
-        <g style={{ fill: night ? "#0d1a1a" : "#3d6152", opacity: night ? 0.55 : 0.13 }}>
-          <Palm x={60} y={1000} scale={1.25} flip={1} salt={3} />
-          <Palm x={260} y={1040} scale={0.85} flip={1} salt={5} />
-          <path d={monstera.body} />
-          <path d={monstera2.body} />
-        </g>
 
         <g style={{ stroke: "var(--iron)", fill: "none" }}>
           <path d={`M -20 250 Q ${W / 2} -150 ${W + 20} 250`} strokeWidth={9} opacity={0.5} />
@@ -122,22 +146,14 @@ export function Glasshouse({ sky }: { sky: Sky }) {
                 x1={x}
                 y1={Math.round(yTop + 12)}
                 x2={x}
-                y2={H}
+                y2={Math.round(depth)}
                 strokeWidth={i % 3 === 0 ? 5 : 2.5}
                 opacity={0.42}
               />
             );
           })}
-          {[0.38, 0.62, 0.84].map((f, i) => (
-            <line
-              key={i}
-              x1={0}
-              y1={Math.round(H * f)}
-              x2={W}
-              y2={Math.round(H * f)}
-              strokeWidth={i === 2 ? 6 : 2.2}
-              opacity={0.35}
-            />
+          {bars.map((y, i) => (
+            <line key={y} x1={-W} y1={y} x2={2 * W} y2={y} strokeWidth={i === 2 ? 6 : 2.2} opacity={0.35} />
           ))}
           {Array.from({ length: 9 }, (_, i) => {
             const t = (i + 1) / 10;
@@ -170,48 +186,8 @@ export function Glasshouse({ sky }: { sky: Sky }) {
               ) : null,
             )}
         </g>
-
-        <g>
-          <line x1={1285} y1={0} x2={1285} y2={70} stroke="var(--iron)" strokeWidth={1.4} opacity={0.6} />
-          <path
-            d="M 1225 70 Q 1285 130 1345 70 Z"
-            fill="#8c5a3c"
-            stroke="#3e2a1d"
-            strokeWidth={1.5}
-            opacity={night ? 0.7 : 1}
-          />
-          <path
-            d="M 1222 70 L 1348 70"
-            stroke="#5b3b26"
-            strokeWidth={5}
-            strokeLinecap="round"
-            opacity={night ? 0.7 : 1}
-          />
-          {vines.map((v, i) => (
-            <g key={i} opacity={night ? 0.55 : 0.95}>
-              <path
-                d={`M ${v.x0} 78 C ${v.x0 - 14} ${78 + v.len * 0.35} ${v.x0 + 16} ${78 + v.len * 0.7} ${v.x0 - 4} ${Math.round(78 + v.len)}`}
-                stroke="#4d6b3a"
-                strokeWidth={1.4}
-                fill="none"
-              />
-              {Array.from({ length: Math.round(v.len / 26) }, (_, k) => {
-                const y = 92 + k * 26;
-                const side = k % 2 ? 1 : -1;
-                return (
-                  <path
-                    key={k}
-                    d={leafPaths(FROND, { x: v.x0 + side * 2, y }, 90 + side * 50, 16, side).body}
-                    fill={k % 3 ? "#6c9a52" : "#4f7d40"}
-                    stroke="var(--ink-line)"
-                    strokeWidth={0.6}
-                  />
-                );
-              })}
-            </g>
-          ))}
-        </g>
       </svg>
+      <HangingPot night={night} />
       <div
         className="absolute inset-0"
         style={{ background: "radial-gradient(ellipse 80% 60% at 30% 10%, var(--haze), transparent 70%)" }}
