@@ -13,7 +13,7 @@ use App\Retention\Retention;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 
-it('keeps the daily limits per network and globally even when a visitor clears the cookie', function (): void {
+it('keeps the daily limits per network and globally even when a visitor clears the cookie, counting only what was planted', function (): void {
     fakeAgent();
     config([
         'ripe.gateway.required' => true,
@@ -25,13 +25,14 @@ it('keeps the daily limits per network and globally even when a visitor clears t
         'ripe.limits.plant_per_day_global' => 5,
         'ripe.limits.plants_in_bed' => 2,
     ]);
-    $plant = static fn (string $address, string $token) => api($token, [
+    $plant = static fn (string $address, string $token, string $prompt = 'A seed to count against the limits.') => api($token, [
         'Sec-Fetch-Site' => 'same-origin',
         'X-Ripe-Gateway' => 'a-shared-gateway-secret',
         'X-Ripe-Client-Ip' => $address,
-    ])->postJson('/api/tasks', ['prompt' => 'A seed to count against the limits.']);
+    ])->postJson('/api/tasks', ['prompt' => $prompt]);
     [, $first] = visitor();
     [, $clearedCookie] = visitor();
+    [, $clearedAgain] = visitor();
     [, $elsewhere] = visitor();
     [, $later] = visitor();
 
@@ -39,14 +40,16 @@ it('keeps the daily limits per network and globally even when a visitor clears t
         $plant('203.0.113.7', $first)->status(),
         $plant('203.0.113.7', $first)->status(),
         $plant('203.0.113.7', $first)->assertConflict()->status(),
+        $plant('203.0.113.7', $first, 'x')->assertUnprocessable()->status(),
         $plant('203.0.113.7', $clearedCookie)->status(),
-        $plant('203.0.113.7', $clearedCookie)->assertJsonPath('message', 'The greenhouse has done enough for today. Come back tomorrow.')->status(),
+        $plant('203.0.113.7', $clearedCookie)->status(),
+        $plant('203.0.113.7', $clearedAgain)->assertJsonPath('message', 'The greenhouse has done enough for today. Come back tomorrow.')->status(),
         $plant('198.51.100.20', $elsewhere)->status(),
         $plant('192.0.2.44', $later)->status(),
     ];
 
-    expect($statuses)->toBe([201, 201, 409, 201, 429, 201, 429])
-        ->and(Task::query()->count())->toBe(4);
+    expect($statuses)->toBe([201, 201, 409, 422, 201, 201, 429, 201, 429])
+        ->and(Task::query()->count())->toBe(5);
 });
 
 it('forgets each task on the date the API announces, never later than ninety days, and keeps examples', function (): void {

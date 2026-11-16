@@ -7,6 +7,7 @@ import { ReturnPicker } from "@/components/greenhouse/ReturnPicker";
 import { api } from "@/lib/api";
 import type { TaskDetail } from "@/lib/types";
 import { RETURN_OPTIONS } from "@/lib/format";
+import { useTurnstile } from "@/lib/turnstile";
 import { catalog } from "./PlantPlot";
 
 export type PacketHandle = { fill: (text: string) => void };
@@ -23,11 +24,12 @@ type Props = {
   onPlanted: (id: string) => void;
   nextNumber: number;
   ref?: Ref<PacketHandle>;
+  turnstile?: string | null;
   className?: string;
   style?: React.CSSProperties;
 };
 
-export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Props) {
+export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, className, style }: Props) {
   const [text, setText] = useState("");
   const [returnId, setReturnId] = useState("tomorrow");
   const [pending, setPending] = useState<"defer" | "plant" | null>(null);
@@ -35,6 +37,7 @@ export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Pro
   const [hint, setHint] = useState(0);
   const [dropping, setDropping] = useState(0);
   const area = useRef<HTMLTextAreaElement>(null);
+  const { element: proofSlot, token: proveVisitor } = useTurnstile(turnstile);
 
   useImperativeHandle(ref, () => ({
     fill(value: string) {
@@ -69,9 +72,10 @@ export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Pro
     setError(null);
     try {
       const option = RETURN_OPTIONS.find((o) => o.id === returnId) ?? RETURN_OPTIONS[1];
+      const proof = await proveVisitor();
       const { task } = await api<{ task: TaskDetail }>("/api/tasks", {
         method: "POST",
-        body: { prompt, defer, returnAt: option.at().toISOString() },
+        body: { prompt, defer, returnAt: option.at().toISOString(), ...(proof ? { turnstile: proof } : {}) },
       });
       setText("");
       setDropping((d) => d + 1);
@@ -198,6 +202,7 @@ export function SeedPacket({ onPlanted, nextNumber, ref, className, style }: Pro
             {pending === "plant" ? "planting…" : "just plant it"}
           </button>
         </div>
+        <div ref={proofSlot} className="mt-2 empty:hidden" />
         <AnimatePresence>
           {error && (
             <motion.p

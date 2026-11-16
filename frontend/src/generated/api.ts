@@ -466,6 +466,7 @@ export interface components {
             defer?: boolean;
             /** Format: date-time */
             returnAt?: string | null;
+            turnstile?: string | null;
         };
         /**
          * QuestionKind

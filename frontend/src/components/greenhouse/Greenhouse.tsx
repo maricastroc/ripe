@@ -82,7 +82,15 @@ const SUGGESTIONS = [
   "Sort out ideas for an article",
 ];
 
-export function Greenhouse({ initial, realtime }: { initial: GardenData; realtime: RealtimeConfig | null }) {
+export function Greenhouse({
+  initial,
+  realtime,
+  turnstile = null,
+}: {
+  initial: GardenData;
+  realtime: RealtimeConfig | null;
+  turnstile?: string | null;
+}) {
   const { data, setData, error, refresh, request, setRealtime } = usePolling<GardenData>(
     "/api/garden",
     initial,
@@ -153,7 +161,9 @@ export function Greenhouse({ initial, realtime }: { initial: GardenData; realtim
     }
   }
 
-  const packetEl = <SeedPacket ref={packet} onPlanted={planted} nextNumber={data.tasks.length + 1} />;
+  const packetEl = (
+    <SeedPacket ref={packet} onPlanted={planted} nextNumber={data.tasks.length + 1} turnstile={turnstile} />
+  );
 
   return (
     <div

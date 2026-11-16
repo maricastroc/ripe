@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\HttpFoundation\Response;
 
 final class ApiServiceProvider extends ServiceProvider
 {
@@ -32,9 +33,9 @@ final class ApiServiceProvider extends ServiceProvider
         RateLimiter::for('plant', static fn (Request $request): array => [
             Limit::perHour(Config::integer('ripe.limits.plant_per_hour_per_visitor'))->by('plant:'.self::requester($request)),
             Limit::perHour(Config::integer('ripe.limits.plant_per_hour_per_ip'))->by('plant-ip:'.self::network($request)),
-            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_visitor'))->by('plant-day:'.self::requester($request))->response(self::tomorrow(...)),
-            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_network'))->by('plant-day-ip:'.self::network($request))->response(self::tomorrow(...)),
-            Limit::perDay(Config::integer('ripe.limits.plant_per_day_global'))->by('plant-day-global')->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_visitor'))->by('plant-day:'.self::requester($request))->after(self::planted(...))->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_per_network'))->by('plant-day-ip:'.self::network($request))->after(self::planted(...))->response(self::tomorrow(...)),
+            Limit::perDay(Config::integer('ripe.limits.plant_per_day_global'))->by('plant-day-global')->after(self::planted(...))->response(self::tomorrow(...)),
         ]);
 
         RateLimiter::for('revisions', static fn (Request $request): array => [
@@ -45,6 +46,11 @@ final class ApiServiceProvider extends ServiceProvider
         RateLimiter::for('mutations', static fn (Request $request): Limit => Limit::perMinute(Config::integer('ripe.limits.mutations_per_minute'))->by('mutations:'.self::requester($request)));
 
         RateLimiter::for('reads', static fn (Request $request): Limit => Limit::perMinute(Config::integer('ripe.limits.reads_per_minute'))->by('reads:'.self::requester($request)));
+    }
+
+    private static function planted(Response $response): bool
+    {
+        return $response->getStatusCode() === 201;
     }
 
     /** @param array<string, string> $headers */
