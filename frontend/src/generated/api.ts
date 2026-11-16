@@ -324,6 +324,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks/{task}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tasks.timeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -393,6 +409,11 @@ export interface components {
          * @enum {string}
          */
         ArtifactVersionSource: "generate" | "revise" | "review" | "user_edit" | "restore";
+        /**
+         * AttemptOutcome
+         * @enum {string}
+         */
+        AttemptOutcome: "succeeded" | "failed" | "timed_out" | "invalid_output" | "driver_unavailable" | "rate_limited" | "cancelled" | "lease_lost" | "interrupted";
         /** AuthorizeChannelRequest */
         AuthorizeChannelRequest: {
             socket_id: string;
@@ -486,6 +507,11 @@ export interface components {
          * @enum {string}
          */
         RunKind: "interpret" | "plan" | "generate" | "revise" | "review";
+        /**
+         * RunStatus
+         * @enum {string}
+         */
+        RunStatus: "queued" | "running" | "succeeded" | "failed" | "cancelled";
         /** SaveDraftRequest */
         SaveDraftRequest: {
             content: string | null;
@@ -646,6 +672,51 @@ export interface components {
             openQuestions: number;
             essentialOpen: number;
             activity: components["schemas"]["ActivityResource"] | null;
+        };
+        /** TimelineAttemptResource */
+        TimelineAttemptResource: {
+            id: string;
+            number: number;
+            outcome: components["schemas"]["AttemptOutcome"] | null;
+            savedWork: boolean;
+            startedAt: string;
+            finishedAt: string | null;
+            waitedMs: number;
+            durationMs: number | null;
+            firstTokenMs: number | null;
+            promptTokens: number | null;
+            completionTokens: number | null;
+            usageEstimated: boolean;
+            driver: string | null;
+            model: string | null;
+            costMicrousd: number | null;
+            error: string | null;
+        };
+        /** TimelineResource */
+        TimelineResource: {
+            taskId: string;
+            runs: components["schemas"]["TimelineRunResource"][];
+            totals: {
+                attempts: number;
+                savedWork: number;
+                workingMs: number;
+                waitingMs: number;
+                promptTokens: number;
+                completionTokens: number;
+            };
+        };
+        /** TimelineRunResource */
+        TimelineRunResource: {
+            id: string;
+            kind: components["schemas"]["RunKind"];
+            status: components["schemas"]["RunStatus"];
+            subject: string | null;
+            stepId: string | null;
+            artifactId: string | null;
+            scheduledAt: string | null;
+            finishedAt: string | null;
+            deferredReason: components["schemas"]["RunDeferral"] | null;
+            attempts: components["schemas"]["TimelineAttemptResource"][];
         };
         /** UpdateAgentRequest */
         UpdateAgentRequest: {
@@ -1639,6 +1710,44 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "tasks.timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The task ID */
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        timeline: components["schemas"]["TimelineResource"];
+                    };
+                };
+            };
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
             /** @description Too many requests */
             429: {
                 headers: {

@@ -197,7 +197,8 @@ it('stalls on a refusal without retrying, and resumes when asked', function (): 
     $task = ripen(plantTask());
 
     expect($task->status)->toBe(TaskStatus::Stalled)
-        ->and($task->stall_reason)->toBe("Interpret: I can't help with that request.")
+        ->and($task->stall_reason)->toBe('Interpret: The model declined to write this.')
+        ->and(interpretRun($task)->attempts()->sole()->error_message)->toBe("I can't help with that request.")
         ->and(interpretRun($task)->attempt_count)->toBe(0);
 
     app(DeferTask::class)->handle($task);

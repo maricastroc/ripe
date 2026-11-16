@@ -10,6 +10,7 @@ use App\Models\Task;
 
 const RESOURCE_ROUTES = [
     'view a task' => ['GET', 'tasks/{task}', []],
+    'view its timeline' => ['GET', 'tasks/{task}/timeline', []],
     'rename a task' => ['PATCH', 'tasks/{task}', ['title' => 'Mine now']],
     'delete a task' => ['DELETE', 'tasks/{task}', []],
     'defer a task' => ['POST', 'tasks/{task}/defer', []],
@@ -78,6 +79,7 @@ it('shows the example to everyone and lets nobody change it', function (): void 
     $before = footprint($example);
 
     api()->getJson("/api/tasks/{$example->id}")->assertOk()->assertJsonPath('task.isExample', true);
+    api()->getJson("/api/tasks/{$example->id}/timeline")->assertOk()->assertJsonPath('timeline.taskId', $example->id);
 
     foreach (['rename a task', 'delete a task', 'answer a question', 'save a draft', 'revise a piece'] as $action) {
         [$method, $template, $body] = RESOURCE_ROUTES[$action];

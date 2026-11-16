@@ -21,11 +21,13 @@ use App\Http\Controllers\Api\Tasks\PauseTaskController;
 use App\Http\Controllers\Api\Tasks\RefreshTaskController;
 use App\Http\Controllers\Api\Tasks\ReplantTaskController;
 use App\Http\Controllers\Api\Tasks\ResumeTaskController;
+use App\Http\Controllers\Api\Tasks\TaskTimelineController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:reads')->group(static function (): void {
     Route::get('garden', [GardenController::class, 'show'])->name('garden.show');
     Route::get('tasks/{task}', [TaskController::class, 'show'])->can('view', 'task')->name('tasks.show');
+    Route::get('tasks/{task}/timeline', TaskTimelineController::class)->can('view', 'task')->name('tasks.timeline');
     Route::get('agent', [AgentController::class, 'show'])->name('agent.show');
     Route::get('examples', [ExampleController::class, 'index'])->name('examples.index');
     Route::post('broadcasting/auth', AuthorizeChannelController::class)->name('broadcasting.auth');

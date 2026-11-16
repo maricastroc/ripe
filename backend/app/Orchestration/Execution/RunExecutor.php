@@ -29,6 +29,7 @@ use App\Models\RunAttempt;
 use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Observability\AgentLog;
+use App\Observability\PublicError;
 use App\Orchestration\AgentHalt;
 use App\Orchestration\AgentSettings;
 use App\Orchestration\AttemptReport;
@@ -274,7 +275,7 @@ final class RunExecutor
             }
 
             if (! $decision->retry) {
-                $reason = $this->stallReason($run, $failure);
+                $reason = $this->stallReason($run, $failure, $cause);
                 $run->fail($reason, $now, $decision->consumesAttempt);
                 TaskEvent::record($task, TaskEventType::RunFailed, ['run_id' => $run->id, 'scope' => $failure->scope()->value, 'reason' => $reason], EventActor::Agent, $run, $attempt);
                 $task->transitionTo(TaskStatus::Stalled, EventActor::Agent, $reason);
@@ -483,12 +484,13 @@ final class RunExecutor
         };
     }
 
-    private function stallReason(AgentRun $run, InferenceException $failure): string
+    private function stallReason(AgentRun $run, InferenceException $failure, ?Throwable $cause): string
     {
         $label = ucfirst($run->kind->value);
+        $public = PublicError::of($this->outcomeOf($failure), class_basename($cause ?? $failure)) ?? 'it failed.';
 
         return $failure->scope() === ErrorScope::Run
-            ? "{$label}: {$failure->getMessage()}"
-            : "{$label} failed after {$run->max_attempts} attempts: {$failure->getMessage()}";
+            ? "{$label}: {$public}"
+            : "{$label} failed after {$run->max_attempts} attempts. {$public}";
     }
 }
