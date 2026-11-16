@@ -534,7 +534,7 @@ Until stage 5 the original application kept working from `frontend/`, with its o
 | 6 | Realtime | Reverb and Echo with version-based invalidation and offset-checked streaming; stopping Reverb mid-task lets the interface converge through polling; reconnecting restores the correct snapshot and live text | M |
 | 7 | Public demo | The public demo runs on Groq's free plan with zero inference cost: a Groq driver that keeps the inference contract (strict structured output, streaming, errors, usage), checked against real responses; quota admission (requests and tokens per minute and per day, concurrency) that concurrent workers cannot exceed; exhaustion rests the greenhouse without consuming attempts and resumes on its own, distinct from night, offline and a configuration failure; the money budget kept for paid drivers and never used by the demo, with no automatic fallback to a paid provider; per-visitor, per-network and global limits; retention decided and tested with pruning; "delete my greenhouse"; examples recorded with Groq through the real executor, installed idempotently, read-only and labelled with model and date | L |
 | 8 | Observability | Structured logs with context; timeline endpoint and `ripe:inspect`; the Growth rings tab; `ripe:audit` passes for every task produced by the resilience suite and for the recorded examples; every attempt appears in the timeline; nothing claims or requires replaying state from events | M |
-| 9 | Deploy | `ripe.marianacastro.dev` on Vercel, with the API, the agent worker, the scheduler, Reverb and PostgreSQL on Railway; the gateway secret and client address in place; daily PostgreSQL backups with a tested restore; an automated smoke test; a runbook | M |
+| 9 | Deploy | `ripe.marianacastro.dev` on Vercel, with the API, the agent worker, the scheduler, Reverb and PostgreSQL on Railway; the gateway secret and client address in place; Turnstile on planting; daily PostgreSQL backups with a tested restore; a smoke test run after each deploy; a runbook | M |
 
 ## 8. Risks
 
@@ -626,8 +626,18 @@ Until stage 5 the original application kept working from `frontend/`, with its o
   - **The drawing.** Ring width uses a capped scale, exact durations stay in the list, and outcomes are distinguishable without colour. The style is organic, not a dashboard.
   - **Operational data.** The timeline exposes only fixed error sentences and authorized fields, and logs never hold prompts, answers, cookies, credentials or provider details.
 
-**Pending:**
-- Invisible Turnstile on task creation (stage 9, with the production site key). The network and global limits already hold without the cookie.
+**Approved for stage 9 (2026-11-16), simplified before implementation:**
+- **Hosting.** The site stays on Vercel, and the backend and PostgreSQL run on Railway. Hosting everything on Railway was compared and rejected:
+  - it would cost about $1–2 a month more;
+  - the per-network limit would have to trust Railway's `X-Real-IP`, which Railway does not document as protected against spoofing, while Vercel documents that it overwrites `x-vercel-forwarded-for`.
+- **One supervised container** for the API, Reverb, both workers and the scheduler. FrankenPHP forwards Reverb's WebSocket path, so one public port serves both. Scheduled commands run on one server only, which covers the brief overlap during a deploy.
+- **Configured through the dashboards and CLIs,** not Infrastructure as Code, and documented in `docs/deploy.md`.
+- **PostgreSQL 17 in production** to match development and CI. Railway's template defaults to 18.
+- **Backups.** `ripe:backup` dumps the database to a private Railway bucket every day and before every deploy, and keeps 14 dumps. One real restore into an isolated database was tested. This replaces the earlier plan of a GitHub workflow with encryption and daily automatic restores.
+- **Turnstile** on planting, checked by the backend. The daily planting limits count only plantings that succeeded, and start at 3 per visitor and 12 overall.
+- **A smoke test,** `scripts/smoke.mjs`, run after deploys. There are no scheduled workflows or external monitoring.
+
+**Pending:** nothing.
 
 **Not pursued:**
 - OpenAI's background mode to resume a generation after a worker dies: the public demo no longer uses OpenAI.

@@ -36,6 +36,17 @@ return [
         'touch_after_minutes' => 60,
     ],
 
+    'backup' => [
+        'disk' => env('RIPE_BACKUP_DISK'),
+        'keep' => (int) env('RIPE_BACKUP_KEEP', 14),
+        'folder' => 'postgres',
+    ],
+
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+        'verify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+    ],
+
     'examples' => [
         'directory' => env('RIPE_EXAMPLES_DIRECTORY', database_path('examples')),
     ],

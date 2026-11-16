@@ -2093,6 +2093,13 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "turnstile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2048
                     }
                 },
                 "required": [
