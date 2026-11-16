@@ -113,14 +113,12 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
 
   return (
     <section aria-labelledby="questions-title">
-      <div className="mb-4 flex items-baseline justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="questions-title" className="label shrink-0 whitespace-nowrap">
           {essential ? q2.forYou : open.length ? q2.optional : q2.yours}
         </h2>
         {open.length > 0 && (
-          <span className="text-right text-[13px] text-ink-3">
-            {essential ? q2.wontGuess(open.length) : q2.fillGaps}
-          </span>
+          <span className="text-[13px] text-ink-3">{essential ? q2.wontGuess(open.length) : q2.fillGaps}</span>
         )}
       </div>
 

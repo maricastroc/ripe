@@ -173,7 +173,7 @@ export function SeedPacket({ onPlanted, nextNumber, ref, turnstile = null, class
           </AnimatePresence>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2 text-[#3d2c1c]">
+        <div className="mt-3 flex items-center gap-1 text-[#3d2c1c]">
           <span className="typewriter whitespace-nowrap text-[11px] uppercase tracking-[0.12em]">{p.returning}</span>
           <ReturnPicker value={returnId} onChange={setReturnId} />
         </div>

@@ -3,9 +3,17 @@
 import { StageGlyph } from "@/components/flora/StageGlyph";
 import { useI18n } from "@/lib/i18n/context";
 import { STAGES, stageIndex } from "@/lib/growth";
-import type { Growth } from "@/lib/types";
+import type { Fruit, Growth } from "@/lib/types";
 
-export function GrowthSeries({ growth, compact = false }: { growth: Growth; compact?: boolean }) {
+export function GrowthSeries({
+  growth,
+  fruit = null,
+  compact = false,
+}: {
+  growth: Growth;
+  fruit?: Fruit | null;
+  compact?: boolean;
+}) {
   const { t } = useI18n();
   const current = stageIndex(growth.stage);
   const stage = t.stages[STAGES[current]];
@@ -33,7 +41,7 @@ export function GrowthSeries({ growth, compact = false }: { growth: Growth; comp
                     />
                   </svg>
                 )}
-                <StageGlyph stage={s} className={compact ? "h-5 w-5" : "h-6 w-6"} />
+                <StageGlyph stage={s} fruit={fruit} className={compact ? "h-5 w-5" : "h-6 w-6"} />
               </span>
               {!compact && (
                 <span className={`typewriter text-[9.5px] ${active ? "text-cobalt" : "text-ink-3"}`}>fig. {i + 1}</span>

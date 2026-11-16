@@ -1,7 +1,9 @@
-import type { Stage } from "@/lib/types";
+import { FRUITS } from "@/lib/growth";
+import type { Fruit, Stage } from "@/lib/types";
 
-export function StageGlyph({ stage, className }: { stage: Stage; className?: string }) {
+export function StageGlyph({ stage, fruit, className }: { stage: Stage; fruit?: Fruit | null; className?: string }) {
   const leaf = "var(--leaf)";
+  const tint = fruit ? FRUITS[fruit] : null;
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       {stage === "seed" && <ellipse cx="12" cy="15" rx="4.2" ry="2.8" transform="rotate(-20 12 15)" fill="#8a6748" />}
@@ -31,8 +33,8 @@ export function StageGlyph({ stage, className }: { stage: Stage; className?: str
               ry="4"
               transform={`rotate(${a} 12 12)`}
               fill="var(--petal)"
-              stroke="var(--petal-2)"
-              strokeWidth="0.7"
+              stroke="var(--ink-line)"
+              strokeWidth="0.6"
             />
           ))}
           <circle cx="12" cy="12" r="2.6" fill="var(--butter)" />
@@ -41,14 +43,14 @@ export function StageGlyph({ stage, className }: { stage: Stage; className?: str
       {stage === "fruit" && (
         <g>
           <path d="M12 4 Q13 6 12.5 8" stroke="var(--leaf-dark)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          <circle cx="12" cy="14" r="6.5" fill="#a8b77c" />
+          <circle cx="12" cy="14" r="6.5" fill={tint?.unripe ?? "#a8b77c"} />
         </g>
       )}
       {stage === "ripe" && (
         <g>
           <path d="M12 4 Q13 6 12.5 8" stroke="var(--leaf-dark)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
           <path d="M12.5 7 C15 3.5 19 4 20 5.5 C17.5 7.5 14.5 7.8 12.5 7 Z" fill={leaf} />
-          <ellipse cx="12" cy="14.5" rx="7.4" ry="6.6" fill="#e3672f" />
+          <ellipse cx="12" cy="14.5" rx="7.4" ry="6.6" fill={tint?.ripe ?? "#e3672f"} />
           <ellipse cx="9.4" cy="12" rx="1.8" ry="1.1" fill="#fff" opacity="0.45" />
         </g>
       )}

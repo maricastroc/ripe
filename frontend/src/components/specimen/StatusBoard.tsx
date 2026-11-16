@@ -4,6 +4,7 @@ import { BookOpen, Flag, MessageCircleQuestion, Sprout } from "lucide-react";
 import { restText } from "@/lib/presence";
 import type { LucideIcon } from "lucide-react";
 import { formatRelative, returnWhen } from "@/lib/format";
+import { shownPhase } from "@/lib/growth";
 import type { I18n } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/context";
 import { activityLabel } from "@/lib/labels";
@@ -150,7 +151,10 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
           {task.steps.length > 0 && (
             <span className="mt-2 flex gap-1" aria-hidden>
               {task.steps.map((step) => (
-                <span key={step.id} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.phase]}`} />
+                <span
+                  key={step.id}
+                  className={`h-1.5 flex-1 rounded-full ${SEGMENT[shownPhase(step.phase, step.waitingFor === "answer")]}`}
+                />
               ))}
               <span
                 className={`h-1.5 flex-1 rounded-full ${

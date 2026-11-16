@@ -10,7 +10,7 @@ import { Specimen } from "@/components/flora/Specimen";
 import { PendingBar } from "@/components/PendingBar";
 import { formatReturn } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/context";
-import { stageName } from "@/lib/growth";
+import { shownPhase, stageName } from "@/lib/growth";
 import { TONE_CLASS, TONE_DOT, awaitsAnswer, focusOf, moodOf, statusLine } from "@/lib/presence";
 import type { AgentStatus, TaskSummary } from "@/lib/types";
 import { VIEW, specimenBox } from "./layout";
@@ -42,15 +42,19 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
   const box = specimenBox(scaleH, w);
   const left = x + w / 2 - box.width / 2;
   const top = plantH - box.ground;
+  const leaves = useMemo(
+    () => task.leaves.map((l) => ({ ...l, phase: shownPhase(l.phase, task.essentialOpen > 0) })),
+    [task],
+  );
   const state = useMemo(
     () => ({
       seed: task.id,
       fruit: task.fruit,
       growth: task.growth,
-      steps: task.leaves.map((l) => ({ id: l.id, status: l.phase, artifactId: l.artifactId, title: l.title })),
+      steps: leaves.map((l) => ({ id: l.id, status: l.phase, artifactId: l.artifactId, title: l.title })),
       awaiting: awaitsAnswer(task),
     }),
-    [task],
+    [task, leaves],
   );
   const anatomy = useMemo(() => computeAnatomy(state), [state]);
   const line = statusLine(i18n, task, agent);
@@ -192,7 +196,7 @@ export function PlantPlot({ task, agent, x, w, plantH, scaleH, number, fresh, co
           </span>
         )}
         <span className="relative mt-2 flex items-center justify-between gap-2 border-t border-dashed border-line-2 pt-1.5">
-          <StepTicks leaves={task.leaves} />
+          <StepTicks leaves={leaves} />
           <span className="typewriter text-[10px] text-ink-3">
             {task.growth.stepsTotal ? `${task.growth.stepsDone}/${task.growth.stepsTotal}` : p.noPlan}
           </span>

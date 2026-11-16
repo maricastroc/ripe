@@ -69,7 +69,7 @@ function Editor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck
-        className="block w-full resize-none bg-transparent font-mono text-[14px] leading-[1.75] text-ink outline-none"
+        className="block w-full resize-none bg-transparent pt-1.5 font-mono text-[14px] leading-[28px] text-ink outline-none"
       />
     </div>
   );
@@ -257,7 +257,7 @@ export function Harvest({
         <div className="sheet mt-4 rounded-[22px]">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-3 sm:px-8">
             <div
-              className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-paper-2 p-0.5 sm:flex-none"
+              className="flex grow items-center gap-1 rounded-full bg-paper-2 p-0.5 sm:grow-0"
               role="group"
               aria-label={h.mode}
             >
