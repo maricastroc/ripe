@@ -10,12 +10,12 @@ enum ReviewVerdict: string
     case Almost = 'almost';
     case Draft = 'draft';
 
-    public function label(): string
+    public function label(string $locale = 'en'): string
     {
         return match ($this) {
-            self::Ready => 'Ready to use, with small tweaks',
-            self::Almost => 'Almost there, but it needs a few additions',
-            self::Draft => 'A good base, but still a draft',
+            self::Ready => __('Ready to use, with small tweaks', [], $locale),
+            self::Almost => __('Almost there, but it needs a few additions', [], $locale),
+            self::Draft => __('A good base, but still a draft', [], $locale),
         };
     }
 }

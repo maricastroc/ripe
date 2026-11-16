@@ -21,7 +21,7 @@ final readonly class DeleteTask
             $task = $this->locked($task);
 
             if ($task->is_example) {
-                throw new TaskActionRejected('Examples can only be read.');
+                throw new TaskActionRejected(__('Examples can only be read.'));
             }
 
             $this->forget->handle($task, EventActor::Visitor);

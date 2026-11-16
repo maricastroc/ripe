@@ -20,6 +20,9 @@ final class AnswerQuestionRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['answer.required' => 'Write an answer first.'];
+        return [
+            'answer.required' => __('Write an answer first.'),
+            'answer.max' => __('Keep the answer under :max characters.'),
+        ];
     }
 }

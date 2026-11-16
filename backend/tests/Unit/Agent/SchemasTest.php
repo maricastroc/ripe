@@ -14,6 +14,9 @@ use App\Enums\OutputFormat;
 use App\Enums\QuestionKind;
 use App\Enums\ReviewVerdict;
 use App\Exceptions\Inference\InvalidModelOutput;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 it('writes every schema in the subset both providers accept strictly', function (object $schema): void {
     expect(StrictSchema::violations($schema->format()->schema))->toBe([]);

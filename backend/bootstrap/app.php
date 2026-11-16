@@ -9,6 +9,7 @@ use App\Exceptions\VersionConflict;
 use App\Http\Middleware\AssignRequestContext;
 use App\Http\Middleware\EnsureSameOrigin;
 use App\Http\Middleware\ThroughGateway;
+use App\Http\Middleware\UseRequestLocale;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [AssignRequestContext::class, ThroughGateway::class, EnsureSameOrigin::class]);
+        $middleware->api(prepend: [AssignRequestContext::class, UseRequestLocale::class, ThroughGateway::class, EnsureSameOrigin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -67,10 +68,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ], 422));
 
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request): ?JsonResponse {
-            if (! $request->is('api/*') || $exception->getStatusCode() !== 404) {
+            if (! $request->is('api/*') || ! in_array($exception->getStatusCode(), [404, 429], true)) {
                 return null;
             }
 
-            return new JsonResponse(['message' => 'Nothing grows here.'], 404, $exception->getHeaders());
+            UseRequestLocale::apply($request);
+
+            $message = $exception->getStatusCode() === 404 ? __('Nothing grows here.') : __('Too Many Attempts.');
+
+            return new JsonResponse(['message' => $message], $exception->getStatusCode(), $exception->getHeaders());
         });
     })->create();

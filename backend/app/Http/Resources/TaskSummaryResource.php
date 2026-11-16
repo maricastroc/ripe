@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Models\Step;
 use App\Models\Task;
+use App\Observability\StallReason;
 use App\Retention\Retention;
 use App\Snapshots\TaskState;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class TaskSummaryResource extends JsonResource
             ],
             'ripeAt' => $task->ripe_at?->toIso8601ZuluString('microsecond'),
             'harvestedAt' => $task->harvested_at?->toIso8601ZuluString('microsecond'),
-            'stallReason' => $task->stall_reason,
+            'stallReason' => StallReason::present($task->stall_reason),
             'growth' => [
                 'stage' => $state->growth->stage,
                 'maturity' => round($state->growth->maturity, 4),

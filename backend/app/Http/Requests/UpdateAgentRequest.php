@@ -24,7 +24,7 @@ final class UpdateAgentRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['baseUrl.prohibited' => "The model's address is set by whoever runs Ripe, not from the interface."];
+        return ['baseUrl.prohibited' => __("The model's address is set by whoever runs Ripe, not from the interface.")];
     }
 
     public function pace(): ?Pace

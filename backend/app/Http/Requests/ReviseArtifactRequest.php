@@ -20,6 +20,9 @@ final class ReviseArtifactRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['instruction.required' => 'Say what you want to change.'];
+        return [
+            'instruction.required' => __('Say what you want to change.'),
+            'instruction.max' => __('Keep the request under :max characters.'),
+        ];
     }
 }

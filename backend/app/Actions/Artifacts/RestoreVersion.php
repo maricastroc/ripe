@@ -32,11 +32,11 @@ final class RestoreVersion
             $target = is_string($targetId) ? ArtifactVersion::query()->where('artifact_id', $artifact->id)->whereKey($targetId)->first() : null;
 
             if ($target === null) {
-                throw new TaskActionRejected('There is no earlier version to go back to.');
+                throw new TaskActionRejected(__('There is no earlier version to go back to.'));
             }
 
             if ($target->id === $current) {
-                throw new TaskActionRejected('That is already the current version.');
+                throw new TaskActionRejected(__('That is already the current version.'));
             }
 
             return $artifact->restore($target);

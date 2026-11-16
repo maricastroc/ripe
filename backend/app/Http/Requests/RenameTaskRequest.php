@@ -20,6 +20,9 @@ final class RenameTaskRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['title.required' => "The title can't be empty."];
+        return [
+            'title.required' => __("The title can't be empty."),
+            'title.max' => __('Keep the title under :max characters.'),
+        ];
     }
 }

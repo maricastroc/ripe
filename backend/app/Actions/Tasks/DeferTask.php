@@ -28,15 +28,15 @@ final class DeferTask
     public function within(Task $task, ?CarbonImmutable $returnAt = null): void
     {
         if ($task->is_example) {
-            throw new TaskActionRejected('The agent does not work on examples.');
+            throw new TaskActionRejected(__('The agent does not work on examples.'));
         }
 
         if ($task->status === TaskStatus::Harvested) {
-            throw new TaskActionRejected('This task has already been harvested.');
+            throw new TaskActionRejected(__('This task has already been harvested.'));
         }
 
         if ($task->status === TaskStatus::Ripe) {
-            throw new TaskActionRejected('This task is already ripe.');
+            throw new TaskActionRejected(__('This task is already ripe.'));
         }
 
         $from = $task->status;

@@ -23,7 +23,7 @@ trait LocksArtifacts
         $draft = ArtifactDraft::query()->whereKey($artifact->id)->lockForUpdate()->first();
 
         if ($task->is_example) {
-            throw new TaskActionRejected('Examples can only be read.');
+            throw new TaskActionRejected(__('Examples can only be read.'));
         }
 
         return [$task, $locked, $draft];
@@ -31,6 +31,6 @@ trait LocksArtifacts
 
     private function currentVersionId(Artifact $artifact): string
     {
-        return $artifact->current_version_id ?? throw new TaskActionRejected('There is nothing written here yet.');
+        return $artifact->current_version_id ?? throw new TaskActionRejected(__('There is nothing written here yet.'));
     }
 }

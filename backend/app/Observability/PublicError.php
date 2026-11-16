@@ -8,33 +8,40 @@ use App\Enums\AttemptOutcome;
 
 final class PublicError
 {
-    private const string SOMETHING_WENT_WRONG = 'Something went wrong on our side.';
+    public static function of(?AttemptOutcome $outcome, ?string $errorClass, ?string $locale = null): ?string
+    {
+        if ($outcome === null || $outcome === AttemptOutcome::Succeeded) {
+            return null;
+        }
 
-    public static function of(?AttemptOutcome $outcome, ?string $errorClass): ?string
+        return self::sentence($outcome, $errorClass, $locale);
+    }
+
+    private static function sentence(AttemptOutcome $outcome, ?string $errorClass, ?string $locale): string
     {
         return match ($outcome) {
-            null, AttemptOutcome::Succeeded => null,
-            AttemptOutcome::Cancelled => 'Stopped before it finished.',
-            AttemptOutcome::LeaseLost, AttemptOutcome::Interrupted => 'The work stopped halfway and was picked up again.',
-            AttemptOutcome::TimedOut => 'The model took too long to answer.',
-            AttemptOutcome::RateLimited => 'The model asked for a pause.',
-            AttemptOutcome::InvalidOutput => $errorClass === 'InvalidModelOutput' ? 'The model’s answer was not in the expected shape.' : self::SOMETHING_WENT_WRONG,
-            AttemptOutcome::DriverUnavailable, AttemptOutcome::Failed => self::byClass($errorClass),
+            AttemptOutcome::Succeeded => __('Something went wrong on our side.', [], $locale),
+            AttemptOutcome::Cancelled => __('Stopped before it finished.', [], $locale),
+            AttemptOutcome::LeaseLost, AttemptOutcome::Interrupted => __('The work stopped halfway and was picked up again.', [], $locale),
+            AttemptOutcome::TimedOut => __('The model took too long to answer.', [], $locale),
+            AttemptOutcome::RateLimited => __('The model asked for a pause.', [], $locale),
+            AttemptOutcome::InvalidOutput => $errorClass === 'InvalidModelOutput' ? __('The model’s answer was not in the expected shape.', [], $locale) : __('Something went wrong on our side.', [], $locale),
+            AttemptOutcome::DriverUnavailable, AttemptOutcome::Failed => self::byClass($errorClass, $locale),
         };
     }
 
-    private static function byClass(?string $errorClass): string
+    private static function byClass(?string $errorClass, ?string $locale): string
     {
         return match ($errorClass) {
-            'ModelUnavailable', 'TransportFailed', 'TransportTimeout' => 'The model could not be reached.',
-            'DriverMisconfigured' => 'The model is not configured correctly.',
-            'ProviderQuotaExhausted' => 'The model’s allowance is used up.',
-            'ModelRefused' => 'The model declined to write this.',
-            'ModelRequestRejected' => 'The model rejected the request.',
-            'RateLimited' => 'The model asked for a pause.',
-            'ModelTimeout' => 'The model took too long to answer.',
-            'InvalidModelOutput' => 'The model’s answer was not in the expected shape.',
-            default => self::SOMETHING_WENT_WRONG,
+            'ModelUnavailable', 'TransportFailed', 'TransportTimeout' => __('The model could not be reached.', [], $locale),
+            'DriverMisconfigured' => __('The model is not configured correctly.', [], $locale),
+            'ProviderQuotaExhausted' => __('The model’s allowance is used up.', [], $locale),
+            'ModelRefused' => __('The model declined to write this.', [], $locale),
+            'ModelRequestRejected' => __('The model rejected the request.', [], $locale),
+            'RateLimited' => __('The model asked for a pause.', [], $locale),
+            'ModelTimeout' => __('The model took too long to answer.', [], $locale),
+            'InvalidModelOutput' => __('The model’s answer was not in the expected shape.', [], $locale),
+            default => __('Something went wrong on our side.', [], $locale),
         };
     }
 }

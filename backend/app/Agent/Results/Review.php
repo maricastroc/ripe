@@ -23,27 +23,27 @@ final readonly class Review
         public array $nextActions,
     ) {}
 
-    public function toMarkdown(): string
+    public function toMarkdown(string $locale = 'en'): string
     {
-        $parts = ["**Verdict:** {$this->verdict->label()}.", $this->summary];
+        $parts = ['**'.__('Verdict:', [], $locale).'** '.$this->verdict->label($locale).'.', $this->summary];
 
         if ($this->strengths !== []) {
-            $parts[] = "## What already works\n".$this->bullets($this->strengths);
+            $parts[] = '## '.__('What already works', [], $locale)."\n".$this->bullets($this->strengths);
         }
 
         if ($this->issues !== []) {
-            $parts[] = "## What to improve\n".implode("\n", array_map(
+            $parts[] = '## '.__('What to improve', [], $locale)."\n".implode("\n", array_map(
                 static fn (ReviewIssue $issue): string => "- **{$issue->where}:** {$issue->problem}".($issue->suggestion === '' ? '' : " → {$issue->suggestion}"),
                 $this->issues,
             ));
         }
 
         if ($this->missing !== []) {
-            $parts[] = "## What still depends on you\n".$this->bullets($this->missing);
+            $parts[] = '## '.__('What still depends on you', [], $locale)."\n".$this->bullets($this->missing);
         }
 
         if ($this->nextActions !== []) {
-            $parts[] = "## Next steps when you come back\n".implode("\n", array_map(static fn (string $action): string => "- [ ] {$action}", $this->nextActions));
+            $parts[] = '## '.__('Next steps when you come back', [], $locale)."\n".implode("\n", array_map(static fn (string $action): string => "- [ ] {$action}", $this->nextActions));
         }
 
         return implode("\n\n", $parts);
