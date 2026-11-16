@@ -81,54 +81,64 @@ export function MyceliumNote({
   );
 }
 
-export function ExampleLink({ onOpen, opening }: { onOpen: () => void; opening: boolean }) {
-  const { t } = useI18n();
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      disabled={opening}
-      aria-busy={opening}
-      className="focus-ring inline-flex min-h-11 items-center gap-1.5 text-left font-display text-[14.5px] italic text-root underline decoration-line/60 decoration-1 underline-offset-[3px] hover:text-paper disabled:no-underline lg:min-h-0"
-    >
-      {opening && (
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-      )}
-      {opening ? t.greenhouse.empty.openingExample : t.plate.example}
-    </button>
-  );
-}
-
 const SEED_TILT = [-20, 15, -35];
 
-export function DormantSeeds({ onPick }: { onPick: (seed: string) => void }) {
+export function EmptyNote() {
   const { t } = useI18n();
   const g = t.greenhouse;
   return (
-    <div className="plate-seeds relative z-20 self-start pb-6 pl-1.5 lg:pb-2 lg:pl-[26px]">
+    <div className="plate-note relative z-20 self-start pl-1.5 lg:pl-[26px]">
       <p className="mt-5 font-display text-[16px] leading-[21px] text-paper lg:ml-[128px] lg:mt-16">
         {g.empty.title} <em className="font-display-wonk">{g.empty.titleTail}</em>
       </p>
-      <ul aria-label={t.plate.dormant} className="plate-seed-list mt-3 flex flex-col items-start lg:ml-2.5 lg:mt-5">
+    </div>
+  );
+}
+
+export function SeedShelf({
+  onPick,
+  onExample,
+  opening,
+}: {
+  onPick: (seed: string) => void;
+  onExample: () => void;
+  opening: boolean;
+}) {
+  const { t } = useI18n();
+  const g = t.greenhouse;
+  return (
+    <div className="plate-shelf relative z-20 self-start pb-6 pl-1.5 pr-6 pt-4 lg:pt-7">
+      <p className="shelf-label typewriter text-[10.5px] uppercase tracking-[0.2em]">{t.plate.dormant}</p>
+      <ul aria-label={t.plate.dormant} className="mt-2 flex flex-col items-start">
         {g.suggestions.slice(0, SEED_TILT.length).map((s, i) => (
           <li key={s}>
             <button
               type="button"
               onClick={() => onPick(s)}
-              className="plate-seed focus-ring group inline-flex min-h-11 items-center gap-2.5 text-left font-display text-[15.5px] italic text-root lg:min-h-7"
+              className="shelf-seed focus-ring group inline-flex min-h-11 items-center gap-2.5 text-left font-display text-[15.5px] italic lg:min-h-7"
             >
               <span
                 aria-hidden
                 className="h-[7px] w-[11px] flex-none rounded-full bg-wood-3"
                 style={{ rotate: `${SEED_TILT[i]}deg` }}
               />
-              <span className="font-display-wonk border-b border-dotted border-line/70 transition-colors group-hover:border-paper group-hover:text-paper">
-                {s}
-              </span>
+              <span className="shelf-word font-display-wonk border-b border-dotted transition-colors">{s}</span>
             </button>
           </li>
         ))}
       </ul>
+      <button
+        type="button"
+        onClick={onExample}
+        disabled={opening}
+        aria-busy={opening}
+        className="shelf-example focus-ring mt-5 inline-flex min-h-11 items-center gap-1.5 text-left font-display text-[14.5px] italic underline decoration-1 underline-offset-[3px] disabled:no-underline lg:min-h-0"
+      >
+        {opening && (
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+        )}
+        {opening ? g.empty.openingExample : t.plate.example}
+      </button>
     </div>
   );
 }

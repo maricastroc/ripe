@@ -426,9 +426,45 @@ body::after {
   grid-row: tail;
 }
 
-.plate-seeds {
+.plate-note {
   grid-column: packet;
   grid-row: tail-start / soil-end;
+}
+
+.plate-shelf {
+  --shelf-ink: var(--ink);
+  --shelf-soft: var(--ink-2);
+  --shelf-rule: var(--line-2);
+  --shelf-link: var(--cobalt);
+  grid-column: key;
+  grid-row: key;
+}
+
+.shelf-label {
+  color: var(--shelf-soft);
+}
+
+.shelf-seed {
+  color: var(--shelf-ink);
+}
+
+.shelf-word {
+  border-color: var(--shelf-rule);
+}
+
+.shelf-seed:hover .shelf-word,
+.shelf-seed:focus-visible .shelf-word {
+  color: var(--shelf-link);
+  border-color: currentColor;
+}
+
+.shelf-example {
+  color: var(--shelf-link);
+  text-decoration-color: color-mix(in oklab, var(--shelf-link) 45%, transparent);
+}
+
+.shelf-example:hover {
+  text-decoration-color: currentColor;
 }
 
 .plate-notes {
@@ -442,18 +478,6 @@ body::after {
   overscroll-behavior-x: contain;
 }
 
-@media (min-width: 1024px) and (max-height: 800px) {
-  .plate-seed {
-    min-height: 24px;
-  }
-}
-
-@media (min-width: 1024px) and (max-height: 740px) {
-  .plate-seed-list > :nth-child(n + 3) {
-    display: none;
-  }
-}
-
 @media (min-width: 1024px) and (max-height: 700px) {
   .plate-agent-label {
     display: none;
@@ -465,8 +489,7 @@ body::after {
 }
 
 @media (min-width: 1024px) and (max-height: 660px) {
-  .plate-lede,
-  .plate-seed-list {
+  .plate-lede {
     display: none;
   }
 }
@@ -492,7 +515,7 @@ body::after {
     grid-template-rows:
       [head-start] auto [head-end key-start] auto [key-end title-start] auto [title-end above-start] auto
       [above-end band-start] auto [band-end tail-start] auto [tail-end packet-start] auto [packet-end soil-start] auto
-      [soil-end seeds-start] 1fr [seeds-end];
+      [soil-end note-start] auto [note-end seeds-start] 1fr [seeds-end];
   }
 
   .plate-grid {
@@ -554,8 +577,16 @@ body::after {
     display: none;
   }
 
-  .plate-seeds {
+  .plate-note {
     grid-column: key;
+    grid-row: note;
+  }
+
+  .plate-shelf {
+    --shelf-ink: var(--root);
+    --shelf-soft: var(--line);
+    --shelf-rule: rgb(217 202 173 / 0.7);
+    --shelf-link: var(--paper);
     grid-row: seeds;
   }
 }

@@ -20,7 +20,7 @@ import { Bed } from "./Bed";
 import { ForgetGreenhouse } from "./ForgetGreenhouse";
 import { layoutStrip } from "./layout";
 import { Pantry } from "./Pantry";
-import { CensusKey, DormantSeeds, ExampleLink, MyceliumNote, PlateSheet } from "./Plate";
+import { CensusKey, EmptyNote, MyceliumNote, PlateSheet, SeedShelf } from "./Plate";
 import { FIGURE_VIEW, FigureUnderground, PlateFigure } from "./PlateFigure";
 import { PlateSoil } from "./PlateSoil";
 import { catalog } from "./PlantPlot";
@@ -390,7 +390,12 @@ export function Greenhouse({
           )}
 
           <SowingMarks empty={!growing} next={catalog(data.tasks.length + 1)} note={t.plate.sowHere} />
-          {!growing && <DormantSeeds onPick={(s) => packet.current?.fill(`${s} `)} />}
+          {!growing && (
+            <>
+              <SeedShelf onPick={(s) => packet.current?.fill(`${s} `)} onExample={example} opening={openingExample} />
+              <EmptyNote />
+            </>
+          )}
 
           <div ref={notes} className="plate-notes relative z-20 self-start pb-3 pl-1.5">
             <AnimatePresence initial={false} mode="popLayout">
@@ -420,9 +425,6 @@ export function Greenhouse({
                   <p className="plate-lede mt-4 w-full max-w-[400px] text-[15px] leading-[22px] text-root">
                     {t.plate.lede}
                   </p>
-                  <div className="mt-1">
-                    <ExampleLink onOpen={example} opening={openingExample} />
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
