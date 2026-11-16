@@ -8,6 +8,7 @@ use App\Orchestration\Execution\RunExecutor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Context;
 
 final class ExecuteRun implements ShouldQueue
 {
@@ -28,6 +29,8 @@ final class ExecuteRun implements ShouldQueue
 
     public function handle(RunExecutor $executor): void
     {
+        Context::forget(['task_id', 'attempt_id']);
+        Context::add('run_id', $this->runId);
         $jobId = $this->job?->getJobId();
 
         $executor->execute($this->runId, $jobId === null ? null : (string) $jobId);

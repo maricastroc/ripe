@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\AttemptOutcome;
 use App\Enums\ChargeBasis;
+use App\Observability\AgentLog;
 use App\Orchestration\AttemptReport;
 use App\Orchestration\Budget\InferenceBudget;
 use App\Orchestration\Quota\QuotaGate;
@@ -70,6 +71,7 @@ class RunAttempt extends Model
 
         app(InferenceBudget::class)->settle($this, $report, $now);
         app(QuotaGate::class)->settle($this, $report, $now);
+        app(AgentLog::class)->attemptFinished($this);
 
         return true;
     }

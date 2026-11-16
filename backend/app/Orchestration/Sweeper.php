@@ -14,6 +14,7 @@ use App\Models\AgentRun;
 use App\Models\RunAttempt;
 use App\Models\Task;
 use App\Models\TaskEvent;
+use App\Observability\AgentLog;
 use App\Orchestration\Budget\InferenceBudget;
 use App\Orchestration\Quota\QuotaGate;
 use Carbon\CarbonImmutable;
@@ -29,6 +30,7 @@ final class Sweeper
         private readonly InferenceManager $inference,
         private readonly InferenceBudget $budget,
         private readonly QuotaGate $quota,
+        private readonly AgentLog $log,
     ) {}
 
     /** @return array{expired: int, redispatched: int, reconciled: int, orphans_settled: int, calls_closed: int, calls_pruned: int, halt_lifted: bool} */
@@ -36,7 +38,7 @@ final class Sweeper
     {
         $now = CarbonImmutable::now();
 
-        return [
+        $sweep = [
             'expired' => $this->expireLeases($now),
             'redispatched' => $this->redispatchStale($now),
             'reconciled' => $this->reconcileIdle(),
@@ -45,6 +47,10 @@ final class Sweeper
             'calls_pruned' => $this->quota->prune($now),
             'halt_lifted' => $this->liftHalt(),
         ];
+
+        $this->log->swept($sweep);
+
+        return $sweep;
     }
 
     public function expireLeases(CarbonImmutable $now): int

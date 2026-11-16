@@ -11,6 +11,7 @@ use App\Enums\RunStatus;
 use App\Enums\TaskEventType;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\GuardsStatusTransitions;
+use App\Observability\AgentLog;
 use App\Support\Transactions;
 use Carbon\CarbonImmutable;
 use Database\Factories\TaskFactory;
@@ -138,6 +139,10 @@ class Task extends Model
         }
 
         TaskEvent::record($this, TaskEventType::TaskStatusChanged, $payload, $actor);
+
+        if ($to === TaskStatus::Stalled) {
+            app(AgentLog::class)->taskStalled($this);
+        }
     }
 
     protected function casts(): array
