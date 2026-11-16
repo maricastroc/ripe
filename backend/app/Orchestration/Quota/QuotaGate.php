@@ -117,7 +117,7 @@ final class QuotaGate
         return DB::table('inference_calls')->where('started_at', '<', $now->subDays(2))->delete();
     }
 
-    private function refusal(string $scope, QuotaLimits $limits, int $tokens, CarbonImmutable $now): ?QuotaShortfall
+    public function usage(string $scope, CarbonImmutable $now): QuotaUsage
     {
         $usage = DB::selectOne(
             'select
@@ -138,18 +138,31 @@ final class QuotaGate
 
         $count = static fn (string $field): int => $usage instanceof stdClass && is_numeric($usage->{$field} ?? null) ? (int) $usage->{$field} : 0;
 
-        if ($count('day_requests') + 1 > $limits->requestsPerDay || $count('day_tokens') + $tokens > $limits->tokensPerDay) {
+        return new QuotaUsage(
+            minuteRequests: $count('minute_requests'),
+            minuteTokens: $count('minute_tokens'),
+            dayRequests: $count('day_requests'),
+            dayTokens: $count('day_tokens'),
+            inFlight: $count('in_flight'),
+            minuteOldest: $usage instanceof stdClass && is_string($usage->minute_oldest ?? null) ? CarbonImmutable::parse($usage->minute_oldest) : null,
+            blockedUntil: self::blockedUntil(DB::selectOne('select blocked_until from inference_quotas where scope = ?', [$scope])),
+        );
+    }
+
+    private function refusal(string $scope, QuotaLimits $limits, int $tokens, CarbonImmutable $now): ?QuotaShortfall
+    {
+        $usage = $this->usage($scope, $now);
+
+        if ($usage->dayRequests + 1 > $limits->requestsPerDay || $usage->dayTokens + $tokens > $limits->tokensPerDay) {
             return new QuotaShortfall(QuotaWait::Daily, $now->addMinutes(Config::integer('ripe.quota.daily_recheck_minutes')), false);
         }
 
-        if ($count('in_flight') + 1 > $limits->concurrency) {
+        if ($usage->inFlight + 1 > $limits->concurrency) {
             return new QuotaShortfall(QuotaWait::Capacity, $now->addSeconds(Config::integer('ripe.quota.busy_recheck_seconds')), true);
         }
 
-        if ($count('minute_requests') + 1 > $limits->requestsPerMinute || $count('minute_tokens') + $tokens > $limits->tokensPerMinute) {
-            $oldest = $usage instanceof stdClass && is_string($usage->minute_oldest ?? null) ? CarbonImmutable::parse($usage->minute_oldest) : $now;
-
-            return new QuotaShortfall(QuotaWait::Capacity, $oldest->addMinute()->max($now->addSecond()), true);
+        if ($usage->minuteRequests + 1 > $limits->requestsPerMinute || $usage->minuteTokens + $tokens > $limits->tokensPerMinute) {
+            return new QuotaShortfall(QuotaWait::Capacity, ($usage->minuteOldest ?? $now)->addMinute()->max($now->addSecond()), true);
         }
 
         return null;
