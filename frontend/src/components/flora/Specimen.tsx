@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n/context";
+import type { Messages } from "@/lib/i18n/messages/en";
 import type { PlantMood, WorkFocus } from "@/lib/presence";
 import { type Anatomy, type BranchSpec, type LeafSpec, type SpecimenState, computeAnatomy } from "./anatomy";
 import { type Pt, closedSmooth, hash, mixHex, openSmooth, polar, r1, rand, tapered } from "./geometry";
@@ -375,16 +377,11 @@ function Hit({
   );
 }
 
-function branchLabel(b: BranchSpec) {
+function branchLabel(t: Messages, b: BranchSpec) {
+  const s = t.specimen.branch;
   const what =
-    b.status === "done"
-      ? "ready to read"
-      : b.status === "working"
-        ? "being written"
-        : b.status === "blocked"
-          ? "waiting on you"
-          : "ready to start";
-  return `Step ${b.index}${b.title ? `: ${b.title}` : ""}, ${what}`;
+    b.status === "done" ? s.done : b.status === "working" ? s.working : b.status === "blocked" ? s.blocked : s.ready;
+  return s.label(b.index, b.title ?? null, what);
 }
 
 function Callout({ at, side, text, lit }: { at: Pt; side: number; text: string; lit: boolean }) {
@@ -506,6 +503,8 @@ export function Specimen({
   className,
   title,
 }: Props) {
+  const { t } = useI18n();
+  const sp = t.specimen;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const reduce = useReducedMotion();
   const [settled, setSettled] = useState(false);
@@ -547,7 +546,11 @@ export function Specimen({
   const viewBox = plate ? `-170 ${r1(plateTop)} 340 ${r1(164 - plateTop)}` : "-160 -330 320 460";
   const label =
     title ??
-    `${species.common === "seedling" ? "Seedling" : species.common}: ${state.growth.stepsDone} of ${state.growth.stepsTotal} steps done`;
+    sp.label(
+      species.id === "seedling" ? sp.seedling : t.species[species.id],
+      state.growth.stepsDone,
+      state.growth.stepsTotal,
+    );
 
   return (
     <svg viewBox={viewBox} className={className} role="img" aria-label={label} style={{ overflow: "visible" }}>
@@ -703,7 +706,7 @@ export function Specimen({
             <Hit
               key={branch.stepId}
               id={branch.stepId}
-              label={branchLabel(branch)}
+              label={branchLabel(t, branch)}
               at={branch.anchor}
               onHover={onHover}
               onSelect={onSelect}
@@ -820,12 +823,12 @@ export function Specimen({
               id="apex"
               label={
                 anatomy.apex.kind === "fruit"
-                  ? "The fruit: the most complete version of the work"
+                  ? sp.apex.fruit
                   : anatomy.apex.kind === "fruitlet"
-                    ? "Fruit setting: most of the work is done"
+                    ? sp.apex.fruitlet
                     : anatomy.apex.kind === "flower"
-                      ? "In bloom: the first piece is ready"
-                      : "The growing tip"
+                      ? sp.apex.flower
+                      : sp.apex.tip
               }
               at={
                 anatomy.apex.kind === "fruit" || anatomy.apex.kind === "fruitlet"
@@ -903,7 +906,7 @@ export function Specimen({
         </AnimatePresence>
 
         {anatomy.tag && (
-          <Hit id="tag" label="The agent's review" at={anatomy.tag.card} r={18} onHover={onHover} onSelect={onSelect}>
+          <Hit id="tag" label={sp.tag} at={anatomy.tag.card} r={18} onHover={onHover} onSelect={onSelect}>
             <motion.g initial={from({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
               <path
                 d={`M ${r1(anatomy.tag.knot.x)} ${r1(anatomy.tag.knot.y)} Q ${r1((anatomy.tag.knot.x + anatomy.tag.card.x) / 2)} ${r1(anatomy.tag.card.y + 6)} ${r1(anatomy.tag.card.x)} ${r1(anatomy.tag.card.y - 8)}`}
@@ -927,7 +930,7 @@ export function Specimen({
                   textAnchor="middle"
                   style={{ fill: "#5a4630", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
                 >
-                  review
+                  {sp.tagText}
                 </text>
               </g>
             </motion.g>
@@ -935,14 +938,7 @@ export function Specimen({
         )}
 
         {anatomy.waiting && (
-          <Hit
-            id="waiting"
-            label="Waiting for your answer before the review"
-            at={anatomy.waiting.card}
-            r={18}
-            onHover={onHover}
-            onSelect={onSelect}
-          >
+          <Hit id="waiting" label={sp.waiting} at={anatomy.waiting.card} r={18} onHover={onHover} onSelect={onSelect}>
             <motion.g initial={from({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
               <path
                 d={`M ${r1(anatomy.waiting.knot.x)} ${r1(anatomy.waiting.knot.y)} Q ${r1((anatomy.waiting.knot.x + anatomy.waiting.card.x) / 2)} ${r1(anatomy.waiting.card.y + 4)} ${r1(anatomy.waiting.card.x)} ${r1(anatomy.waiting.card.y - 8)}`}
@@ -966,7 +962,7 @@ export function Specimen({
                   textAnchor="middle"
                   style={{ fill: "var(--cobalt)", fontSize: 6.4, fontFamily: "var(--font-typewriter), monospace" }}
                 >
-                  needs you
+                  {sp.waitingText}
                 </text>
               </g>
             </motion.g>

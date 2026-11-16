@@ -36,7 +36,7 @@ final class RequestRevision
         $clean = $instruction === null ? null : mb_substr(trim($instruction), 0, 500);
 
         if ($clean === '') {
-            throw new TaskActionRejected('Say what you want to change.');
+            throw new TaskActionRejected(__('Say what you want to change.'));
         }
 
         return DB::transaction(function () use ($artifact, $clean): AgentRun {
@@ -60,7 +60,7 @@ final class RequestRevision
             }
 
             if ($count === 0) {
-                throw new TaskActionRejected('None of the pieces has gaps left to fill.');
+                throw new TaskActionRejected(__('None of the pieces has gaps left to fill.'));
             }
 
             return $count;
@@ -70,24 +70,24 @@ final class RequestRevision
     private function within(Task $task, Artifact $artifact, ?string $instruction): AgentRun
     {
         if ($task->is_example) {
-            throw new TaskActionRejected('The agent does not work on examples.');
+            throw new TaskActionRejected(__('The agent does not work on examples.'));
         }
 
         if ($task->status === TaskStatus::Harvested) {
-            throw new TaskActionRejected('Replant the task before asking for rewrites.');
+            throw new TaskActionRejected(__('Replant the task before asking for rewrites.'));
         }
 
         if ($this->isBeingRevised($artifact)) {
-            throw new TaskActionRejected('This piece is already being rewritten.');
+            throw new TaskActionRejected(__('This piece is already being rewritten.'));
         }
 
         if ($this->budget->remaining($task) < 1) {
-            throw new TaskActionRejected("This task used all {$this->budget->limit()} of its agent runs.");
+            throw new TaskActionRejected(__('This task used all :count of its agent runs.', ['count' => $this->budget->limit()]));
         }
 
         $this->consolidateDraft($artifact);
 
-        $version = $artifact->current_version_id ?? throw new TaskActionRejected('There is nothing to rewrite yet.');
+        $version = $artifact->current_version_id ?? throw new TaskActionRejected(__('There is nothing to rewrite yet.'));
         $run = $this->dispatcher->schedule($task, NextRun::revision($artifact, $version, $instruction), EventActor::Visitor);
         $task->transitionTo(TaskStatus::Ripening, EventActor::Visitor);
 

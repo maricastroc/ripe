@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { rand, hash } from "@/components/flora/geometry";
 import { speciesOf } from "@/components/flora/species";
 import { PendingBar } from "@/components/PendingBar";
 import { formatRelative } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
 import type { TaskSummary } from "@/lib/types";
 import { catalog } from "./PlantPlot";
 
@@ -62,14 +65,16 @@ function Jar({ task }: { task: TaskSummary }) {
 }
 
 export function Pantry({ tasks, numbers }: { tasks: TaskSummary[]; numbers: Map<string, number> }) {
+  const i18n = useI18n();
+  const p = i18n.t.pantry;
   if (!tasks.length) return null;
   return (
     <section className="relative px-4 pb-6 pt-14 sm:px-10" aria-labelledby="pantry-title">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 id="pantry-title" className="font-display text-2xl italic text-[#efe3c7] font-display-wonk">
-          The pantry
+          {p.title}
         </h2>
-        <p className="typewriter text-[12px] text-[#c9b48f]">{tasks.length} harvested · preserved, still readable</p>
+        <p className="typewriter text-[12px] text-[#c9b48f]">{p.summary(tasks.length)}</p>
       </div>
       <ul className="mt-6 flex flex-wrap items-end gap-x-5 gap-y-0 px-3">
         {tasks.map((task) => (
@@ -77,8 +82,8 @@ export function Pantry({ tasks, numbers }: { tasks: TaskSummary[]; numbers: Map<
             <Link
               href={`/t/${task.id}`}
               className="focus-ring group relative block"
-              aria-label={`${task.title}, harvested`}
-              title={task.harvestedAt ? `harvested ${formatRelative(task.harvestedAt)}` : undefined}
+              aria-label={p.jar(task.title)}
+              title={task.harvestedAt ? p.harvested(formatRelative(i18n, task.harvestedAt)) : undefined}
             >
               <PendingBar className="inset-x-[14px] bottom-1 z-10 h-[3px] rounded-full" />
               <div className="transition-transform duration-300 group-hover:-translate-y-1">

@@ -16,7 +16,7 @@ final class EnsureSameOrigin
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->isMethodSafe() && ! $this->isSameOrigin($request)) {
-            throw new AccessDeniedHttpException('Changes to Ripe must come from Ripe itself.');
+            throw new AccessDeniedHttpException(__('Changes to Ripe must come from Ripe itself.'));
         }
 
         return $next($request);

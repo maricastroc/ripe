@@ -20,8 +20,9 @@ import { usePolling } from "@/hooks/usePolling";
 import { useChannel } from "@/hooks/useRealtime";
 import { useSky } from "@/hooks/useSky";
 import { api } from "@/lib/api";
-import { returnWhen } from "@/lib/format";
-import { DELIVERABLE_LABEL } from "@/lib/labels";
+import { formatDay, returnWhen } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
+import { deliverableLabel } from "@/lib/labels";
 import { LiveStore, asChange, asDelta } from "@/lib/live";
 import { awaitsAnswer, focusOf, moodOf } from "@/lib/presence";
 import type { RealtimeConfig } from "@/lib/realtime";
@@ -41,10 +42,9 @@ function interval(d: Data) {
   return 7000;
 }
 
-const dayFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
-
 function BackIcon() {
   const { pending } = useLinkStatus();
+  const { t } = useI18n();
   return pending ? (
     <>
       <LoaderCircle
@@ -53,7 +53,7 @@ function BackIcon() {
         aria-hidden
       />
       <span role="status" className="sr-only">
-        Opening the greenhouse…
+        {t.sheet.openingGreenhouse}
       </span>
     </>
   ) : (
@@ -62,12 +62,13 @@ function BackIcon() {
 }
 
 function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string) => Promise<void> }) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(task.title);
   return (
     <div>
       <p className="label">
-        field notes · {task.deliverable ? DELIVERABLE_LABEL[task.deliverable].toLowerCase() : "request"}
+        {t.sheet.fieldNotes(task.deliverable ? deliverableLabel(t, task.deliverable).toLowerCase() : t.sheet.request)}
       </p>
       {editing ? (
         <form
@@ -79,7 +80,7 @@ function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string)
           }}
         >
           <label htmlFor="title-input" className="sr-only">
-            Task title
+            {t.sheet.titleLabel}
           </label>
           <input
             id="title-input"
@@ -112,7 +113,7 @@ function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string)
               }}
               className="focus-ring ml-3 align-middle text-[12px] font-normal tracking-normal text-ink-3 opacity-0 transition-opacity hover:text-ink focus:opacity-100 group-hover:opacity-100"
             >
-              rename
+              {t.sheet.rename}
             </button>
           )}
         </h1>
@@ -141,6 +142,9 @@ export function SpecimenSheet({
   );
   const { task, agent } = data;
   const { sky } = useSky();
+  const i18n = useI18n();
+  const { t } = i18n;
+  const sh = t.sheet;
   const router = useRouter();
   const [liveStore] = useState(() => new LiveStore(initial.task));
   const liveText = useSyncExternalStore(liveStore.subscribe, liveStore.current, liveStore.current)?.text ?? null;
@@ -197,7 +201,7 @@ export function SpecimenSheet({
       applyTask(res.task);
       void refresh();
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Something went wrong. Try again.");
+      setNotice(err instanceof Error ? err.message : sh.failed);
     } finally {
       setBusy(false);
     }
@@ -224,7 +228,7 @@ export function SpecimenSheet({
       await api(`/api/tasks/${task.id}`, { method: "DELETE" });
       router.push("/");
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Couldn't delete it.");
+      setNotice(err instanceof Error ? err.message : sh.deleteFailed);
       setBusy(false);
     }
   }
@@ -297,7 +301,7 @@ export function SpecimenSheet({
   const answered = task.questions.some((q) => q.status === "answered");
   const canRefresh = answered && stepArtifacts.some((a) => a.gaps.length > 0) && !task.isExample;
   const readOnly = task.isExample || task.status === "harvested";
-  const collect = task.status !== "ripe" && task.status !== "harvested" ? returnWhen(task.returnAt) : null;
+  const collect = task.status !== "ripe" && task.status !== "harvested" ? returnWhen(i18n, task.returnAt) : null;
   const species = speciesOf(task.fruit);
   const highlight = hover ?? organOf(selectedId);
 
@@ -324,15 +328,15 @@ export function SpecimenSheet({
           <span className="h-7 w-px bg-scene-ink/25" aria-hidden />
           <Link
             href="/"
-            aria-label="Back to the greenhouse"
+            aria-label={sh.back}
             className="back-link group inline-flex min-h-11 min-w-11 items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 text-scene-ink transition-colors"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-scene-ink/35 transition-[transform,background-color,border-color] duration-300 group-hover:-translate-x-0.5 group-hover:border-scene-ink/70 group-hover:bg-scene-ink/[0.07]">
               <BackIcon />
             </span>
             <span className="font-display text-[16px] italic leading-none decoration-scene-ink/40 underline-offset-[5px] group-hover:underline">
-              <span className="hidden sm:inline">Back to the greenhouse</span>
-              <span className="sm:hidden">Greenhouse</span>
+              <span className="hidden sm:inline">{sh.back}</span>
+              <span className="sm:hidden">{sh.backShort}</span>
             </span>
           </Link>
         </div>
@@ -345,22 +349,22 @@ export function SpecimenSheet({
           {agent.mode === "working" && (
             <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-leaf-2 text-leaf-2" />
           )}
-          <span className="sr-only sm:hidden">Agent settings</span>
+          <span className="sr-only sm:hidden">{sh.settings}</span>
           <span className="hidden sm:inline">
-            mycelium ·{" "}
+            {t.greenhouse.myceliumName} ·{" "}
             {agent.mode === "working"
-              ? "working"
+              ? sh.agent.working
               : agent.mode === "offline"
                 ? agent.driver === "ollama"
-                  ? "Ollama off"
-                  : "offline"
+                  ? sh.agent.ollamaOff
+                  : sh.agent.offline
                 : agent.mode === "paused"
-                  ? "paused"
+                  ? sh.agent.paused
                   : agent.mode === "resting" || agent.mode === "stopped"
-                    ? "resting"
+                    ? sh.agent.resting
                     : agent.mode === "halted"
-                      ? "no model"
-                      : "ready"}
+                      ? sh.agent.halted
+                      : sh.agent.ready}
           </span>
         </button>
       </header>
@@ -374,7 +378,7 @@ export function SpecimenSheet({
             role="alert"
             className="paper relative z-20 mx-auto mb-4 w-[min(640px,calc(100%-2rem))] rounded-sm px-4 py-2 text-[14px] text-vermilion-ink"
           >
-            {notice ?? `${error} Trying again…`}
+            {notice ?? `${error} ${t.greenhouse.retrying}`}
           </motion.p>
         )}
       </AnimatePresence>
@@ -394,32 +398,32 @@ export function SpecimenSheet({
           >
             {task.isExample && (
               <p className="mb-5 rounded-sm border border-dashed border-vermilion/50 px-3 py-2 text-[13px] text-ink-2">
-                <span className="label mr-2 text-vermilion-ink">example</span>
-                Grown once by the real agent and kept as it was. The agent never works on it again.
+                <span className="label mr-2 text-vermilion-ink">{sh.example}</span>
+                {sh.exampleText}
               </p>
             )}
             <div className="flex items-baseline justify-between gap-3">
-              <p className="typewriter text-[13px] tracking-[0.06em] text-ink-2">Specimen {catalog(task.number)}</p>
+              <p className="typewriter text-[13px] tracking-[0.06em] text-ink-2">{sh.specimen(catalog(task.number))}</p>
               {wide ? (
                 <button
                   type="button"
                   onClick={() => setWide(false)}
                   className="focus-ring -mr-2 hidden h-9 w-9 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-paper-2 hover:text-ink lg:inline-flex"
-                  aria-label="Show the plate again"
-                  title="Show the plate again"
+                  aria-label={t.harvest.showPlateTitle}
+                  title={t.harvest.showPlateTitle}
                 >
                   <PanelLeftOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 </button>
               ) : (
                 <p className="typewriter text-[11.5px] text-ink-3" suppressHydrationWarning>
-                  {task.createdAt ? `sown ${dayFormat.format(new Date(task.createdAt))}` : null}
-                  {task.expiresAt ? ` · kept until ${dayFormat.format(new Date(task.expiresAt))}` : null}
+                  {task.createdAt ? sh.sown(formatDay(i18n, task.createdAt)) : null}
+                  {task.expiresAt ? ` · ${sh.keptUntil(formatDay(i18n, task.expiresAt))}` : null}
                 </p>
               )}
             </div>
             <p className={`ink mt-1 leading-tight ${wide ? "text-[1.05rem]" : "text-[1.35rem]"}`}>
               {species.latin}
-              {!wide && <span className="text-[0.95rem] text-ink-3 not-italic"> · {species.common}</span>}
+              {!wide && <span className="text-[0.95rem] text-ink-3 not-italic"> · {t.species[species.id]}</span>}
             </p>
 
             <div
@@ -438,7 +442,7 @@ export function SpecimenSheet({
                     onSelect={openOrgan}
                     dropFruit={dropping}
                     className="block h-auto w-full"
-                    title={`Botanical plate: ${task.title}`}
+                    title={sh.plate(task.title)}
                   />
                 </div>
               </ViewTransition>
@@ -449,8 +453,8 @@ export function SpecimenSheet({
             </div>
             {!wide && (
               <p className="typewriter mt-2 text-center text-[11px] text-ink-3" suppressHydrationWarning>
-                {Math.round(task.growth.maturity * 100)}% ripe · grows only with finished work
-                {collect ? ` · you said you'd be back ${collect}` : ""}
+                {sh.maturity(Math.round(task.growth.maturity * 100))}
+                {collect ? ` · ${sh.saidBack(collect)}` : ""}
               </p>
             )}
 

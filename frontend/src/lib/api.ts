@@ -1,3 +1,5 @@
+import { documentI18n } from "./i18n";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -15,8 +17,9 @@ function messageOf(body: Record<string, unknown>, status: number): string {
     if (Array.isArray(first) && typeof first[0] === "string") return first[0];
   }
   if (typeof body.message === "string" && body.message) return body.message;
-  if (status === 429) return "That was a lot at once. Give it a minute.";
-  return `Ripe answered with an error (${status}).`;
+  const { t } = documentI18n();
+  if (status === 429) return t.errors.tooMany;
+  return t.errors.status(status);
 }
 
 export async function api<T>(
@@ -39,7 +42,7 @@ export async function api<T>(
     });
   } catch (err) {
     if (init?.signal?.aborted) throw err;
-    throw new ApiError("Can't reach Ripe. Is the server still running?", 0);
+    throw new ApiError(documentI18n().t.errors.unreachable, 0);
   }
   if (res.status === 204) return undefined as T;
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;

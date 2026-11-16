@@ -2,6 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useI18n } from "@/lib/i18n/context";
 import { GAP_PATTERN } from "@/lib/markers";
 
 const GAP_HREF = "#tbd-gap";
@@ -14,6 +15,7 @@ function prepare(content: string) {
 }
 
 export function Markdown({ content, className }: { content: string; className?: string }) {
+  const { t } = useI18n();
   return (
     <div className={`prose-ripe ${className ?? ""}`}>
       <ReactMarkdown
@@ -22,8 +24,8 @@ export function Markdown({ content, className }: { content: string; className?: 
           a({ href, children }) {
             if (href === GAP_HREF) {
               return (
-                <mark className="gap-chip" title="The agent left this blank instead of guessing">
-                  TBD: {children}
+                <mark className="gap-chip" title={t.markdown.gapTitle}>
+                  {t.markdown.gap}: {children}
                 </mark>
               );
             }

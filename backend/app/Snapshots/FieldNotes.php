@@ -10,6 +10,7 @@ use App\Models\Artifact;
 use App\Models\Question;
 use App\Models\Step;
 use App\Models\TaskEvent;
+use App\Observability\StallReason;
 use Illuminate\Support\Collection;
 
 final readonly class FieldNotes
@@ -60,26 +61,26 @@ final readonly class FieldNotes
         $payload = $event->payload;
 
         return match ($event->type) {
-            TaskEventType::TaskPlanted => [NoteKind::User, 'Planted the seed.'],
-            TaskEventType::TaskDeferred => [NoteKind::User, 'Left it to ripen.'],
-            TaskEventType::TaskResumed => [NoteKind::User, 'Put it back to work.'],
-            TaskEventType::TaskPaused => [NoteKind::User, 'Paused it.'],
-            TaskEventType::TaskHarvested => [NoteKind::User, 'Harvested it.'],
-            TaskEventType::TaskReplanted => [NoteKind::User, 'Replanted it.'],
-            TaskEventType::TaskRenamed => [NoteKind::User, 'Renamed it “'.$this->text($payload, 'to').'”.'],
-            TaskEventType::TaskInterpreted => [NoteKind::Done, 'Understood the request.'],
+            TaskEventType::TaskPlanted => [NoteKind::User, __('Planted the seed.')],
+            TaskEventType::TaskDeferred => [NoteKind::User, __('Left it to ripen.')],
+            TaskEventType::TaskResumed => [NoteKind::User, __('Put it back to work.')],
+            TaskEventType::TaskPaused => [NoteKind::User, __('Paused it.')],
+            TaskEventType::TaskHarvested => [NoteKind::User, __('Harvested it.')],
+            TaskEventType::TaskReplanted => [NoteKind::User, __('Replanted it.')],
+            TaskEventType::TaskRenamed => [NoteKind::User, __('Renamed it “:title”.', ['title' => $this->text($payload, 'to')])],
+            TaskEventType::TaskInterpreted => [NoteKind::Done, __('Understood the request.')],
             TaskEventType::TaskPlanned => [NoteKind::Done, $this->planned($payload)],
-            TaskEventType::QuestionAsked => [NoteKind::Info, 'Asked: '.$this->name($this->questions, $payload, 'question_id')],
-            TaskEventType::QuestionAnswered => [NoteKind::User, 'Answered “'.$this->name($this->questions, $payload, 'question_id').'”.'],
-            TaskEventType::QuestionSkipped => [NoteKind::User, 'Skipped “'.$this->name($this->questions, $payload, 'question_id').'”.'],
-            TaskEventType::QuestionReopened => [NoteKind::User, 'Reopened “'.$this->name($this->questions, $payload, 'question_id').'”.'],
-            TaskEventType::StepCompleted => [NoteKind::Done, 'Finished “'.$this->name($this->steps, $payload, 'step_id').'”.'],
+            TaskEventType::QuestionAsked => [NoteKind::Info, __('Asked: :question', ['question' => $this->name($this->questions, $payload, 'question_id')])],
+            TaskEventType::QuestionAnswered => [NoteKind::User, __('Answered “:question”.', ['question' => $this->name($this->questions, $payload, 'question_id')])],
+            TaskEventType::QuestionSkipped => [NoteKind::User, __('Skipped “:question”.', ['question' => $this->name($this->questions, $payload, 'question_id')])],
+            TaskEventType::QuestionReopened => [NoteKind::User, __('Reopened “:question”.', ['question' => $this->name($this->questions, $payload, 'question_id')])],
+            TaskEventType::StepCompleted => [NoteKind::Done, __('Finished “:step”.', ['step' => $this->name($this->steps, $payload, 'step_id')])],
             TaskEventType::ArtifactVersionCreated => $this->version($payload),
-            TaskEventType::ReviewCompleted => [NoteKind::Done, 'Reviewed everything together.'],
-            TaskEventType::RunRetryScheduled => [NoteKind::Warn, 'Something went wrong, so it will try again shortly.'],
-            TaskEventType::RunInterrupted => [NoteKind::Warn, 'The work stopped halfway, so it will pick it up again.'],
-            TaskEventType::BudgetDeferred => [NoteKind::Info, 'Resting until there is budget again.'],
-            TaskEventType::QuotaDeferred => [NoteKind::Info, ($payload['wait'] ?? null) === 'daily' ? 'Resting until the free model has room again.' : 'Waiting a moment for the free model to have room.'],
+            TaskEventType::ReviewCompleted => [NoteKind::Done, __('Reviewed everything together.')],
+            TaskEventType::RunRetryScheduled => [NoteKind::Warn, __('Something went wrong, so it will try again shortly.')],
+            TaskEventType::RunInterrupted => [NoteKind::Warn, __('The work stopped halfway, so it will pick it up again.')],
+            TaskEventType::BudgetDeferred => [NoteKind::Info, __('Resting until there is budget again.')],
+            TaskEventType::QuotaDeferred => [NoteKind::Info, ($payload['wait'] ?? null) === 'daily' ? __('Resting until the free model has room again.') : __('Waiting a moment for the free model to have room.')],
             TaskEventType::TaskStatusChanged => $this->status($payload),
             default => null,
         };
@@ -90,7 +91,7 @@ final readonly class FieldNotes
     {
         $steps = is_array($payload['steps'] ?? null) ? count($payload['steps']) : 0;
 
-        return $steps === 1 ? 'Mapped out 1 step.' : "Mapped out {$steps} steps.";
+        return trans_choice('Mapped out :count step.|Mapped out :count steps.', $steps);
     }
 
     /**
@@ -102,9 +103,9 @@ final readonly class FieldNotes
         $title = $this->name($this->artifacts, $payload, 'artifact_id');
 
         return match ($payload['source'] ?? null) {
-            'user_edit' => [NoteKind::User, "Edited “{$title}”."],
-            'restore' => [NoteKind::User, "Went back to an earlier version of “{$title}”."],
-            'revise' => [NoteKind::Done, "Rewrote “{$title}”."],
+            'user_edit' => [NoteKind::User, __('Edited “:title”.', ['title' => $title])],
+            'restore' => [NoteKind::User, __('Went back to an earlier version of “:title”.', ['title' => $title])],
+            'revise' => [NoteKind::Done, __('Rewrote “:title”.', ['title' => $title])],
             default => null,
         };
     }
@@ -116,9 +117,9 @@ final readonly class FieldNotes
     private function status(array $payload): ?array
     {
         return match ($payload['to'] ?? null) {
-            'ripe' => [NoteKind::Done, 'Ripe. Everything is written and reviewed.'],
-            'waiting' => [NoteKind::Info, 'Did everything it could for now and is waiting for you.'],
-            'stalled' => [NoteKind::Error, 'Stalled: '.$this->text($payload, 'reason')],
+            'ripe' => [NoteKind::Done, __('Ripe. Everything is written and reviewed.')],
+            'waiting' => [NoteKind::Info, __('Did everything it could for now and is waiting for you.')],
+            'stalled' => [NoteKind::Error, __('Stalled: :reason', ['reason' => StallReason::present($this->text($payload, 'reason'))])],
             default => null,
         };
     }
@@ -131,7 +132,7 @@ final readonly class FieldNotes
     {
         $id = $payload[$key] ?? null;
 
-        return is_string($id) ? ($names[$id] ?? 'something that is gone') : 'something that is gone';
+        return is_string($id) && isset($names[$id]) ? $names[$id] : __('something that is gone');
     }
 
     /** @param array<string, mixed> $payload */

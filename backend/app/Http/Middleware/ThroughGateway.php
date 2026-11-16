@@ -24,7 +24,7 @@ final class ThroughGateway
         $trusted = $this->presentsSecret($request);
 
         if (! $trusted && Config::boolean('ripe.gateway.required')) {
-            throw new AccessDeniedHttpException('Ripe answers through its own site.');
+            throw new AccessDeniedHttpException(__('Ripe answers through its own site.'));
         }
 
         $reported = $request->headers->get(self::CLIENT_HEADER);

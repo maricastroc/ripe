@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Specimen } from "@/components/flora/Specimen";
+import { serverI18n } from "@/lib/server/locale";
 
 const EMPTY = {
   seed: "not-found",
@@ -8,7 +9,8 @@ const EMPTY = {
   steps: [],
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { t } = await serverI18n();
   return (
     <main className="paper flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
       <div className="w-56">
@@ -17,16 +19,16 @@ export default function NotFound() {
           mood="dormant"
           variant="plate"
           className="block h-auto w-full"
-          title="An empty patch of soil"
+          title={t.notFound.soil}
         />
       </div>
-      <h1 className="mt-6 font-display text-4xl tracking-tight">This plant isn’t here anymore.</h1>
-      <p className="ink mt-3 text-[1.1rem]">Maybe it was pulled out, or the address changed.</p>
+      <h1 className="mt-6 font-display text-4xl tracking-tight">{t.notFound.title}</h1>
+      <p className="ink mt-3 text-[1.1rem]">{t.notFound.text}</p>
       <Link
         href="/"
         className="focus-ring mt-8 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper hover:bg-leaf-dark"
       >
-        Back to the greenhouse
+        {t.sheet.back}
       </Link>
     </main>
   );

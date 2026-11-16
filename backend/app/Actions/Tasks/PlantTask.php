@@ -25,11 +25,11 @@ final class PlantTask
         $clean = trim($prompt);
 
         if (mb_strlen($clean) < 3) {
-            throw new TaskActionRejected('Write a little more about the task.');
+            throw new TaskActionRejected(__('Write a little more about the task.'));
         }
 
         if (mb_strlen($clean) > Limits::MAX_PROMPT_CHARACTERS) {
-            throw new TaskActionRejected('Keep the task under '.Limits::MAX_PROMPT_CHARACTERS.' characters.');
+            throw new TaskActionRejected(__('Keep the task under :max characters.', ['max' => Limits::MAX_PROMPT_CHARACTERS]));
         }
 
         return DB::transaction(function () use ($visitor, $clean, $defer, $returnAt): Task {
@@ -37,7 +37,7 @@ final class PlantTask
             $cap = Config::integer('ripe.limits.plants_in_bed');
 
             if (Task::query()->where('visitor_id', $visitor->id)->where('status', '!=', TaskStatus::Harvested)->count() >= $cap) {
-                throw new TaskActionRejected("{$cap} plants are already growing here. Harvest or remove one before sowing another.");
+                throw new TaskActionRejected(__(':count plants are already growing here. Harvest or remove one before sowing another.', ['count' => $cap]));
             }
 
             $task = Task::query()->create([

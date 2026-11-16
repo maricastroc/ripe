@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/context";
 import type { QuestionView } from "@/lib/types";
 
 type Props = {
@@ -25,6 +26,7 @@ function OpenQuestion({
   onAnswer: Props["onAnswer"];
   onSkip: Props["onSkip"];
 }) {
+  const q2 = useI18n().t.questions;
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const submit = async () => {
@@ -47,12 +49,12 @@ function OpenQuestion({
       <p className="font-display text-[1.2rem] leading-snug tracking-tight">{q.text}</p>
       <p className="mt-1 text-[13px] text-ink-3">
         {q.kind === "essential" ? (
-          <span className="font-mono uppercase tracking-wider text-accent-ink">essential · </span>
+          <span className="font-mono uppercase tracking-wider text-accent-ink">{q2.essential} · </span>
         ) : null}
         {q.why}
       </p>
       {disabled ? (
-        <p className="mt-2 text-[14px] italic text-ink-3">Not answered.</p>
+        <p className="mt-2 text-[14px] italic text-ink-3">{q2.notAnswered}</p>
       ) : (
         <form
           className="mt-3"
@@ -62,7 +64,7 @@ function OpenQuestion({
           }}
         >
           <label className="sr-only" htmlFor={`q-${q.id}`}>
-            Your answer to: {q.text}
+            {q2.answerTo(q.text)}
           </label>
           <textarea
             id={`q-${q.id}`}
@@ -73,7 +75,7 @@ function OpenQuestion({
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
             }}
-            placeholder="In your own words. Short is fine."
+            placeholder={q2.placeholder}
             className="focus-ring block w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-[15px] leading-relaxed placeholder:text-ink-3 focus:border-line-2 focus:outline-none"
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-3">
@@ -82,7 +84,7 @@ function OpenQuestion({
               disabled={disabled || sending || !value.trim()}
               className="focus-ring rounded-full bg-ink px-4 py-2 text-[14px] font-medium text-paper transition-opacity hover:bg-leaf-dark disabled:opacity-40"
             >
-              {sending ? "Sending…" : "Answer"}
+              {sending ? q2.sending : q2.answer}
             </button>
             <button
               type="button"
@@ -90,7 +92,7 @@ function OpenQuestion({
               onClick={() => void onSkip(q.id)}
               className="focus-ring rounded-full px-2 py-1.5 text-[13px] text-ink-3 underline-offset-4 hover:text-ink-2 hover:underline"
             >
-              go on without it
+              {q2.skip}
             </button>
           </div>
         </form>
@@ -100,6 +102,7 @@ function OpenQuestion({
 }
 
 export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, onReopen, onRefresh }: Props) {
+  const q2 = useI18n().t.questions;
   const [refreshing, setRefreshing] = useState(false);
   const open = questions
     .filter((q) => q.status === "open")
@@ -112,13 +115,11 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
     <section aria-labelledby="questions-title">
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 id="questions-title" className="label shrink-0 whitespace-nowrap">
-          {essential ? "questions for you" : open.length ? "optional questions" : "your answers"}
+          {essential ? q2.forYou : open.length ? q2.optional : q2.yours}
         </h2>
         {open.length > 0 && (
           <span className="text-right text-[13px] text-ink-3">
-            {essential
-              ? `${open.length} ${open.length === 1 ? "question" : "questions"} · the agent won't guess ${open.length === 1 ? "this one" : "these"}`
-              : "your answers fill the gaps the agent marked"}
+            {essential ? q2.wontGuess(open.length) : q2.fillGaps}
           </span>
         )}
       </div>
@@ -138,7 +139,7 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] text-ink-2">{q.text}</p>
                 <p className={`mt-0.5 text-[15px] ${q.status === "answered" ? "text-ink" : "italic text-ink-3"}`}>
-                  {q.status === "answered" ? q.answer : "skipped, so it stays marked as a gap"}
+                  {q.status === "answered" ? q.answer : q2.skipped}
                 </p>
               </div>
               {!disabled && (
@@ -147,7 +148,7 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
                   onClick={() => void onReopen(q.id)}
                   className="focus-ring shrink-0 rounded-full px-2 py-1 text-[12px] text-ink-3 hover:text-ink"
                 >
-                  change
+                  {q2.change}
                 </button>
               )}
             </motion.li>
@@ -157,9 +158,7 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
 
       {canRefresh && !disabled && (
         <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-line-2 px-4 py-3">
-          <p className="min-w-0 flex-1 text-[14px] text-ink-2">
-            Some pieces were written before your answers and still have gaps.
-          </p>
+          <p className="min-w-0 flex-1 text-[14px] text-ink-2">{q2.stale}</p>
           <button
             type="button"
             disabled={refreshing}
@@ -173,7 +172,7 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
             }}
             className="focus-ring rounded-full border border-ink px-4 py-1.5 text-[13px] font-medium hover:bg-ink hover:text-paper"
           >
-            {refreshing ? "Asking…" : "Update with my answers"}
+            {refreshing ? q2.asking : q2.update}
           </button>
         </div>
       )}

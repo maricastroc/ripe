@@ -21,18 +21,18 @@ final class RenameTask
         $clean = trim((string) preg_replace('/\s+/u', ' ', $title));
 
         if ($clean === '') {
-            throw new TaskActionRejected("The title can't be empty.");
+            throw new TaskActionRejected(__("The title can't be empty."));
         }
 
         if (mb_strlen($clean) > Limits::MAX_TITLE_CHARACTERS) {
-            throw new TaskActionRejected('Keep the title under '.Limits::MAX_TITLE_CHARACTERS.' characters.');
+            throw new TaskActionRejected(__('Keep the title under :max characters.', ['max' => Limits::MAX_TITLE_CHARACTERS]));
         }
 
         return DB::transaction(function () use ($task, $clean): Task {
             $task = $this->locked($task);
 
             if ($task->is_example) {
-                throw new TaskActionRejected('Examples can only be read.');
+                throw new TaskActionRejected(__('Examples can only be read.'));
             }
 
             if ($task->title === $clean) {

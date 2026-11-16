@@ -45,28 +45,25 @@ final readonly class AgentStatusReader
         $running = AgentRun::query()->where('status', RunStatus::Running)->with(['task:id,visitor_id,title', 'step:id,title', 'artifact:id,title'])->get();
         $mine = $visitor === null ? null : $running->first(static fn (AgentRun $run): bool => $run->task?->visitor_id === $visitor->id);
         $elsewhere = $running->contains(static fn (AgentRun $run): bool => $visitor === null || $run->task?->visitor_id !== $visitor->id);
-        $unavailable = $local ? $health->message : 'The model cannot be reached right now.';
         $now = CarbonImmutable::now();
         $standing = $this->budget->standing($visitor, $driver->isMetered(), $now);
         $quota = $this->quotaStanding($driver, $now);
 
-        [$mode, $message] = match (true) {
-            $this->settings->isPaused() => [AgentMode::Paused, 'The agent is paused in settings.'],
-            $this->halt->isHalted() => [AgentMode::Halted, $local ? $this->halt->reason() : 'The greenhouse cannot reach its model right now.'],
-            $mine !== null => [AgentMode::Working, null],
-            $quota?->wait === QuotaWait::Daily => [AgentMode::Resting, 'The free model has used up its allowance for now. The greenhouse rests until it has room again.'],
-            $quota?->wait === QuotaWait::Capacity => [AgentMode::Resting, 'The free model asked for a short pause.'],
-            $standing->resting => [AgentMode::Resting, 'Today\'s budget is used up. The greenhouse rests until the next one opens.'],
-            $health->status === HealthStatus::Unreachable => [AgentMode::Offline, $unavailable],
-            $health->status === HealthStatus::Misconfigured => [$local ? AgentMode::ModelMissing : AgentMode::Offline, $unavailable],
-            $running->isEmpty() && ! $this->heartbeat->isAlive() => [AgentMode::Stopped, 'The agent is not running.'],
-            default => [AgentMode::Idle, null],
+        $mode = match (true) {
+            $this->settings->isPaused() => AgentMode::Paused,
+            $this->halt->isHalted() => AgentMode::Halted,
+            $mine !== null => AgentMode::Working,
+            $quota?->wait === QuotaWait::Daily, $quota?->wait === QuotaWait::Capacity, $standing->resting => AgentMode::Resting,
+            $health->status === HealthStatus::Unreachable => AgentMode::Offline,
+            $health->status === HealthStatus::Misconfigured => $local ? AgentMode::ModelMissing : AgentMode::Offline,
+            $running->isEmpty() && ! $this->heartbeat->isAlive() => AgentMode::Stopped,
+            default => AgentMode::Idle,
         };
 
         return new AgentStatus(
             hosting: $this->settings->hosting(),
             mode: $mode,
-            message: $message,
+            message: $this->messageOf($mode, $local, $quota, $health),
             driver: $driver->name(),
             model: $driver->model(),
             online: $health->status === HealthStatus::Available,
@@ -111,5 +108,42 @@ final readonly class AgentStatusReader
         });
 
         return new DriverHealth(HealthStatus::from($cached['status']), $cached['message'], $cached['models']);
+    }
+
+    private function messageOf(AgentMode $mode, bool $local, ?QuotaStanding $quota, DriverHealth $health): ?string
+    {
+        if ($mode === AgentMode::Paused) {
+            return __('The agent is paused in settings.');
+        }
+
+        if ($mode === AgentMode::Halted) {
+            if ($local) {
+                return $this->halt->reason();
+            }
+
+            return __('The greenhouse cannot reach its model right now.');
+        }
+
+        if ($mode === AgentMode::Resting) {
+            return match ($quota?->wait) {
+                QuotaWait::Daily => __('The free model has used up its allowance for now. The greenhouse rests until it has room again.'),
+                QuotaWait::Capacity => __('The free model asked for a short pause.'),
+                default => __('Today\'s budget is used up. The greenhouse rests until the next one opens.'),
+            };
+        }
+
+        if ($mode === AgentMode::Offline || $mode === AgentMode::ModelMissing) {
+            if ($local) {
+                return $health->message;
+            }
+
+            return __('The model cannot be reached right now.');
+        }
+
+        if ($mode === AgentMode::Stopped) {
+            return __('The agent is not running.');
+        }
+
+        return null;
     }
 }

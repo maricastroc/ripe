@@ -219,6 +219,10 @@ backend/app/
 
 The agent writes in the same language as your request.
 
+### Languages
+
+The interface is in English and Brazilian Portuguese. The site picks one from your choice in the header (stored in a `ripe_locale` cookie), then from the browser's language, then English. The gateway forwards that choice to Laravel, so the API's messages, the field notes and the examples follow it too. The language of a task's content is separate: it always follows the request.
+
 ### Task states
 
 | State       | Meaning                                          |

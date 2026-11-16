@@ -10,9 +10,9 @@ use App\Models\Task;
 it('audits every task, the recorded examples included, and fails when a task disagrees with its journal', function (): void {
     fakeAgent(first: [new ModelUnavailable('The model is down for a moment.')]);
     $task = ripen(plantTask());
-    expect(app(ExampleLibrary::class)->install(ExampleLibrary::directory())['installed'])->toBe(2);
+    expect(app(ExampleLibrary::class)->install(ExampleLibrary::directory())['installed'])->toBe(4);
 
-    $this->artisan('ripe:audit')->expectsOutputToContain('3 tasks checked, 0 with problems.')->assertSuccessful();
+    $this->artisan('ripe:audit')->expectsOutputToContain('5 tasks checked, 0 with problems.')->assertSuccessful();
     $this->artisan("ripe:inspect {$task->id}")
         ->expectsOutputToContain('driver_unavailable')
         ->expectsOutputToContain('The journal agrees with the persisted state.')

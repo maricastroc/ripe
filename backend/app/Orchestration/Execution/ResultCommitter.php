@@ -204,14 +204,19 @@ final class ResultCommitter
         $artifact = $task->artifacts()->where('kind', ArtifactKind::Review)->first() ?? Artifact::query()->create([
             'task_id' => $task->id,
             'kind' => ArtifactKind::Review,
-            'title' => 'Agent review',
+            'title' => __('Agent review', [], $this->contentLocale($task)),
         ]);
 
-        $artifact->addVersion($review->toMarkdown(), ArtifactVersionSource::Review, EventActor::Agent, $run, inputs: $inputs, model: $model);
+        $artifact->addVersion($review->toMarkdown($this->contentLocale($task)), ArtifactVersionSource::Review, EventActor::Agent, $run, inputs: $inputs, model: $model);
 
         $task->reviewed_at = CarbonImmutable::now();
         $task->save();
 
         TaskEvent::record($task, TaskEventType::ReviewCompleted, ['artifact_id' => $artifact->id, 'verdict' => $review->verdict->value], EventActor::Agent, $run);
+    }
+
+    private function contentLocale(Task $task): string
+    {
+        return str_starts_with(strtolower($task->language ?? ''), 'pt') ? 'pt_BR' : 'en';
     }
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatClock } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/context";
 
 export type Sky = "dawn" | "day" | "dusk" | "night";
 
@@ -15,6 +17,7 @@ export function skyAt(date: Date): Sky {
 }
 
 export function useSky(): { sky: Sky; time: string | null } {
+  const i18n = useI18n();
   const [state, setState] = useState<{ sky: Sky; time: string | null }>({ sky: "day", time: null });
   useEffect(() => {
     const read = () => {
@@ -22,7 +25,7 @@ export function useSky(): { sky: Sky; time: string | null } {
       const now = new Date();
       setState({
         sky: forced && SKIES.includes(forced) ? forced : skyAt(now),
-        time: new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(now),
+        time: formatClock(i18n, now),
       });
     };
     const first = requestAnimationFrame(read);
@@ -31,6 +34,6 @@ export function useSky(): { sky: Sky; time: string | null } {
       cancelAnimationFrame(first);
       clearInterval(id);
     };
-  }, []);
+  }, [i18n]);
   return state;
 }

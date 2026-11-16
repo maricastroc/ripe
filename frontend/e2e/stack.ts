@@ -15,6 +15,7 @@ export const backendEnv: NodeJS.ProcessEnv = {
   CACHE_STORE: "database",
   RIPE_MODE: "local",
   RIPE_INFERENCE_DRIVER: "fake",
+  TURNSTILE_SECRET_KEY: "",
   RIPE_PACE: "instant",
   RIPE_GATEWAY_SECRET: GATEWAY_SECRET,
   RIPE_GATEWAY_REQUIRED: "true",

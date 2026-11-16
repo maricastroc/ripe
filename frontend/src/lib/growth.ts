@@ -1,20 +1,14 @@
+import type { Messages } from "./i18n/messages/en";
 import type { Fruit, Stage } from "./types";
 
-export const STAGES: { id: Stage; name: string; hint: string }[] = [
-  { id: "seed", name: "Seed", hint: "Planted. The agent hasn't read it yet" },
-  { id: "sprout", name: "Sprout", hint: "The agent understood what you want" },
-  { id: "leafing", name: "Leaves", hint: "The work is split into steps" },
-  { id: "blossom", name: "Blossom", hint: "The first piece of work is ready" },
-  { id: "fruit", name: "Fruit", hint: "Most of the work is done" },
-  { id: "ripe", name: "Ripe", hint: "Everything written and reviewed" },
-];
+export const STAGES: Stage[] = ["seed", "sprout", "leafing", "blossom", "fruit", "ripe"];
 
-export function stageName(stage: Stage) {
-  return STAGES.find((s) => s.id === stage)?.name ?? stage;
+export function stageName(t: Messages, stage: Stage): string {
+  return t.stages[stage]?.name ?? stage;
 }
 
 export function stageIndex(stage: Stage) {
-  return STAGES.findIndex((s) => s.id === stage);
+  return STAGES.indexOf(stage);
 }
 
 export const FRUITS: Record<Fruit, { name: string; ripe: string; deep: string; mid: string; unripe: string }> = {

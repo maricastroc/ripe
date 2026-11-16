@@ -29,7 +29,7 @@ final readonly class UpdateAgentSettings
     public function handle(?Pace $pace = null, ?bool $paused = null, ?string $model = null): AgentSetting
     {
         if ($this->settings->isPublic()) {
-            throw new AgentSettingsLocked('This greenhouse is configured by its host.');
+            throw new AgentSettingsLocked(__('This greenhouse is configured by its host.'));
         }
 
         $model = $model === null ? null : trim($model);
@@ -60,17 +60,17 @@ final readonly class UpdateAgentSettings
     private function ensureInstalled(string $model): void
     {
         if ($model === '') {
-            throw new AgentSettingsRejected('Choose a model.');
+            throw new AgentSettingsRejected(__('Choose a model.'));
         }
 
         $health = $this->inference->current('ollama')->health();
 
         if ($health->status === HealthStatus::Unreachable) {
-            throw new AgentSettingsRejected("Couldn't reach Ollama to check that model.");
+            throw new AgentSettingsRejected(__("Couldn't reach Ollama to check that model."));
         }
 
         if (! in_array($model, $health->models, true) && ! in_array("{$model}:latest", $health->models, true)) {
-            throw new AgentSettingsRejected("{$model} is not installed in Ollama.");
+            throw new AgentSettingsRejected(__(':model is not installed in Ollama.', ['model' => $model]));
         }
     }
 

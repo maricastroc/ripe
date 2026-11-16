@@ -1,18 +1,22 @@
+"use client";
+
 import { StageGlyph } from "@/components/flora/StageGlyph";
+import { useI18n } from "@/lib/i18n/context";
 import { STAGES, stageIndex } from "@/lib/growth";
 import type { Growth } from "@/lib/types";
 
 export function GrowthSeries({ growth, compact = false }: { growth: Growth; compact?: boolean }) {
+  const { t } = useI18n();
   const current = stageIndex(growth.stage);
-  const stage = STAGES[current];
+  const stage = t.stages[STAGES[current]];
   return (
     <div>
-      <ol className="grid grid-cols-6 gap-1" aria-label="Growth series">
+      <ol className="grid grid-cols-6 gap-1" aria-label={t.series.label}>
         {STAGES.map((s, i) => {
           const reached = i <= current;
           const active = i === current;
           return (
-            <li key={s.id} className="flex flex-col items-center gap-1" aria-current={active ? "step" : undefined}>
+            <li key={s} className="flex flex-col items-center gap-1" aria-current={active ? "step" : undefined}>
               <span
                 className={`relative flex items-center justify-center rounded-full transition-all duration-700 ${compact ? "h-8 w-8" : "h-10 w-10"} ${
                   active ? "" : reached ? "opacity-90" : "opacity-30 grayscale"
@@ -29,14 +33,14 @@ export function GrowthSeries({ growth, compact = false }: { growth: Growth; comp
                     />
                   </svg>
                 )}
-                <StageGlyph stage={s.id} className={compact ? "h-5 w-5" : "h-6 w-6"} />
+                <StageGlyph stage={s} className={compact ? "h-5 w-5" : "h-6 w-6"} />
               </span>
               {!compact && (
                 <span className={`typewriter text-[9.5px] ${active ? "text-cobalt" : "text-ink-3"}`}>fig. {i + 1}</span>
               )}
               <span className="sr-only">
-                {s.name}
-                {active ? " (current)" : reached ? " (reached)" : ""}
+                {t.stages[s].name}
+                {active ? ` ${t.series.current}` : reached ? ` ${t.series.reached}` : ""}
               </span>
             </li>
           );

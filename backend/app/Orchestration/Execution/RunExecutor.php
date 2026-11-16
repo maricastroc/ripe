@@ -30,6 +30,7 @@ use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Observability\AgentLog;
 use App\Observability\PublicError;
+use App\Observability\StallReason;
 use App\Orchestration\AgentHalt;
 use App\Orchestration\AgentSettings;
 use App\Orchestration\AttemptReport;
@@ -486,11 +487,8 @@ final class RunExecutor
 
     private function stallReason(AgentRun $run, InferenceException $failure, ?Throwable $cause): string
     {
-        $label = ucfirst($run->kind->value);
-        $public = PublicError::of($this->outcomeOf($failure), class_basename($cause ?? $failure)) ?? 'it failed.';
+        $public = PublicError::of($this->outcomeOf($failure), class_basename($cause ?? $failure), StallReason::STORED_LOCALE);
 
-        return $failure->scope() === ErrorScope::Run
-            ? "{$label}: {$public}"
-            : "{$label} failed after {$run->max_attempts} attempts. {$public}";
+        return StallReason::compose($run->kind, $failure->scope() === ErrorScope::Run ? null : $run->max_attempts, $public);
     }
 }

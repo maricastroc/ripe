@@ -38,7 +38,7 @@ final class PlantTaskRequest extends FormRequest
             $address = $this->attributes->get(ThroughGateway::CLIENT_ATTRIBUTE);
 
             if (! $turnstile->passes($this->string('turnstile')->toString(), is_string($address) ? $address : $this->ip())) {
-                $validator->errors()->add('turnstile', 'The greenhouse could not confirm you are a person. Try again.');
+                $validator->errors()->add('turnstile', __('The greenhouse could not confirm you are a person. Try again.'));
             }
         }];
     }
@@ -47,10 +47,10 @@ final class PlantTaskRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'prompt.required' => 'Write what you keep putting off.',
-            'prompt.min' => 'Write a little more about the task.',
-            'prompt.max' => 'Keep the task under '.Limits::MAX_PROMPT_CHARACTERS.' characters.',
-            'turnstile.required' => 'The greenhouse could not confirm you are a person. Try again.',
+            'prompt.required' => __('Write what you keep putting off.'),
+            'prompt.min' => __('Write a little more about the task.'),
+            'prompt.max' => __('Keep the task under :max characters.'),
+            'turnstile.required' => __('The greenhouse could not confirm you are a person. Try again.'),
         ];
     }
 

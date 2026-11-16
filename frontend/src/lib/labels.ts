@@ -1,38 +1,28 @@
+import type { Messages } from "./i18n/messages/en";
 import type { RunKind } from "./types";
 
-export function activityLabel(kind: RunKind, subject?: string | null) {
+export function activityLabel(t: Messages, kind: RunKind, subject?: string | null) {
+  const a = t.activity;
   switch (kind) {
     case "interpret":
-      return "Reading your request";
+      return a.interpret;
     case "plan":
-      return "Mapping out the steps";
+      return a.plan;
     case "generate":
-      return subject ? `Writing “${subject}”` : "Writing";
+      return subject ? a.generating(subject) : a.generate;
     case "review":
-      return "Reviewing the whole set";
+      return a.review;
     case "revise":
-      return subject ? `Rewriting “${subject}”` : "Rewriting";
+      return subject ? a.revising(subject) : a.revise;
     default:
-      return "Working";
+      return a.working;
   }
 }
 
-export const OUTPUT_LABEL: Record<string, string> = {
-  outline: "outline",
-  draft: "draft",
-  checklist: "checklist",
-  schedule: "schedule",
-  message: "message",
-  notes: "notes",
-  slides: "slide outline",
-  review: "review",
-};
+export function outputLabel(t: Messages, output: string): string {
+  return (t.outputs as Record<string, string>)[output] ?? output;
+}
 
-export const DELIVERABLE_LABEL: Record<string, string> = {
-  document: "Document",
-  plan: "Plan",
-  presentation: "Presentation",
-  message: "Message",
-  checklist: "Checklist",
-  other: "Written piece",
-};
+export function deliverableLabel(t: Messages, deliverable: string): string {
+  return (t.deliverables as Record<string, string>)[deliverable] ?? deliverable;
+}

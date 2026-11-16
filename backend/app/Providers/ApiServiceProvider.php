@@ -56,7 +56,7 @@ final class ApiServiceProvider extends ServiceProvider
     /** @param array<string, string> $headers */
     private static function tomorrow(Request $request, array $headers): JsonResponse
     {
-        return new JsonResponse(['message' => 'The greenhouse has done enough for today. Come back tomorrow.'], 429, $headers);
+        return new JsonResponse(['message' => __('The greenhouse has done enough for today. Come back tomorrow.')], 429, $headers);
     }
 
     private static function requester(Request $request): string

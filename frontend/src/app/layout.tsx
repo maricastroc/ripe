@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Courier_Prime, Fraunces, Instrument_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import { serverI18n } from "@/lib/server/locale";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -21,11 +22,10 @@ const typewriter = Courier_Prime({
   weight: ["400", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "Ripe · Tasks that ripen while you procrastinate",
-  description:
-    "Put a task off and a local AI agent running on Ollama works on it, little by little. When you come back, there's a plan, a draft or a first version waiting.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await serverI18n();
+  return { title: t.meta.title, description: t.meta.description };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -34,11 +34,12 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { locale } = await serverI18n();
   return (
-    <html lang="en" className={`${fraunces.variable} ${instrument.variable} ${typewriter.variable} antialiased`}>
+    <html lang={locale} className={`${fraunces.variable} ${instrument.variable} ${typewriter.variable} antialiased`}>
       <body>
-        <Providers>
+        <Providers locale={locale}>
           <div className="relative flex min-h-dvh flex-col">{children}</div>
         </Providers>
       </body>

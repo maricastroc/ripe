@@ -1,14 +1,15 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import { OUTPUT_LABEL } from "@/lib/labels";
+import { useI18n } from "@/lib/i18n/context";
+import { outputLabel } from "@/lib/labels";
 import type { ArtifactView, QuestionView, StepPhase, StepView, TaskDetail } from "@/lib/types";
 
-const STATE: Record<StepPhase, { organ: string; word: string; tone: string }> = {
-  done: { organ: "leafy branch", word: "ready", tone: "text-leaf-dark" },
-  working: { organ: "stirring bud", word: "being written", tone: "text-cobalt" },
-  ready: { organ: "closed bud", word: "ready to start", tone: "text-ink-3" },
-  blocked: { organ: "dry bud", word: "waiting on you", tone: "text-vermilion-ink" },
+const TONE: Record<StepPhase, string> = {
+  done: "text-leaf-dark",
+  working: "text-cobalt",
+  ready: "text-ink-3",
+  blocked: "text-vermilion-ink",
 };
 
 type Props = {
@@ -27,30 +28,26 @@ function needsText(step: StepView, questions: QuestionView[]) {
 }
 
 export function Legend({ task, finalId, review, highlight, onHover, onOpen, compact = false }: Props) {
+  const { t } = useI18n();
+  const l = t.legend;
   if (!task.steps.length) {
-    return (
-      <p className="ink text-center text-[15px]">
-        {task.status === "dormant"
-          ? "Dormant. The parts appear once the agent maps out the work."
-          : "No parts to label yet. The agent is still reading the request."}
-      </p>
-    );
+    return <p className="ink text-center text-[15px]">{task.status === "dormant" ? l.dormant : l.reading}</p>;
   }
   const stage = task.growth.stage;
-  const fruitWord =
+  const apex =
     stage === "ripe"
-      ? "ripe fruit"
+      ? l.apex.ripe
       : stage === "fruit"
-        ? "young fruit"
+        ? l.apex.fruit
         : stage === "blossom"
-          ? "blossom"
-          : "growing tip";
+          ? l.apex.blossom
+          : l.apex.tip;
   return (
     <div>
-      <p className="label mb-2">key to the plate</p>
+      <p className="label mb-2">{l.heading}</p>
       <ol className="divide-y divide-dashed divide-line-2 border-y border-dashed border-line-2">
         {task.steps.map((step) => {
-          const s = STATE[step.phase];
+          const s = { ...l.phase[step.phase], tone: TONE[step.phase] };
           const lit = highlight === step.id;
           const waits = step.phase === "blocked" && step.waitingFor === "answer" ? needsText(step, task.questions) : [];
           return (
@@ -69,12 +66,12 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
                   <span className="block truncate text-[14.5px] text-ink">{step.title}</span>
                   {!compact && (
                     <span className="typewriter block text-[10.5px] text-ink-3">
-                      {s.organ} · {OUTPUT_LABEL[step.output] ?? step.output}
+                      {s.organ} · {outputLabel(t, step.output)}
                     </span>
                   )}
                   {waits.length > 0 && (
                     <span className="mt-0.5 block text-[12px] leading-snug text-vermilion-ink">
-                      needs: {waits.join(" · ")}
+                      {l.needs} {waits.join(" · ")}
                     </span>
                   )}
                 </span>
@@ -83,7 +80,7 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
                 >
                   {step.artifactId ? (
                     <>
-                      read <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                      {l.read} <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                     </>
                   ) : (
                     s.word
@@ -104,20 +101,20 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
             >
               <span className="ink text-center text-[15px]">∗</span>
               <span>
-                <span className="block text-[14.5px] text-ink">The {fruitWord}</span>
+                <span className="block text-[14.5px] text-ink">{apex}</span>
                 {!compact && (
                   <span className="typewriter block text-[10.5px] text-ink-3">
-                    the main result, still {stage === "ripe" ? "on the branch" : "forming"}
+                    {stage === "ripe" ? l.onBranch : l.forming}
                   </span>
                 )}
               </span>
               <span className="typewriter inline-flex items-center gap-1 text-[10.5px] text-cobalt">
                 {finalId ? (
                   <>
-                    read <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                    {l.read} <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                   </>
                 ) : (
-                  <span className="text-ink-3">soon</span>
+                  <span className="text-ink-3">{l.soon}</span>
                 )}
               </span>
             </button>
@@ -134,15 +131,11 @@ export function Legend({ task, finalId, review, highlight, onHover, onOpen, comp
             >
               <span className="ink text-center text-[14px]">r</span>
               <span>
-                <span className="block text-[14.5px] text-ink">Review tag</span>
-                {!compact && (
-                  <span className="typewriter block text-[10.5px] text-ink-3">
-                    the agent&apos;s review of the whole set
-                  </span>
-                )}
+                <span className="block text-[14.5px] text-ink">{t.plot.tag.title}</span>
+                {!compact && <span className="typewriter block text-[10.5px] text-ink-3">{l.review}</span>}
               </span>
               <span className="typewriter inline-flex items-center gap-1 text-[10.5px] text-cobalt">
-                read <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                {l.read} <ArrowRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               </span>
             </button>
           </li>
