@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Inference\Drivers\OpenAI\RetryHint;
+use App\Inference\Support\RetryHint;
 use App\Inference\Transport\StreamResponse;
 
 it('reads OpenAI reset durations', function (string $value, float $seconds): void {

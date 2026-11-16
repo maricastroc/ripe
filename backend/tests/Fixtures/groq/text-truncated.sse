@@ -1,0 +1,18 @@
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": ""}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "Dear neig"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "hbour, th"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "ank you f"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "or wateri"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "ng my tom"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "atoes 🍅 w"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "hile I wa"}, "logprobs": null, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-stream", "object": "chat.completion.chunk", "created": 1795000000, "model": "openai/gpt-oss-120b", "choices": [{"index": 0, "delta": {"content": "s away."}, "logprobs": null, "finish_reason": null}]}
+
