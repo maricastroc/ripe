@@ -115,7 +115,6 @@ export const en = {
   sky: { dawn: "dawn", day: "day", dusk: "dusk", night: "night" },
   greenhouse: {
     label: "The greenhouse",
-    tagline: "greenhouse for put-off things",
     openSettings: "Open agent settings",
     agentIs: (line: string) => `The agent: ${line}`,
     myceliumName: "mycelium",
@@ -123,10 +122,7 @@ export const en = {
     fungus: (line: string) => `The mycelium, the agent: ${line}`,
     headline: "Leave it for later.",
     headlineTail: "It ripens here.",
-    intro: (mycelium: string) =>
-      `Sow what you keep putting off. The mycelium under the soil is ${mycelium}. It works on each task in small steps and saves as it goes, so a plant only grows when real work gets done.`,
     counts: {
-      plants: (n: number) => `${n} ${plural(n, "plant", "plants")}`,
       growing: (n: number) => `${n} growing now`,
       waiting: (n: number) => `${n} ${plural(n, "needs", "need")} you`,
       ripe: (n: number) => `${n} ripe`,
@@ -145,11 +141,6 @@ export const en = {
       elsewhere: "feeding other greenhouses",
       idle: "idle, nothing to feed",
     },
-    mycelium: {
-      fake: "a simulated model for development",
-      local: "an open model running on this machine",
-      hosted: (model: string) => `${model}, a hosted model`,
-    },
     note: {
       fake: "Written by a simulated model, for development.",
       local: (model: string) => `Everything runs locally with ${model} via Ollama. Nothing leaves this machine.`,
@@ -165,15 +156,23 @@ export const en = {
     empty: {
       title: "Nothing is growing yet.",
       titleTail: "The soil is ready.",
-      text: "Write something on the seed packet and leave it for later. The mycelium starts feeding it right away, and the plant sprouts, branches and fruits as each piece of work gets done.",
       openingExample: "opening the example…",
-      openExample: "or open a ripe example, recorded from a real run",
     },
     retention: (days: number, maximum: number) =>
       `Plants are kept ${days} days after your last visit, ${maximum} at most.`,
     motto: "slow and steady.",
   },
   opening: "Opening…",
+  plate: {
+    title: "Plate I. A greenhouse for put-off things, shown in section",
+    inHouse: (n: number) => `${n} ${plural(n, "plant", "plants")} in the house`,
+    lede: "The mycelium works on it underground, and the plant only grows when real work gets done.",
+    example: "open a ripe example",
+    sowHere: "sow it here",
+    dormant: "Dormant seeds, pick one",
+    credit: "Ripe Seed Co. del.",
+    number: "Pl. I",
+  },
   packet: {
     hints: [
       "Write the project proposal for the grant…",
