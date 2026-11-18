@@ -97,8 +97,6 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
   const open = task.questions.filter((q) => q.status === "open");
   const essential = open.filter((q) => q.kind === "essential").length;
   const optional = open.length - essential;
-  const stepPieces = task.artifacts.filter((a) => a.kind === "step").length;
-  const review = task.artifacts.some((a) => a.kind === "review");
   const pieces = task.artifacts.length;
   const work = agentWork(i18n, task, agent);
 
@@ -137,11 +135,7 @@ export function StatusBoard({ task, agent }: { task: TaskDetail; agent: AgentSta
           icon={BookOpen}
           label={b.cells.read}
           value={pieces ? b.read.pieces(pieces) : b.read.none}
-          detail={
-            pieces
-              ? b.read.detail(stepPieces, review, !(task.isExample || task.status === "harvested"))
-              : b.read.noneDetail
-          }
+          detail={pieces ? b.read.detail(pieces, !(task.isExample || task.status === "harvested")) : b.read.noneDetail}
           tone={pieces ? "ink" : "muted"}
         />
       </dl>

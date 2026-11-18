@@ -7,6 +7,7 @@ type Formats = {
   date: Intl.DateTimeFormat;
   seconds: Intl.NumberFormat;
   tenths: Intl.NumberFormat;
+  count: Intl.NumberFormat;
 };
 
 const FORMATS = new Map<Locale, Formats>();
@@ -20,6 +21,7 @@ function formats(locale: Locale): Formats {
       date: new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }),
       seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       tenths: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      count: new Intl.NumberFormat(locale),
     };
     FORMATS.set(locale, found);
   }
@@ -102,6 +104,10 @@ export const RETURN_OPTIONS: ReturnOption[] = [
     },
   },
 ];
+
+export function formatCount({ locale }: I18n, n: number) {
+  return formats(locale).count.format(n);
+}
 
 export function formatDuration({ locale }: I18n, ms: number | null) {
   if (ms === null) return "—";

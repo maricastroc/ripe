@@ -23,7 +23,6 @@ import { api } from "@/lib/api";
 import { formatDay, returnWhen } from "@/lib/format";
 import { shownPhase } from "@/lib/growth";
 import { useI18n } from "@/lib/i18n/context";
-import { deliverableLabel } from "@/lib/labels";
 import { LiveStore, asChange, asDelta } from "@/lib/live";
 import { awaitsAnswer, focusOf, moodOf } from "@/lib/presence";
 import type { RealtimeConfig } from "@/lib/realtime";
@@ -68,9 +67,7 @@ function Title({ task, onRename }: { task: TaskDetail; onRename: (title: string)
   const [value, setValue] = useState(task.title);
   return (
     <div>
-      <p className="label">
-        {t.sheet.fieldNotes(task.deliverable ? deliverableLabel(t, task.deliverable).toLowerCase() : t.sheet.request)}
-      </p>
+      <p className="label">{t.sheet.fieldNotes(task.deliverable ? t.sheet.result : t.sheet.request)}</p>
       {editing ? (
         <form
           className="mt-2"
@@ -526,6 +523,7 @@ export function SpecimenSheet({
             <StatusBoard task={task} agent={agent} />
             <Questions
               questions={task.questions}
+              language={task.language}
               disabled={readOnly}
               canRefresh={canRefresh}
               onAnswer={(id, answer) =>

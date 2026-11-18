@@ -7,6 +7,7 @@ import type { QuestionView } from "@/lib/types";
 
 type Props = {
   questions: QuestionView[];
+  language: string | null;
   disabled: boolean;
   canRefresh: boolean;
   onAnswer: (id: string, answer: string) => Promise<void>;
@@ -17,11 +18,13 @@ type Props = {
 
 function OpenQuestion({
   q,
+  language,
   disabled,
   onAnswer,
   onSkip,
 }: {
   q: QuestionView;
+  language: string | null;
   disabled: boolean;
   onAnswer: Props["onAnswer"];
   onSkip: Props["onSkip"];
@@ -46,12 +49,14 @@ function OpenQuestion({
       exit={{ opacity: 0, height: 0 }}
       className={`border-l-2 py-1 pl-5 ${q.kind === "essential" ? "border-accent" : "border-line-2"}`}
     >
-      <p className="font-display text-[1.2rem] leading-snug tracking-tight">{q.text}</p>
+      <p lang={language ?? undefined} className="font-display text-[1.2rem] leading-snug tracking-tight">
+        {q.text}
+      </p>
       <p className="mt-1 text-[13px] text-ink-3">
         {q.kind === "essential" ? (
           <span className="font-mono uppercase tracking-wider text-accent-ink">{q2.essential} · </span>
         ) : null}
-        {q.why}
+        <span lang={language ?? undefined}>{q.why}</span>
       </p>
       {disabled ? (
         <p className="mt-2 text-[14px] italic text-ink-3">{q2.notAnswered}</p>
@@ -101,7 +106,7 @@ function OpenQuestion({
   );
 }
 
-export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, onReopen, onRefresh }: Props) {
+export function Questions({ questions, language, disabled, canRefresh, onAnswer, onSkip, onReopen, onRefresh }: Props) {
   const q2 = useI18n().t.questions;
   const [refreshing, setRefreshing] = useState(false);
   const open = questions
@@ -125,7 +130,14 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
       <ul className="space-y-7">
         <AnimatePresence initial={false}>
           {open.map((q) => (
-            <OpenQuestion key={q.id} q={q} disabled={disabled} onAnswer={onAnswer} onSkip={onSkip} />
+            <OpenQuestion
+              key={q.id}
+              q={q}
+              language={language}
+              disabled={disabled}
+              onAnswer={onAnswer}
+              onSkip={onSkip}
+            />
           ))}
         </AnimatePresence>
       </ul>
@@ -135,7 +147,9 @@ export function Questions({ questions, disabled, canRefresh, onAnswer, onSkip, o
           {closed.map((q) => (
             <motion.li layout key={q.id} className="flex items-start gap-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] text-ink-2">{q.text}</p>
+                <p lang={language ?? undefined} className="text-[14px] text-ink-2">
+                  {q.text}
+                </p>
                 <p className={`mt-0.5 text-[15px] ${q.status === "answered" ? "text-ink" : "italic text-ink-3"}`}>
                   {q.status === "answered" ? q.answer : q2.skipped}
                 </p>

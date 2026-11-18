@@ -40,5 +40,5 @@ test("plants a task, watches it ripen, opens it, keeps a draft of a piece and re
 
   await page.getByRole("tab", { name: "growth rings" }).click();
   await expect(page.getByText(/\d+ rings of saved work/)).toBeVisible();
-  await expect(page.getByText("saved its work").first()).toBeVisible();
+  await expect(page.getByText("1. Reading the request")).toBeVisible();
 });
