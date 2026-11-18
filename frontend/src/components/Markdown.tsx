@@ -2,7 +2,9 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { i18nFor } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/context";
+import { preferredLocale } from "@/lib/i18n/locales";
 import { GAP_PATTERN } from "@/lib/markers";
 
 const GAP_HREF = "#tbd-gap";
@@ -14,10 +16,13 @@ function prepare(content: string) {
   });
 }
 
-export function Markdown({ content, className }: { content: string; className?: string }) {
-  const { t } = useI18n();
+type Props = { content: string; className?: string; language?: string | null };
+
+export function Markdown({ content, className, language = null }: Props) {
+  const { locale } = useI18n();
+  const { t } = i18nFor(preferredLocale(language) ?? locale);
   return (
-    <div className={`prose-ripe ${className ?? ""}`}>
+    <div lang={language ?? undefined} className={`prose-ripe ${className ?? ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

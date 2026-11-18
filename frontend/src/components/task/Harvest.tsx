@@ -20,6 +20,7 @@ type Props = {
   wide?: boolean;
   onToggleWide?: () => void;
   readOnly: boolean;
+  language: string | null;
   onRevise: (id: string, instruction: string) => Promise<void>;
   onRestore: (id: string, baseVersionId: string) => Promise<void>;
   onTaskChange: (task: TaskDetail) => void;
@@ -120,6 +121,7 @@ export function Harvest({
   wide,
   onToggleWide,
   readOnly,
+  language,
   onRevise,
   onRestore,
   onTaskChange,
@@ -421,7 +423,7 @@ export function Harvest({
                     </p>
                   </>
                 ) : (
-                  <Markdown content={content} className="max-w-[72ch]" />
+                  <Markdown content={content} className="max-w-[72ch]" language={language} />
                 )}
               </motion.div>
             </AnimatePresence>

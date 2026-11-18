@@ -548,6 +548,7 @@ export function SpecimenSheet({
               wide={wide}
               onToggleWide={() => setWide((w) => !w)}
               readOnly={readOnly}
+              language={task.language}
               onRevise={(id, instruction) =>
                 run(() =>
                   api<{ task: TaskDetail }>(`/api/artifacts/${id}/revise`, { method: "POST", body: { instruction } }),
