@@ -105,7 +105,7 @@ export const ptBR: Messages = {
     dormant: "dormente",
     harvested: "colhida",
     rewriteQueued: "madura · reescrita na fila",
-    optionalAnswers: (n: number) => `madura · ${n} ${plural(n, "pergunta", "perguntas")} para você`,
+    optionalAnswers: (n: number) => `madura · ${n} ${plural(n, "pergunta", "perguntas")}`,
     readyToReview: "madura · pronta para revisar",
     agentPaused: "agente pausado",
     resting: "descansando com a estufa",
