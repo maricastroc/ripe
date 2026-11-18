@@ -103,7 +103,7 @@ export const en = {
     dormant: "dormant",
     harvested: "harvested",
     rewriteQueued: "ripe · rewrite queued",
-    optionalAnswers: (n: number) => `ripe · ${n} optional ${plural(n, "answer", "answers")}`,
+    optionalAnswers: (n: number) => `ripe · ${n} ${plural(n, "question", "questions")} for you`,
     readyToReview: "ripe · ready to review",
     agentPaused: "agent paused",
     resting: "resting with the greenhouse",
@@ -125,7 +125,7 @@ export const en = {
     counts: {
       growing: (n: number) => `${n} growing now`,
       waiting: (n: number) => `${n} ${plural(n, "needs", "need")} you`,
-      ripe: (n: number) => `${n} ripe`,
+      ripe: (n: number) => `${n} ready to harvest`,
     },
     retrying: "Trying again…",
     agent: {
@@ -142,9 +142,9 @@ export const en = {
       idle: "idle, nothing to feed",
     },
     note: {
-      fake: "Written by a simulated model, for development.",
+      fake: "A simulated model, for development.",
       local: (model: string) => `Everything runs locally with ${model} via Ollama. Nothing leaves this machine.`,
-      hosted: (model: string, openai: boolean) => `Written by ${model}${openai ? ", hosted by OpenAI" : ""}.`,
+      hosted: (model: string, openai: boolean) => `Model: ${model}${openai ? ", hosted by OpenAI" : ""}`,
     },
     suggestions: [
       "Write a project proposal",
@@ -159,7 +159,7 @@ export const en = {
       openingExample: "opening the example…",
     },
     retention: (days: number, maximum: number) =>
-      `Plants are kept ${days} days after your last visit, ${maximum} at most.`,
+      `Plants are kept ${days} days after your last visit, and at most ${maximum} days from planting.`,
     motto: "slow and steady.",
   },
   opening: "Opening…",
@@ -175,25 +175,24 @@ export const en = {
   },
   packet: {
     hints: [
-      "Write the project proposal for the grant…",
+      "Draft the grant proposal…",
       "Prepare Monday's presentation…",
-      "Plan the family trip for the holidays…",
+      "Plan the family holiday…",
       "Reply to that difficult client email…",
       "Sort out my ideas for the article on…",
     ],
     brand: "Ripe seed co.",
     sowAnytime: "sow anytime",
     question: "What are you putting off?",
-    returning: "I'll be",
     sowing: "Sowing…",
     letRipen: "Let it ripen",
     planting: "planting…",
-    justPlant: "just plant it",
+    justPlant: "plant without starting",
     failed: "Couldn't plant it right now.",
   },
   returnPicker: {
     label: (when: string) => `When you plan to come back: ${when}`,
-    back: "back",
+    back: "I'll be back",
     question: "when will you be back?",
   },
   plot: {
@@ -313,13 +312,13 @@ export const en = {
     preparing: "Getting the next step ready",
     ripe: {
       title: "Your turn",
-      text: (pieces: number, optional: number, early: boolean) =>
-        `Read the ${pieces === 1 ? "piece" : `${pieces} pieces`} and the agent's review.` +
+      text: (pieces: number, optional: number) =>
+        `The agent wrote ${pieces === 1 ? "one piece" : `${pieces} pieces`} and reviewed the result.` +
         (optional
-          ? ` If you want the gaps it marked filled in, answer the ${optional === 1 ? "optional question" : `${optional} optional questions`} below.`
+          ? ` Read it all now, or answer the ${optional === 1 ? "question" : "questions"} below to fill in the missing details.`
           : "") +
-        " When you're happy with it, harvest it." +
-        (early ? " It ripened before you said you'd be back." : ""),
+        " When you're happy with it, harvest it.",
+      early: "Your plant ripened before you were due back.",
     },
     lining: "Lining up the next step",
     saidBack: (when: string) => `You said you'd be back ${when}.`,
@@ -329,7 +328,7 @@ export const en = {
     pause: "Pause",
     retry: "Try again",
     harvest: "Harvest",
-    harvestHint: "Harvesting marks the task as done. You can still read everything from the pantry.",
+    harvestHint: "Harvesting marks the task as done and keeps it in the pantry.",
     replant: "Replant",
     delete: "delete",
     confirmTitle: "Pull out this plant?",
@@ -344,15 +343,14 @@ export const en = {
     answerTo: (question: string) => `Your answer to: ${question}`,
     placeholder: "In your own words. Short is fine.",
     sending: "Sending…",
-    answer: "Answer",
-    skip: "go on without it",
+    answer: "Send answer",
+    skip: "skip question",
     forYou: "questions for you",
-    optional: "optional questions",
+    optional: "missing details",
     yours: "your answers",
-    wontGuess: (n: number) =>
-      `${n} ${plural(n, "question", "questions")} · the agent won't guess ${plural(n, "this one", "these")}`,
-    fillGaps: "your answers fill the gaps the agent marked",
-    skipped: "skipped, so it stays marked as a gap",
+    wontGuess: (n: number) => `${n} ${plural(n, "question", "questions")} · the agent would rather ask than guess`,
+    fillGaps: "help the agent finish what is still open",
+    skipped: "skipped · stays open in the text",
     change: "change",
     stale: "Some pieces were written before your answers and still have gaps.",
     asking: "Asking…",
@@ -440,7 +438,6 @@ export const en = {
     },
     key: { ring: "saved work", crack: "failed", break: "interrupted", knot: "stopped", bud: "running" },
     legend: "How to read the rings",
-    saved: "saved its work",
     running: "still running",
     nothingSaved: (reason: string) => `nothing saved · ${reason}`,
     unfinished: "it did not finish",
@@ -459,7 +456,17 @@ export const en = {
     working: "working",
     waiting: "waiting",
     tokensLabel: "tokens",
-    tokenTotals: (prompt: number, completion: number) => `${prompt} in · ${completion} out`,
+    tokenTotals: (prompt: string, completion: string) => `${prompt} read · ${completion} written`,
+    steps: {
+      interpret: "Reading the request",
+      plan: "Planning",
+      generate: "Writing",
+      generating: (subject: string) => `Writing “${subject}”`,
+      review: "Final review",
+      revise: "Rewriting",
+      revising: (subject: string) => `Rewriting “${subject}”`,
+      working: "Working",
+    },
     model: "model",
   },
   species: { persimmon: "persimmon", plum: "plum", lemon: "lemon", fig: "fig", seedling: "seedling" },
@@ -467,6 +474,7 @@ export const en = {
     openingGreenhouse: "Opening the greenhouse…",
     fieldNotes: (kind: string) => `field notes · ${kind}`,
     request: "request",
+    result: "result",
     titleLabel: "Task title",
     rename: "rename",
     failed: "Something went wrong. Try again.",
@@ -489,17 +497,19 @@ export const en = {
     sown: (date: string) => `sown ${date}`,
     keptUntil: (date: string) => `kept until ${date}`,
     plate: (title: string) => `Botanical plate: ${title}`,
-    maturity: (percent: number) => `${percent}% ripe · grows only with finished work`,
+    maturity: (percent: number) =>
+      percent >= 100 ? "100% ripe · every step done" : `${percent}% ripe · grows only with finished work`,
     saidBack: (when: string) => `you said you'd be back ${when}`,
   },
   board: {
     label: "Where this task stands",
-    cells: { work: "agent's work", you: "from you", read: "ready to read" },
+    cells: { work: "agent", you: "your answers", read: "result" },
     work: {
       written: (done: number, total: number) => `${done} of ${total} ${plural(total, "step", "steps")} written`,
       noPlan: "No plan yet",
-      finished: "Finished",
-      all: (total: number) => `All ${total} ${plural(total, "step", "steps")} written and reviewed.`,
+      finished: "Done",
+      all: (total: number) =>
+        total === 1 ? "One step, written and reviewed." : `${total} steps written and reviewed.`,
       workingNow: "Working now",
       asFar: "As far as it can go",
       restNeedsYou: "The rest needs your answer.",
@@ -517,19 +527,18 @@ export const en = {
       firstReads: "First it reads your request.",
     },
     you: {
-      needed: (n: number) => `${n} ${plural(n, "answer", "answers")} needed`,
+      needed: (n: number) => `${n} essential ${plural(n, "question", "questions")}`,
       depends: (n: number, optional: number) =>
         `The final version depends on ${plural(n, "it", "them")}.${optional ? ` ${optional} more ${plural(optional, "is", "are")} optional.` : ""}`,
-      optional: (n: number) => `${n} optional ${plural(n, "answer", "answers")}`,
-      optionalDetail: "The agent marked these gaps rather than guess. Your answers fill them in.",
+      optional: (n: number) => `${n} ${plural(n, "question", "questions")}`,
+      optionalDetail: "Fill in the missing details.",
       none: "Nothing open",
       noneDetail: "No questions for you right now.",
     },
     read: {
       pieces: (n: number) => `${n} ${plural(n, "piece", "pieces")}`,
       none: "Nothing yet",
-      detail: (steps: number, review: boolean, editable: boolean) =>
-        `${steps} finished ${plural(steps, "step", "steps")}${review ? " and the agent's review" : ""}.${editable ? " All editable." : ""}`,
+      detail: (_n: number, editable: boolean) => `Ready to read${editable ? " and edit" : ""}.`,
       noneDetail: "Each finished step adds a piece here.",
     },
   },

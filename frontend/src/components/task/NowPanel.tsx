@@ -312,7 +312,8 @@ export function NowPanel({ task, agent, liveText = null, onAct, onHarvest, busy 
     const early = task.returnAt && task.ripeAt && new Date(task.ripeAt) < new Date(task.returnAt);
     content = (
       <Shell tone="text-leaf" title={n.ripe.title}>
-        {n.ripe.text(materials, optional, Boolean(early))}
+        {n.ripe.text(materials, optional)}
+        {early && <p className="mt-2 text-[13px] italic text-ink-3">{n.ripe.early}</p>}
         {onHarvest && (
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             <button

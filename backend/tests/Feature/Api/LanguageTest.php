@@ -27,6 +27,6 @@ it('answers in the language the site asks for and keeps English for everyone els
 
     expect($task->refresh()->stall_reason)->toBe($english);
 })->with([
-    'after the last attempt' => [3, 'Generate failed after 3 attempts. The model could not be reached.', 'Escrita falhou depois de 3 tentativas. Não foi possível alcançar o modelo.'],
-    'at once' => [null, 'Generate: The model could not be reached.', 'Escrita: Não foi possível alcançar o modelo.'],
+    'after the last attempt' => [3, 'Generate failed after 3 attempts. The model could not be reached.', 'Escrita falhou depois de 3 tentativas. Não foi possível se conectar ao modelo.'],
+    'at once' => [null, 'Generate: The model could not be reached.', 'Escrita: Não foi possível se conectar ao modelo.'],
 ]);

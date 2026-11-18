@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { formatDuration } from "@/lib/format";
+import { formatCount, formatDuration } from "@/lib/format";
 import type { I18n } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/context";
-import { activityLabel } from "@/lib/labels";
+import { stepLabel } from "@/lib/labels";
 import type { Timeline, TimelineAttempt, RunKind } from "@/lib/types";
 
 type Mark = "ring" | "crack" | "break" | "knot" | "bud";
@@ -228,7 +228,7 @@ function frame(outer: number) {
 }
 
 function outcomeText({ t }: I18n, entry: Entry) {
-  if (entry.mark === "ring") return t.rings.saved;
+  if (entry.mark === "ring") return null;
   if (entry.mark === "bud") return t.rings.running;
   return t.rings.nothingSaved(entry.error ?? t.rings.unfinished);
 }
@@ -238,7 +238,13 @@ function details(i18n: I18n, entry: Entry) {
   const parts = [formatDuration(i18n, entry.durationMs)];
   if (entry.firstTokenMs !== null) parts.push(r.firstWord(formatDuration(i18n, entry.firstTokenMs)));
   if (entry.promptTokens !== null || entry.completionTokens !== null)
-    parts.push(r.tokens(entry.promptTokens ?? "?", entry.completionTokens ?? "?", entry.usageEstimated));
+    parts.push(
+      r.tokens(
+        entry.promptTokens === null ? "?" : formatCount(i18n, entry.promptTokens),
+        entry.completionTokens === null ? "?" : formatCount(i18n, entry.completionTokens),
+        entry.usageEstimated,
+      ),
+    );
   if (entry.waitedMs > 0) parts.push(r.waited(formatDuration(i18n, entry.waitedMs)));
   return parts.join(" · ");
 }
@@ -323,13 +329,10 @@ export function GrowthRings({ taskId, version }: { taskId: string; version: numb
               <span className="min-w-0 text-[13.5px] leading-snug">
                 <span className="text-ink">
                   {entry.ring !== null ? `${entry.ring}. ` : ""}
-                  {activityLabel(i18n.t, entry.kind, entry.subject)}
+                  {stepLabel(i18n.t, entry.kind, entry.subject)}
                   {entry.number > 1 ? `, ${r.attempt(entry.number)}` : ""}
                 </span>
-                <span className={entry.mark === "ring" ? "text-leaf" : "text-ink-2"}>
-                  {" "}
-                  — {outcomeText(i18n, entry)}
-                </span>
+                {outcomeText(i18n, entry) && <span className="text-ink-2"> — {outcomeText(i18n, entry)}</span>}
                 <span className="block font-mono text-[11.5px] text-ink-3">{details(i18n, entry)}</span>
               </span>
             </li>
@@ -342,7 +345,7 @@ export function GrowthRings({ taskId, version }: { taskId: string; version: numb
           <dt>{r.waiting}</dt>
           <dd>{formatDuration(i18n, totals.waitingMs)}</dd>
           <dt>{r.tokensLabel}</dt>
-          <dd>{r.tokenTotals(totals.promptTokens, totals.completionTokens)}</dd>
+          <dd>{r.tokenTotals(formatCount(i18n, totals.promptTokens), formatCount(i18n, totals.completionTokens))}</dd>
           {models.length > 0 && (
             <>
               <dt>{r.model}</dt>

@@ -1,8 +1,7 @@
 import type { Messages } from "./i18n/messages/en";
 import type { RunKind } from "./types";
 
-export function activityLabel(t: Messages, kind: RunKind, subject?: string | null) {
-  const a = t.activity;
+function runLabel(a: Messages["activity"], kind: RunKind, subject?: string | null) {
   switch (kind) {
     case "interpret":
       return a.interpret;
@@ -17,6 +16,14 @@ export function activityLabel(t: Messages, kind: RunKind, subject?: string | nul
     default:
       return a.working;
   }
+}
+
+export function activityLabel(t: Messages, kind: RunKind, subject?: string | null) {
+  return runLabel(t.activity, kind, subject);
+}
+
+export function stepLabel(t: Messages, kind: RunKind, subject?: string | null) {
+  return runLabel(t.rings.steps, kind, subject);
 }
 
 export function outputLabel(t: Messages, output: string): string {

@@ -16,7 +16,7 @@ test("shows the greenhouse, the API's notes and the examples in Portuguese to a 
   await expect(plant).toBeVisible({ timeout: 45_000 });
   await plant.click();
   await expect(page.getByText("Sua vez")).toBeVisible();
-  await expect(page.locator("#journal-panel-notes").getByText("Madura. Tudo escrito e revisado.")).toBeVisible();
+  await expect(page.locator("#journal-panel-notes").getByText("Madura. Escrita e revisão concluídas.")).toBeVisible();
 
   await page.getByRole("link", { name: "Voltar para a estufa" }).click();
   await page.getByRole("button", { name: "English" }).click();
