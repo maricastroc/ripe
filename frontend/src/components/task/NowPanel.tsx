@@ -49,14 +49,14 @@ function peek(type: string, raw: string) {
   return lines;
 }
 
-function LiveText({ text, kind }: { text: string; kind: RunKind }) {
+function LiveText({ text, kind, language }: { text: string; kind: RunKind; language: string | null }) {
   const { t } = useI18n();
   const shown = useTypewriter(text);
   const [raw, setRaw] = useState(false);
   if (kind === "generate" || kind === "revise") {
     return (
       <div className="relative max-h-[360px] overflow-hidden">
-        <Markdown content={shown || " "} className="live-caret text-[15px]" />
+        <Markdown content={shown || " "} className="live-caret text-[15px]" language={language} />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface to-transparent" />
       </div>
     );
@@ -176,7 +176,7 @@ export function NowPanel({ task, agent, liveText = null, onAct, onHarvest, busy 
         <div className="sheet relative mt-4 overflow-hidden rounded-2xl px-5 pb-4 pt-5 sm:px-6">
           <span aria-hidden className="working-bar absolute inset-x-0 top-0 h-[3px]" />
           {partial ? (
-            <LiveText text={partial} kind={activity.kind} />
+            <LiveText text={partial} kind={activity.kind} language={task.language} />
           ) : (
             <div>
               <p className="flex items-center gap-2.5 text-[14.5px] text-ink-2">
